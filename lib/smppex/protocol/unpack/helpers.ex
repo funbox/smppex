@@ -10,21 +10,19 @@ defmodule SMPPEX.Protocol.Unpack.Helpers do
   @spec dec?(binary) :: boolean
   def dec?(<< char, rest :: binary >>) when (char >= 48) and (char <= 57), do: dec?(rest)
   def dec?(<<>>), do: true
-  def dec?(r), do: false
+  def dec?(_), do: false
 
   @spec take_until(binary, integer, integer) :: {binary, binary} | :not_found
   def take_until(bin, char, max) do
-    case byte_size(bin) < max do
-      true -> :not_found
-      false -> _take_until(bin, char, max, 0)
-    end
+    _take_until(bin, char, max, 0)
   end
 
-  defp _take_until(bin, char, max, current) when current >= max, do: :not_found
+  defp _take_until(_bin, _char, max, current) when current >= max, do: :not_found
+  defp _take_until(bin, _char, _max, current) when byte_size(bin) <= current, do: :not_found
 
   defp _take_until(bin, char, max, current) do
     case bin do
-      << prefix :: binary-size(current), char :: integer-unsigned-size(8), rest :: binary >> -> {prefix, rest}
+      << prefix :: binary-size(current), ^char, rest :: binary >> -> {prefix, rest}
       _ -> _take_until(bin, char, max, current + 1)
     end
   end

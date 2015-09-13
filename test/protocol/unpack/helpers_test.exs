@@ -19,7 +19,14 @@ defmodule SMPPEX.Protocol.Unpack.HelpersTest do
     assert dec?(:abc) == false
   end
 
-
+  test "take_until" do
+    assert take_until(<<>>, 0, 0) == :not_found
+    assert take_until(<<1,2,3>>, 0, 10) == :not_found
+    assert take_until(<<1,2,0>>, 0, 2) == :not_found
+    assert take_until(<<1,2,0>>, 0, 3) == {<<1,2>>, <<>>}
+    assert take_until(<<1,2,0,3,4>>, 0, 100) == {<<1,2>>, <<3,4>>}
+    assert take_until(<<1,2,3,4>>, 0, 100) == :not_found
+  end
 
 end
 
