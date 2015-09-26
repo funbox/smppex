@@ -4,13 +4,6 @@ defmodule SMPPEX.Protocol.Unpack do
 
   @null 0
 
-  @type parsed_value :: integer | binary
-  @type parse_error :: {:error, binary}
-  @type parse_ok :: {:ok, parsed_value, binary}
-  @type parse_result :: parse_ok | parse_error
-
-  @type integer_size :: 1 | 2 | 4
-  @spec integer(binary, integer_size) :: parse_result
   def integer(bin, size) when size == 1 or size == 2 or size == 4 do
     integer_bit_size = size * 8
     case bin do
@@ -19,19 +12,13 @@ defmodule SMPPEX.Protocol.Unpack do
     end
   end
 
-  def integer(bin, size) do
+  def integer(_bin, size) do
     {:error, "Invalid integer size #{inspect size}"}
   end
 
-  @type c_octet_kind :: :ascii | :hex | :dec
-  @type c_octet_lengh_spec :: {:fixed, integer} | {:var, integer}
-
-  @spec c_octet_string(binary, c_octet_lengh_spec) :: parse_result
   def c_octet_string(bin, length_spec) do
     c_octet_string(bin, length_spec, :ascii)
   end
-
-  @spec c_octet_string(binary, c_octet_lengh_spec, c_octet_kind) :: parse_result
 
   def c_octet_string(_bin, {:fixed, length}, _kind) when length < 1 do
     {:error, "Invalid length #{inspect length} for C-Octet String"}
@@ -50,7 +37,7 @@ defmodule SMPPEX.Protocol.Unpack do
     end
   end
 
-  def c_octet_string(bin, {:var, max}, _kind) when max < 1 do
+  def c_octet_string(_bin, {:var, max}, _kind) when max < 1 do
     {:error, "Invalid max #{inspect max} for variable length C-Octet String"}
   end
 
@@ -60,11 +47,10 @@ defmodule SMPPEX.Protocol.Unpack do
         true -> {:ok, str, rest}
         false -> {:error, "C-Octet String does not match format #{inspect kind}"}
       end
-      not_found -> {:error, "Invalid C-Octet String"}
+      :not_found -> {:error, "Invalid C-Octet String"}
     end
   end
 
-  @spec octet_string(binary, integer) :: parse_result
   def octet_string(_bin, length) when length < 0, do: {:error, "Invalid length #{inspect length} for Octet String"}
 
   def octet_string(bin, length) do
@@ -74,7 +60,6 @@ defmodule SMPPEX.Protocol.Unpack do
     end
   end
 
-  @spec valid_kind?(binary, c_octet_kind) :: boolean
   def valid_kind?(str, :ascii) do
     true
   end
@@ -87,7 +72,6 @@ defmodule SMPPEX.Protocol.Unpack do
     Helpers.hex? str
   end
 
-  @spec unexpected_data_end() :: parse_error
   defp unexpected_data_end do
     {:error, "Unexpected end of data"}
   end

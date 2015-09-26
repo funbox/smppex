@@ -1,18 +1,15 @@
 defmodule SMPPEX.Protocol.Unpack.Helpers do
 
-  @spec hex?(binary) :: boolean
   def hex?(<< char, rest :: binary >>) when (char >= 48) and (char <= 57), do: hex?(rest)
   def hex?(<< char, rest :: binary >>) when (char >= 65) and (char <= 70), do: hex?(rest)
   def hex?(<< char, rest :: binary >>) when (char >= 97) and (char <= 102), do: hex?(rest)
   def hex?(<<>>), do: true
   def hex?(_), do: false
 
-  @spec dec?(binary) :: boolean
   def dec?(<< char, rest :: binary >>) when (char >= 48) and (char <= 57), do: dec?(rest)
   def dec?(<<>>), do: true
   def dec?(_), do: false
 
-  @spec take_until(binary, integer, integer) :: {binary, binary} | :not_found
   def take_until(bin, char, max) do
     _take_until(bin, char, max, 0)
   end
