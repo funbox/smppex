@@ -53,5 +53,12 @@ defmodule SMPPEX.Protocol.UnpackTest do
     assert {:ok, "0123456789", "c"} == c_octet_string(<<"0123456789", 0, "c">>, {:max, 11}, :dec)
     assert_error c_octet_string(<<"01234F6789", 0, "c">>, {:max, 11}, :dec)
   end
+
+  test "octet_string" do
+    assert_error octet_string("123", -1)
+    assert {:ok, "", "123"} == octet_string("123", 0)
+    assert {:ok, "12", "3"} == octet_string("123", 2)
+    assert_error octet_string("123", 4)
+  end
 end
 
