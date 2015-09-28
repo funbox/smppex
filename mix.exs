@@ -7,7 +7,8 @@ defmodule Smppex.Mixfile do
      elixir: "~> 1.0",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps
+     deps: deps,
+     elixirc_paths: ["lib", "test/support"]
    ]
   end
 
