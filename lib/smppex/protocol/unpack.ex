@@ -61,7 +61,7 @@ defmodule SMPPEX.Protocol.Unpack do
     end
   end
 
-  defp valid_kind?(str, :ascii) do
+  defp valid_kind?(_str, :ascii) do
     true
   end
 
