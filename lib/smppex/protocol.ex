@@ -22,12 +22,13 @@ defmodule SMPPEX.Protocol do
   end
 
   defp parse_pdu(header, body) do
-    case parse_header(header) do
+    pdu_with_header = case parse_header(header) do
       {:ok, pdu} ->
         parse_body(pdu.command_name, pdu, body)
       {:unknown, pdu} ->
         pdu
     end
+    %SMPPEX.Pdu{ pdu_with_header | body: body }
   end
 
   defp parse_header(<<command_id :: big-unsigned-integer-size(32), command_status :: big-unsigned-integer-size(32), sequence_number :: big-unsigned-integer-size(32)>>) do

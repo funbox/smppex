@@ -6,7 +6,8 @@ defmodule SMPPEX.Pdu do
     sequence_number: 0,
     valid: true,
     mandatory: %{},
-    optional: %{}
+    optional: %{},
+    body: <<>>
   ]
 
   def valid?(pdu) do
