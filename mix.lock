@@ -1,1 +1,1 @@
-%{"dialyxir": {:git, "https://github.com/jeremyjh/dialyxir.git", "5a551d14ea8204e50fb0ad59238af947bbba6307", []}}
+%{"hexate": {:hex, :hexate, "0.5.1"}}
