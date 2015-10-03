@@ -2,7 +2,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   import SMPPEX.Protocol.ParseResult
   import SMPPEX.Protocol.Unpack
 
-  def parse(bin, map), do: parse(bin, map, Map.new)
+  def parse(bin, spec), do: parse(bin, spec, Map.new)
 
   defp parse(bin, [], parsed_fields) do
     ok(parsed_fields, bin)
