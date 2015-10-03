@@ -48,16 +48,7 @@ defmodule SMPPEX.Protocol.Unpack do
         true -> {:ok, str, rest}
         false -> {:error, "C-Octet String does not match format #{inspect kind}"}
       end
-      :not_found -> {:error, "Invalid C-Octet String"}
-    end
-  end
-
-  def octet_string(_bin, length) when length < 0, do: {:error, "Invalid length #{inspect length} for Octet String"}
-
-  def octet_string(bin, length) do
-    case bin do
-      << str :: binary-size(length), rest :: binary >> -> {:ok, str, rest}
-      _ -> unexpected_data_end
+      :not_found -> {:error, "Invalid C-Octet String: null terminator not found"}
     end
   end
 
@@ -71,6 +62,26 @@ defmodule SMPPEX.Protocol.Unpack do
 
   defp valid_kind?(str, :hex) do
     Helpers.hex? str
+  end
+
+  def octet_string(_bin, length) when length < 0, do: {:error, "Invalid length #{inspect length} for Octet String"}
+
+  def octet_string(bin, length) do
+    case bin do
+      << str :: binary-size(length), rest :: binary >> -> {:ok, str, rest}
+      _ -> unexpected_data_end
+    end
+  end
+
+  def tlv(bin) when byte_size(bin) < 4 do
+    unexpected_data_end
+  end
+
+  def tlv(<<tag :: big-unsigned-integer-size(16), length :: big-unsigned-integer-size(16), value_and_rest :: binary>>) do
+    case value_and_rest do
+      << value :: binary-size(length), rest :: binary >> -> {:ok, {tag, value}, rest}
+      _ -> unexpected_data_end
+    end
   end
 
   defp unexpected_data_end do

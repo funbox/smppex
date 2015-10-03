@@ -60,5 +60,12 @@ defmodule SMPPEX.Protocol.UnpackTest do
     assert {:ok, "12", "3"} == octet_string("123", 2)
     assert_error octet_string("123", 4)
   end
+
+  test "tlv" do
+    assert_error tlv(<<0,1,0,2,0>>)
+    assert_error tlv(<<0,1,0,-1,0>>)
+
+    assert {:ok, {1, <<3,4>>}, <<5>>} == tlv(<<0,1,0,2,3,4,5>>)
+  end
 end
 
