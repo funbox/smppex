@@ -1,34 +1,52 @@
 defmodule SMPPEX.Protocol do
 
+  alias SMPPEX.Protocol.CommandNames
+  import SMPPEX.ParseResult
+
   def parse(bin) when byte_size(bin) < 4 do
-    {[], bin}
+    ok(nil, bin)
   end
 
   def parse(bin) do
     <<command_length :: big-unsigned-integer-size(32), rest :: binary >> = bin
     cond do
       command_length < 16 ->
-        {:fatal_error, "Invalid PDU command_length #{inspect command_length}"}
+        error("Invalid PDU command_length #{inspect command_length}")
       command_length <= byte_size(bin) ->
         body_length = command_length - 16
         << header :: binary-size(12), body :: binary-size(body_length), next_pdus :: binary >> = rest
-        {parse_pdu(header, body), next_pdus}
+        ok(parse_pdu(header, body), next_pdus)
       true ->
-        {[], bin}
+        ok(nil, bin)
     end
   end
 
   defp parse_pdu(header, body) do
-    pdu = parse_header(header)
-    parse_body(pdu.command_id, pdu, body)
+    case parse_header(header) do
+      {:ok, pdu} ->
+        parse_body(pdu.command_name, pdu, body)
+      {:unknown, pdu} ->
+        pdu
+    end
   end
 
   defp parse_header(<<command_id :: big-unsigned-integer-size(32), command_status :: big-unsigned-integer-size(32), sequence_number :: big-unsigned-integer-size(32)>>) do
-   %SMPPEX.Pdu{
-     command_id: command_id,
-     command_status: command_status,
-     sequence_number: sequence_number
-   }
+    case CommandNames.name_by_id(command_id) do
+      {:ok, name} ->
+        {:ok, %SMPPEX.Pdu{
+          command_id: command_id,
+          command_name: name,
+          command_status: command_status,
+          sequence_number: sequence_number
+        }}
+      :unknown ->
+        {:unknown, %SMPPEX.Pdu{
+          command_id: command_id,
+          command_status: command_status,
+          sequence_number: sequence_number,
+          valid: false
+        }}
+    end
   end
 
   defp parse_body(command_id, pdu, body) do
@@ -37,10 +55,10 @@ defmodule SMPPEX.Protocol do
       {:ok, fields, rest_tlvs} ->
         case parse_optional_fields(rest_tlvs) do
           {:ok, tlvs} ->
-            [ %SMPPEX.Pdu{ pdu | mandatory: fields, optional: tlvs } ]
+            %SMPPEX.Pdu{ pdu | mandatory: fields, optional: tlvs }
           error -> {:error, {"TLV parse error", error}}
         end
-      error -> {:error, {"Fields parse error", error}}
+      error -> {:error, {"Mandatory fields parse error", error}}
     end
   end
 

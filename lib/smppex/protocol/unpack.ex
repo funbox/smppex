@@ -1,6 +1,7 @@
 defmodule SMPPEX.Protocol.Unpack do
 
   alias SMPPEX.Protocol.Unpack.Helpers
+  import SMPPEX.ParseResult
 
   @null 0
 
@@ -13,14 +14,6 @@ defmodule SMPPEX.Protocol.Unpack do
   @error_invalid_c_octet_string_max "Invalid max for C-Octet String"
   @error_invalid_octet_string_length "Invalid length for Octet String"
 
-  defp ok(result, rest) do
-    {:ok, result, rest}
-  end
-
-  defp error(desc) do
-    {:error, desc}
-  end
-
   def integer(bin, size) when size == 1 or size == 2 or size == 4 do
     integer_bit_size = size * 8
     case bin do
@@ -29,7 +22,7 @@ defmodule SMPPEX.Protocol.Unpack do
     end
   end
 
-  def integer(_bin, size) do
+  def integer(_bin, _size) do
     error(@error_invalid_integer_size)
   end
 
