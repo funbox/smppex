@@ -1,6 +1,8 @@
 defmodule SMPPEX.Protocol do
 
   alias SMPPEX.Protocol.CommandNames
+  alias SMPPEX.Protocol.MandatoryFieldsSpecs
+  alias SMPPEX.Protocol.MandatoryFieldsParser
   import SMPPEX.ParseResult
 
   def parse(bin) when byte_size(bin) < 4 do
@@ -50,22 +52,19 @@ defmodule SMPPEX.Protocol do
     end
   end
 
-  defp parse_body(command_id, pdu, body) do
-    map = mandatory_field_map(command_id)
-    case parse_mandatory_fields(map, body) do
-      {:ok, fields, rest_tlvs} ->
-        case parse_optional_fields(rest_tlvs) do
+  defp parse_body(command_name, pdu, body) do
+    spec = MandatoryFieldsSpecs.spec_for(command_name)
+    case MandatoryFieldsParser.parse(body, spec) do
+      {:ok, fields, rest} ->
+        case parse_optional_fields(rest) do
           {:ok, tlvs} ->
             %SMPPEX.Pdu{ pdu | mandatory: fields, optional: tlvs }
-          error -> {:error, {"TLV parse error", error}}
+          error -> error("TLV parse error", error)
         end
-      error -> {:error, {"Mandatory fields parse error", error}}
+      error -> error("Mandatory fields parse error", error)
     end
   end
 
-  defp mandatory_field_map(_command_id), do: nil
-
-  defp parse_mandatory_fields(_map, body), do: {:ok, %{}, body}
-  defp parse_optional_fields(_body), do: {:ok, %{}}
+  defp parse_optional_fields(_body), do: {:ok, Map.new}
 
 end

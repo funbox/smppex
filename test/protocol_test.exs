@@ -42,5 +42,36 @@ defmodule SMPPEX.ProtocolTest do
     assert pdu.sequence_number == 1
     assert pdu.valid == true
   end
+
+  test "parse: bind_transmitter" do
+
+    data =  """
+      00 00 00 30 00 00 00 02 00 00 00 00 00 00 00 01
+      74 65 73 74 5f 6d 6f 33 00 59 37 6c 48 7a 76 46
+      6a 00 63 6f 6d 6d 00 7b 01 02 72 61 6e 67 65 00
+    """
+
+    parse_result = parse(from_hex data)
+
+    assert {:ok, _, _} = parse_result
+
+    {:ok, pdu, _} = parse_result
+
+    assert pdu.command_id == 0x00000002
+    assert pdu.command_name == :bind_transmitter
+    assert pdu.command_status == 0
+    assert pdu.sequence_number == 1
+    assert pdu.valid == true
+
+    assert pdu.mandatory[:system_id] == "test_mo3"
+    assert pdu.mandatory[:password] == "Y7lHzvFj"
+    assert pdu.mandatory[:system_type] == "comm"
+    assert pdu.mandatory[:interface_version] == 123
+    assert pdu.mandatory[:addr_ton] == 1
+    assert pdu.mandatory[:addr_npi] == 2
+    assert pdu.mandatory[:address_range] == "range"
+
+  end
+
 end
 
