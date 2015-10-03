@@ -1,7 +1,7 @@
 defmodule SMPPEX.Protocol.Unpack do
 
   alias SMPPEX.Protocol.Unpack.Helpers
-  import SMPPEX.ParseResult
+  import SMPPEX.Protocol.ParseResult
 
   @null 0
 

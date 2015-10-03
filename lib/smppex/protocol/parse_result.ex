@@ -1,6 +1,6 @@
-defmodule SMPPEX.ParseResult do
+defmodule SMPPEX.Protocol.ParseResult do
 
-  def ok(result, rest) do
+  def ok(result, rest) when is_binary(rest) do
     {:ok, result, rest}
   end
 

@@ -1,5 +1,5 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsParser do
-  import SMPPEX.ParseResult
+  import SMPPEX.Protocol.ParseResult
   import SMPPEX.Protocol.Unpack
 
   def parse(bin, map), do: parse(bin, map, Map.new)
@@ -27,15 +27,15 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   end
 
   defp read_value(bin, {:c_octet_string, {:max, n}}, parsed_fields) do
-    c_octet_string(bin, {:max, value(n, parsed_fields)})
+    c_octet_string(bin, {:max, expand(n, parsed_fields)})
   end
 
   defp read_value(bin, {:integer, n}, _parsed_fields) do
     integer(bin, n)
   end
 
-  defp value(n, parsed_fields) when is_integer(n), do: n
-  defp value(n, parsed_fields) when is_atom(n), do: parsed_fields[n]
+  defp expand(n, _parsed_fields) when is_integer(n), do: n
+  defp expand(n, parsed_fields) when is_atom(n), do: parsed_fields[n]
 
 end
 

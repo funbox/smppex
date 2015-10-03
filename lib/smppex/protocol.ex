@@ -3,7 +3,7 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
   alias SMPPEX.Protocol.MandatoryFieldsParser
   alias SMPPEX.Pdu
-  import SMPPEX.ParseResult
+  import SMPPEX.Protocol.ParseResult
 
   def parse(bin) when byte_size(bin) < 4 do
     ok(nil, bin)
