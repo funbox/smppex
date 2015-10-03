@@ -7,7 +7,7 @@ defmodule SMPPEX.Pdu do
     command_name: nil,
     command_status: 0,
     sequence_number: 0,
-    valid: true,
+    valid: false,
     mandatory: %{},
     optional: %{},
     body: <<>>
@@ -20,7 +20,8 @@ defmodule SMPPEX.Pdu do
           command_id: command_id,
           command_name: name,
           command_status: command_status,
-          sequence_number: sequence_number
+          sequence_number: sequence_number,
+          valid: true
         }}
       :unknown ->
         {:unknown, %Pdu{
