@@ -1,5 +1,6 @@
 defmodule SMPPEX.Pdu do
   alias SMPPEX.Protocol.CommandNames
+  alias SMPPEX.Pdu
 
   defstruct [
     command_id: 0,
@@ -15,14 +16,14 @@ defmodule SMPPEX.Pdu do
   def new(command_id, command_status, sequence_number) do
     case CommandNames.name_by_id(command_id) do
       {:ok, name} ->
-        {:ok, %SMPPEX.Pdu{
+        {:ok, %Pdu{
           command_id: command_id,
           command_name: name,
           command_status: command_status,
           sequence_number: sequence_number
         }}
       :unknown ->
-        {:unknown, %SMPPEX.Pdu{
+        {:unknown, %Pdu{
           command_id: command_id,
           command_status: command_status,
           sequence_number: sequence_number,
@@ -60,14 +61,14 @@ defmodule SMPPEX.Pdu do
   end
 
   def set_body(pdu, body) do
-    %SMPPEX.Pdu{ pdu | body: body }
+    %Pdu{ pdu | body: body }
   end
 
   def set_mandatory_fields(pdu, fields) do
-    %SMPPEX.Pdu{ pdu | mandatory: fields }
+    %Pdu{ pdu | mandatory: fields }
   end
 
   def set_optional_fields(pdu, tlvs) do
-    %SMPPEX.Pdu{ pdu | optional: tlvs }
+    %Pdu{ pdu | optional: tlvs }
   end
 end
