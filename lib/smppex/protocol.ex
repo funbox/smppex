@@ -44,9 +44,10 @@ defmodule SMPPEX.Protocol do
         case parse_optional_fields(rest) do
           {:ok, tlvs} ->
             pdu |> Pdu.set_mandatory_fields(fields) |> Pdu.set_optional_fields(tlvs)
-          error -> error("TLV parse error", error)
+          {:error, error} -> error("TLV parse error", error)
         end
-      error -> error("Mandatory fields parse error", error)
+      {:error, error} ->
+          pdu |> Pdu.set_invalid(error("Mandatory fields parse error", error))
     end
   end
 

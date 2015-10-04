@@ -18,7 +18,7 @@ defmodule SMPPEX.Protocol.UnpackTest do
     assert_error c_octet_string(<<"hi">>, {:fixed, 0})
     assert_error c_octet_string(<<"hi">>, {:fixed, 0}, :ascii)
 
-    assert {:ok, nil, "rest"} == c_octet_string(<<0, "rest">>, {:fixed, 1}, :ascii)
+    assert {:ok, "", "rest"} == c_octet_string(<<0, "rest">>, {:fixed, 1}, :ascii)
     assert_error c_octet_string(<<"ab", 0>>, {:fixed, 4})
 
     assert {:ok, "ab", "c"} == c_octet_string(<<"ab", 0, "c">>, {:fixed, 3}, :ascii)

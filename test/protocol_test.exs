@@ -29,8 +29,8 @@ defmodule SMPPEX.ProtocolTest do
     assert Pdu.valid?(pdu) == false
   end
 
-  test "parse: good header" do
-    parse_result = parse(from_hex "00 00 00 10   80 00 00 02   00 00 00 00   00 00 00 01   AA BB CC")
+  test "parse: bind_transmitter_resp" do
+    parse_result = parse(from_hex "00 00 00 11   80 00 00 02   00 00 00 00   00 00 00 01   00 AA BB CC")
 
     assert {:ok, _, _} = parse_result
 
@@ -42,6 +42,7 @@ defmodule SMPPEX.ProtocolTest do
     assert Pdu.command_status(pdu) == 0
     assert Pdu.sequence_number(pdu) == 1
     assert Pdu.valid?(pdu) == true
+    assert Pdu.get_field(pdu, :system_id) == ""
   end
 
   test "parse: bind_transmitter" do

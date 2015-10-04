@@ -37,7 +37,7 @@ defmodule SMPPEX.Protocol.Unpack do
   def c_octet_string(bin, {:fixed, length}, kind) do
     str_length = length - 1
     case bin do
-      << @null :: size(8), rest :: binary >> -> ok(nil, rest)
+      << @null :: size(8), rest :: binary >> -> ok("", rest)
       << str :: binary-size(str_length), @null :: size(8), rest :: binary >> ->
         case valid_kind?(str, kind) do
           true -> ok(str, rest)

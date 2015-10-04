@@ -10,7 +10,8 @@ defmodule SMPPEX.Pdu do
     valid: false,
     mandatory: %{},
     optional: %{},
-    body: <<>>
+    body: <<>>,
+    parse_error: nil
   ]
 
   def new(command_id, command_status, sequence_number) do
@@ -55,6 +56,14 @@ defmodule SMPPEX.Pdu do
 
   def body(pdu) do
     pdu.body
+  end
+
+  def error(pdu) do
+    pdu.parse_error
+  end
+
+  def set_invalid(pdu, error) do
+    %Pdu{ pdu | parse_error: error, valid: false }
   end
 
   def get_field(pdu, name) do
