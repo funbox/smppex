@@ -5,7 +5,7 @@ defmodule SMPPEX.ProtocolTest do
   import SMPPEX.Protocol
   alias SMPPEX.Pdu
 
-  test "parse: insuficient data" do
+  test "parse: insufficient data" do
     assert parse(<<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>) == {:ok, nil, <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>}
     assert parse(<<1,2,3>>) == {:ok, nil, <<1,2,3>>}
   end
