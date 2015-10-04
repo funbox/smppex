@@ -66,8 +66,20 @@ defmodule SMPPEX.Pdu do
     %Pdu{ pdu | parse_error: error, valid: false }
   end
 
-  def get_field(pdu, name) do
+  def get_mandatory_field(pdu, name) when is_atom(name) do
     pdu.mandatory[name]
+  end
+
+  def get_optional_field(pdu, id) when is_integer(id) do
+    pdu.optional[id]
+  end
+
+  def get_optional_field(pdu, name) when is_atom(name) do
+    pdu.optional[name]
+  end
+
+  def get_field(pdu, id_or_name) do
+    get_mandatory_field(pdu, id_or_name) || get_optional_field(pdu, id_or_name)
   end
 
   def set_body(pdu, body) do
