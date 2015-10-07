@@ -1,7 +1,7 @@
-defmodule SMPPEX.Protocol.TlvNamesTest do
+defmodule SMPPEX.Protocol.TlvFormatTest do
 
   use AssertHelpers
-  import SMPPEX.Protocol.TlvNames
+  import SMPPEX.Protocol.TlvFormat
 
   test "name_by_id" do
     assert name_by_id(0x0005) == {:ok, :dest_addr_subunit}

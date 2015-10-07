@@ -1,4 +1,4 @@
-defmodule SMPPEX.Protocol.TlvNames do
+defmodule SMPPEX.Protocol.TlvFormat do
   tlvs = [
     {:dest_addr_subunit, 0x0005, quote do: {:integer, 1}},
     {:dest_network_type, 0x0006, quote do: {:integer, 1}},
