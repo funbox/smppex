@@ -3,7 +3,7 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
   alias SMPPEX.Protocol.MandatoryFieldsParser
   alias SMPPEX.Protocol.OptionalFieldsParser
-  alias SMPPEX.Pdu
+  alias SMPPEX.InPdu
 
   import SMPPEX.Protocol.ParseResult
 
@@ -32,11 +32,11 @@ defmodule SMPPEX.Protocol do
       {:unknown, pdu} ->
         pdu
     end
-    Pdu.set_body(pdu_with_header, body)
+    InPdu.set_body(pdu_with_header, body)
   end
 
   defp parse_header(<<command_id :: big-unsigned-integer-size(32), command_status :: big-unsigned-integer-size(32), sequence_number :: big-unsigned-integer-size(32)>>) do
-    Pdu.new(command_id, command_status, sequence_number)
+    InPdu.new(command_id, command_status, sequence_number)
   end
 
   defp parse_body(command_name, pdu, body) do
@@ -45,11 +45,11 @@ defmodule SMPPEX.Protocol do
       {:ok, fields, rest} ->
         case OptionalFieldsParser.parse(rest) do
           {:ok, tlvs} ->
-            pdu |> Pdu.set_mandatory_fields(fields) |> Pdu.set_optional_fields(tlvs)
+            pdu |> InPdu.set_mandatory_fields(fields) |> InPdu.set_optional_fields(tlvs)
           {:error, error} -> error("TLV parse error", error)
         end
       {:error, error} ->
-          pdu |> Pdu.set_invalid(error("Mandatory fields parse error", error))
+          pdu |> InPdu.set_invalid(error("Mandatory fields parse error", error))
     end
   end
 

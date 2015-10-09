@@ -1,6 +1,6 @@
-defmodule SMPPEX.Pdu do
+defmodule SMPPEX.InPdu do
   alias SMPPEX.Protocol.CommandNames
-  alias SMPPEX.Pdu
+  alias SMPPEX.InPdu
 
   defstruct [
     command_id: 0,
@@ -17,7 +17,7 @@ defmodule SMPPEX.Pdu do
   def new(command_id, command_status, sequence_number) do
     case CommandNames.name_by_id(command_id) do
       {:ok, name} ->
-        {:ok, %Pdu{
+        {:ok, %InPdu{
           command_id: command_id,
           command_name: name,
           command_status: command_status,
@@ -25,7 +25,7 @@ defmodule SMPPEX.Pdu do
           valid: true
         }}
       :unknown ->
-        {:unknown, %Pdu{
+        {:unknown, %InPdu{
           command_id: command_id,
           command_status: command_status,
           sequence_number: sequence_number,
@@ -63,7 +63,7 @@ defmodule SMPPEX.Pdu do
   end
 
   def set_invalid(pdu, error) do
-    %Pdu{ pdu | parse_error: error, valid: false }
+    %InPdu{ pdu | parse_error: error, valid: false }
   end
 
   def get_mandatory_field(pdu, name) when is_atom(name) do
@@ -83,14 +83,14 @@ defmodule SMPPEX.Pdu do
   end
 
   def set_body(pdu, body) do
-    %Pdu{ pdu | body: body }
+    %InPdu{ pdu | body: body }
   end
 
   def set_mandatory_fields(pdu, fields) do
-    %Pdu{ pdu | mandatory: fields }
+    %InPdu{ pdu | mandatory: fields }
   end
 
   def set_optional_fields(pdu, tlvs) do
-    %Pdu{ pdu | optional: tlvs }
+    %InPdu{ pdu | optional: tlvs }
   end
 end

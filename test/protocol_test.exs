@@ -3,7 +3,7 @@ defmodule SMPPEX.ProtocolTest do
   use HexHelpers
 
   import SMPPEX.Protocol
-  alias SMPPEX.Pdu
+  alias SMPPEX.InPdu
 
   test "parse: insufficient data" do
     assert parse(<<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>) == {:ok, nil, <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>}
@@ -22,11 +22,11 @@ defmodule SMPPEX.ProtocolTest do
     {:ok, pdu, tail} = parse_result
 
     assert tail == from_hex("AA BB CC")
-    assert Pdu.command_id(pdu) == 0x80003302
-    assert Pdu.command_name(pdu) == nil
-    assert Pdu.command_status(pdu) == 0
-    assert Pdu.sequence_number(pdu) == 1
-    assert Pdu.valid?(pdu) == false
+    assert InPdu.command_id(pdu) == 0x80003302
+    assert InPdu.command_name(pdu) == nil
+    assert InPdu.command_status(pdu) == 0
+    assert InPdu.sequence_number(pdu) == 1
+    assert InPdu.valid?(pdu) == false
   end
 
   test "parse: bind_transmitter_resp" do
@@ -37,12 +37,12 @@ defmodule SMPPEX.ProtocolTest do
     {:ok, pdu, tail} = parse_result
 
     assert tail == from_hex("AA BB CC")
-    assert Pdu.command_id(pdu) == 0x80000002
-    assert Pdu.command_name(pdu) == :bind_transmitter_resp
-    assert Pdu.command_status(pdu) == 0
-    assert Pdu.sequence_number(pdu) == 1
-    assert Pdu.valid?(pdu) == true
-    assert Pdu.get_field(pdu, :system_id) == ""
+    assert InPdu.command_id(pdu) == 0x80000002
+    assert InPdu.command_name(pdu) == :bind_transmitter_resp
+    assert InPdu.command_status(pdu) == 0
+    assert InPdu.sequence_number(pdu) == 1
+    assert InPdu.valid?(pdu) == true
+    assert InPdu.get_field(pdu, :system_id) == ""
   end
 
   test "parse: bind_transmitter" do
@@ -59,19 +59,19 @@ defmodule SMPPEX.ProtocolTest do
 
     {:ok, pdu, _} = parse_result
 
-    assert Pdu.command_id(pdu) == 0x00000002
-    assert Pdu.command_name(pdu) == :bind_transmitter
-    assert Pdu.command_status(pdu) == 0
-    assert Pdu.sequence_number(pdu) == 1
-    assert Pdu.valid?(pdu) == true
+    assert InPdu.command_id(pdu) == 0x00000002
+    assert InPdu.command_name(pdu) == :bind_transmitter
+    assert InPdu.command_status(pdu) == 0
+    assert InPdu.sequence_number(pdu) == 1
+    assert InPdu.valid?(pdu) == true
 
-    assert Pdu.get_field(pdu, :system_id) == "test_mo3"
-    assert Pdu.get_field(pdu, :password) == "Y7lHzvFj"
-    assert Pdu.get_field(pdu, :system_type) == "comm"
-    assert Pdu.get_field(pdu, :interface_version) == 123
-    assert Pdu.get_field(pdu, :addr_ton) == 1
-    assert Pdu.get_field(pdu, :addr_npi) == 2
-    assert Pdu.get_field(pdu, :address_range) == "range"
+    assert InPdu.get_field(pdu, :system_id) == "test_mo3"
+    assert InPdu.get_field(pdu, :password) == "Y7lHzvFj"
+    assert InPdu.get_field(pdu, :system_type) == "comm"
+    assert InPdu.get_field(pdu, :interface_version) == 123
+    assert InPdu.get_field(pdu, :addr_ton) == 1
+    assert InPdu.get_field(pdu, :addr_npi) == 2
+    assert InPdu.get_field(pdu, :address_range) == "range"
 
   end
 
