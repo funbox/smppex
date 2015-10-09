@@ -1,6 +1,5 @@
 defmodule SMPPEX.ProtocolTest do
   use ExUnit.Case
-  use HexHelpers
 
   import SMPPEX.Protocol
   alias SMPPEX.InPdu
@@ -11,17 +10,17 @@ defmodule SMPPEX.ProtocolTest do
   end
 
   test "parse: bad command_length" do
-    assert {:error, _} = parse(from_hex "00 00 00 0F   00 00 00 00   00 00 00 00   00 00 00 00")
+    assert {:error, _} = parse(<<00, 00, 00, 0x0F,   00, 00, 00, 00,   00, 00, 00, 00,   00, 00, 00, 00>>)
   end
 
   test "parse: bad command_id" do
-    parse_result = parse(from_hex "00 00 00 10   80 00 33 02   00 00 00 00   00 00 00 01   AA BB CC")
+    parse_result = parse(<<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
 
     assert {:ok, _, _} = parse_result
 
     {:ok, pdu, tail} = parse_result
 
-    assert tail == from_hex("AA BB CC")
+    assert tail == <<0xAA, 0xBB, 0xCC>>
     assert InPdu.command_id(pdu) == 0x80003302
     assert InPdu.command_name(pdu) == nil
     assert InPdu.command_status(pdu) == 0
@@ -30,13 +29,13 @@ defmodule SMPPEX.ProtocolTest do
   end
 
   test "parse: bind_transmitter_resp" do
-    parse_result = parse(from_hex "00 00 00 11   80 00 00 02   00 00 00 00   00 00 00 01   00 AA BB CC")
+    parse_result = parse(<<00, 00, 00, 0x11,   0x80, 00, 00, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0x00, 0xAA, 0xBB, 0xCC>>)
 
     assert {:ok, _, _} = parse_result
 
     {:ok, pdu, tail} = parse_result
 
-    assert tail == from_hex("AA BB CC")
+    assert tail == <<0xAA, 0xBB, 0xCC>>
     assert InPdu.command_id(pdu) == 0x80000002
     assert InPdu.command_name(pdu) == :bind_transmitter_resp
     assert InPdu.command_status(pdu) == 0
@@ -47,13 +46,13 @@ defmodule SMPPEX.ProtocolTest do
 
   test "parse: bind_transmitter" do
 
-    data =  """
-      00 00 00 30 00 00 00 02 00 00 00 00 00 00 00 01
-      74 65 73 74 5f 6d 6f 33 00 59 37 6c 48 7a 76 46
-      6a 00 63 6f 6d 6d 00 7b 01 02 72 61 6e 67 65 00
-    """
+    data = <<
+      0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0x74, 0x65, 0x73, 0x74, 0x5f, 0x6d, 0x6f, 0x33, 0x00, 0x59, 0x37, 0x6c, 0x48, 0x7a, 0x76, 0x46,
+      0x6a, 0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x00, 0x7b, 0x01, 0x02, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x00
+    >>
 
-    parse_result = parse(from_hex data)
+    parse_result = parse(data)
 
     assert {:ok, _, _} = parse_result
 
