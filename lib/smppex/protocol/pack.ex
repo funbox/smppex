@@ -7,15 +7,15 @@ defmodule SMPPEX.Protocol.Pack do
   @null 0
   @null_str << @null >>
 
-  @invalid_integer "Invalid value for Integer"
+  @invalid_integer "Integer: invalid value"
 
-  @invalid_c_octet_string_value "Invalid value for C-Octet String"
-  @invalid_c_octet_string_format "Invalid format for C-Octet String"
+  @invalid_c_octet_string_value "C-Octet String: invalid value"
+  @invalid_c_octet_string_format "C-Octet String: invalid format"
 
-  @invalid_octet_string "Invalid value for C-Octet String"
+  @invalid_octet_string "Octet String: invalid value"
 
-  @invalid_tlv_tag "Invalid tag for TLV"
-  @invalid_tlv_value "Invalid value for TLV"
+  @invalid_tlv_tag "TLV: invalid tag"
+  @invalid_tlv_value "TLV: invalid value"
 
   def integer(int) when not is_integer(int), do: error(@invalid_integer)
 

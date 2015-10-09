@@ -1,5 +1,5 @@
 defmodule SMPPEX.ProtocolTest do
-  use AssertHelpers
+  use ExUnit.Case
   use HexHelpers
 
   import SMPPEX.Protocol

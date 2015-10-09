@@ -1,6 +1,6 @@
 defmodule SMPPEX.Protocol.TlvFormatTest do
 
-  use AssertHelpers
+  use ExUnit.Case
   import SMPPEX.Protocol.TlvFormat
 
   test "name_by_id" do

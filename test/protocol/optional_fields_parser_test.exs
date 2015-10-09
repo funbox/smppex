@@ -1,5 +1,5 @@
 defmodule SMPPEX.Protocol.OptionalFieldsParserTest do
-  use AssertHelpers
+  use ExUnit.Case
   use HexHelpers
 
   import SMPPEX.Protocol.OptionalFieldsParser
