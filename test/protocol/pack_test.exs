@@ -62,5 +62,15 @@ defmodule SMPPEX.Protocol.PackTest do
     assert {:ok, <<?0, ?1, 0>>} = c_octet_string("01", {:max, 3}, :dec)
   end
 
+  test "octet_string" do
+    assert_raise FunctionClauseError, fn() -> octet_string("foo", :bad_length) end
+    assert_raise FunctionClauseError, fn() -> octet_string("foo", -1) end
+
+    assert {:error, _} = octet_string(:not_a_string, 12)
+    assert {:error, _} = octet_string("abc", 2)
+    assert {:error, _} = octet_string("abc", 4)
+
+    assert {:ok, "abc"} == octet_string("abc", 3)
+  end
 end
 

@@ -65,9 +65,9 @@ defmodule SMPPEX.Protocol.Pack do
 
   def octet_string(str, _length) when not is_binary(str), do: error(@invalid_octet_string)
 
-  def octet_string(str, length) when length >= 0 do
+  def octet_string(str, length) when is_integer(length) and length >= 0 do
     if byte_size(str) == length do
-      str
+      ok(str)
     else
       error(@invalid_octet_string)
     end
