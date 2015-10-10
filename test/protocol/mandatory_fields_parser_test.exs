@@ -78,13 +78,13 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     assert {:ok, %{a: <<01>>}, <<02, 03>>} = parse(data, spec, %{b: 3})
   end
 
-  test "parse: octet_string" do
+  test "parse: octet_string expanded" do
     spec = [
       {:a, {:octet_string, :b}}
     ]
 
     data = <<01, 02, 03, 04>>
-    assert {:ok, %{a: <<01, 02, 03>>}, <<04>>} == parse(data, spec, %{b: 3})
+    assert {:ok, %{a: <<01, 02, 03>>, b: 3}, <<04>>} == parse(data, spec, %{b: 3})
   end
 
   test "n-times parse" do
