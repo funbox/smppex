@@ -2,7 +2,7 @@ defmodule SMPPEX.ProtocolTest do
   use ExUnit.Case
 
   import SMPPEX.Protocol
-  alias SMPPEX.InPdu
+  alias SMPPEX.Pdu
 
   test "parse: insufficient data" do
     assert parse(<<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>) == {:ok, nil, <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>}
@@ -16,32 +16,21 @@ defmodule SMPPEX.ProtocolTest do
   test "parse: bad command_id" do
     parse_result = parse(<<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
 
-    assert {:ok, _, _} = parse_result
-
-    {:ok, pdu, tail} = parse_result
-
-    assert tail == <<0xAA, 0xBB, 0xCC>>
-    assert InPdu.command_id(pdu) == 0x80003302
-    assert InPdu.command_name(pdu) == nil
-    assert InPdu.command_status(pdu) == 0
-    assert InPdu.sequence_number(pdu) == 1
-    assert InPdu.valid?(pdu) == false
+    assert {:ok, {:unknown_pdu, {{0x80003302, 0, 1}, ""}}, <<0xAA, 0xBB, 0xCC>>} = parse_result
   end
 
   test "parse: bind_transmitter_resp" do
     parse_result = parse(<<00, 00, 00, 0x11,   0x80, 00, 00, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0x00, 0xAA, 0xBB, 0xCC>>)
 
-    assert {:ok, _, _} = parse_result
+    assert {:ok, {:pdu, _}, _} = parse_result
 
-    {:ok, pdu, tail} = parse_result
+    {:ok, {:pdu, pdu}, tail} = parse_result
 
     assert tail == <<0xAA, 0xBB, 0xCC>>
-    assert InPdu.command_id(pdu) == 0x80000002
-    assert InPdu.command_name(pdu) == :bind_transmitter_resp
-    assert InPdu.command_status(pdu) == 0
-    assert InPdu.sequence_number(pdu) == 1
-    assert InPdu.valid?(pdu) == true
-    assert InPdu.get_field(pdu, :system_id) == ""
+    assert Pdu.command_id(pdu) == 0x80000002
+    assert Pdu.command_status(pdu) == 0
+    assert Pdu.sequence_number(pdu) == 1
+    assert Pdu.get_field(pdu, :system_id) == ""
   end
 
   test "parse: bind_transmitter" do
@@ -54,25 +43,22 @@ defmodule SMPPEX.ProtocolTest do
 
     parse_result = parse(data)
 
-    assert {:ok, _, _} = parse_result
+    assert {:ok, {:pdu, _}, _} = parse_result
 
-    {:ok, pdu, _} = parse_result
+    {:ok, {:pdu, pdu}, _} = parse_result
 
-    assert InPdu.command_id(pdu) == 0x00000002
-    assert InPdu.command_name(pdu) == :bind_transmitter
-    assert InPdu.command_status(pdu) == 0
-    assert InPdu.sequence_number(pdu) == 1
-    assert InPdu.valid?(pdu) == true
+    assert Pdu.command_id(pdu) == 0x00000002
+    assert Pdu.command_status(pdu) == 0
+    assert Pdu.sequence_number(pdu) == 1
 
-    assert InPdu.get_field(pdu, :system_id) == "test_mo3"
-    assert InPdu.get_field(pdu, :password) == "Y7lHzvFj"
-    assert InPdu.get_field(pdu, :system_type) == "comm"
-    assert InPdu.get_field(pdu, :interface_version) == 123
-    assert InPdu.get_field(pdu, :addr_ton) == 1
-    assert InPdu.get_field(pdu, :addr_npi) == 2
-    assert InPdu.get_field(pdu, :address_range) == "range"
+    assert Pdu.get_field(pdu, :system_id) == "test_mo3"
+    assert Pdu.get_field(pdu, :password) == "Y7lHzvFj"
+    assert Pdu.get_field(pdu, :system_type) == "comm"
+    assert Pdu.get_field(pdu, :interface_version) == 123
+    assert Pdu.get_field(pdu, :addr_ton) == 1
+    assert Pdu.get_field(pdu, :addr_npi) == 2
+    assert Pdu.get_field(pdu, :address_range) == "range"
 
   end
 
 end
-
