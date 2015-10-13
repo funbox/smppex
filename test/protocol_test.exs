@@ -30,7 +30,7 @@ defmodule SMPPEX.ProtocolTest do
     assert Pdu.command_id(pdu) == 0x80000002
     assert Pdu.command_status(pdu) == 0
     assert Pdu.sequence_number(pdu) == 1
-    assert Pdu.get_field(pdu, :system_id) == ""
+    assert Pdu.field(pdu, :system_id) == ""
   end
 
   test "parse: bind_transmitter" do
@@ -51,13 +51,13 @@ defmodule SMPPEX.ProtocolTest do
     assert Pdu.command_status(pdu) == 0
     assert Pdu.sequence_number(pdu) == 1
 
-    assert Pdu.get_field(pdu, :system_id) == "test_mo3"
-    assert Pdu.get_field(pdu, :password) == "Y7lHzvFj"
-    assert Pdu.get_field(pdu, :system_type) == "comm"
-    assert Pdu.get_field(pdu, :interface_version) == 123
-    assert Pdu.get_field(pdu, :addr_ton) == 1
-    assert Pdu.get_field(pdu, :addr_npi) == 2
-    assert Pdu.get_field(pdu, :address_range) == "range"
+    assert Pdu.field(pdu, :system_id) == "test_mo3"
+    assert Pdu.field(pdu, :password) == "Y7lHzvFj"
+    assert Pdu.field(pdu, :system_type) == "comm"
+    assert Pdu.field(pdu, :interface_version) == 123
+    assert Pdu.field(pdu, :addr_ton) == 1
+    assert Pdu.field(pdu, :addr_npi) == 2
+    assert Pdu.field(pdu, :address_range) == "range"
 
   end
 
