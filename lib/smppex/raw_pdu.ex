@@ -2,6 +2,13 @@ defmodule SMPPEX.RawPdu do
 
   alias SMPPEX.RawPdu
 
+  @type t :: %RawPdu{
+    command_id: integer,
+    command_status: integer,
+    sequence_number: integer,
+    body: binary
+  } 
+
   defstruct [
     command_id: 0,
     command_status: 0,
@@ -28,6 +35,10 @@ defmodule SMPPEX.RawPdu do
 
   def sequence_number(pdu) do
     pdu.sequence_number
+  end
+
+  def header(pdu) do
+    {pdu.command_id, pdu.command_status, pdu.sequence_number}
   end
 
   def body(pdu) do

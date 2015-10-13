@@ -3,6 +3,7 @@ defmodule SMPPEX.ProtocolTest do
 
   import SMPPEX.Protocol
   alias SMPPEX.Pdu
+  alias SMPPEX.RawPdu
 
   test "parse: insufficient data" do
     assert parse(<<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>) == {:ok, nil, <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>}
@@ -16,7 +17,7 @@ defmodule SMPPEX.ProtocolTest do
   test "parse: bad command_id" do
     parse_result = parse(<<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
 
-    assert {:ok, {:unknown_pdu, {{0x80003302, 0, 1}, ""}}, <<0xAA, 0xBB, 0xCC>>} = parse_result
+    assert {:ok, {:unparsed_pdu, %RawPdu{command_id: 2147496706, command_status: 0, sequence_number: 1}, _}, <<0xAA, 0xBB, 0xCC>>} = parse_result
   end
 
   test "parse: bind_transmitter_resp" do

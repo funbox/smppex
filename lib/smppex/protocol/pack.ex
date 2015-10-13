@@ -45,7 +45,6 @@ defmodule SMPPEX.Protocol.Pack do
   defp c_octet_string_with_general_check(str, check, kind) when is_function(check) do
     str_length = byte_size(str)
     cond do
-      str == nil -> ok(@null_str)
       str == "" -> ok(@null_str)
       check.(str_length + 1) ->
         if valid_kind?(str, kind) do
@@ -85,5 +84,3 @@ defmodule SMPPEX.Protocol.Pack do
   end
 
 end
-
-

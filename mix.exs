@@ -9,7 +9,10 @@ defmodule Smppex.Mixfile do
      start_permanent: Mix.env == :prod,
      deps: deps,
      elixirc_paths: ["lib", "test/support"],
-     test_coverage: [tool: Coverex.Task]
+     test_coverage: [tool: Coverex.Task],
+     dialyzer: [
+       flags: ["-Wunmatched_returns", "-Werror_handling", "-Wrace_conditions"]
+     ]
    ]
   end
 
@@ -31,7 +34,8 @@ defmodule Smppex.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:coverex, "~> 1.4.1", only: :test}
+      {:coverex, "~> 1.4.1", only: :test},
+      {:dialyxir, git: "https://github.com/jeremyjh/dialyxir.git" }
     ]
   end
 end

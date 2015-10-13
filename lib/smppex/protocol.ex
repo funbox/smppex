@@ -4,6 +4,7 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
   alias SMPPEX.Protocol.MandatoryFieldsParser
   alias SMPPEX.Protocol.OptionalFieldsParser
+  alias SMPPEX.RawPdu
   alias SMPPEX.Pdu
 
   import SMPPEX.Protocol.ParseResult
@@ -26,12 +27,17 @@ defmodule SMPPEX.Protocol do
     end
   end
 
+  @type error :: list
+  @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
+
+  @spec parse_pdu(binary, binary) :: pdu_parse_result
+
   defp parse_pdu(header, body) do
     header = parse_header(header)
-    {command_id, _, _} = header
-    case CommandNames.name_by_id(command_id) do
-      {:ok, name} -> parse_body(name, header, body)
-      :unknown -> {:unknown_pdu, {header, body}}
+    raw_pdu = RawPdu.new(header, body)
+    case CommandNames.name_by_id(RawPdu.command_id(raw_pdu)) do
+      {:ok, name} -> parse_body(name, raw_pdu)
+      :unknown -> {:unparsed_pdu, raw_pdu, "Unknown command_id"}
     end
   end
 
@@ -39,16 +45,16 @@ defmodule SMPPEX.Protocol do
     {command_id, command_status, sequence_number}
   end
 
-  defp parse_body(command_name, header, body) do
+  defp parse_body(command_name, raw_pdu) do
     spec = MandatoryFieldsSpecs.spec_for(command_name)
-    case MandatoryFieldsParser.parse(body, spec) do
+    case MandatoryFieldsParser.parse(RawPdu.body(raw_pdu), spec) do
       {:ok, fields, rest} ->
         case OptionalFieldsParser.parse(rest) do
           {:ok, tlvs} ->
-            {:pdu, Pdu.new(header, fields, tlvs)}
-          {:error, error} -> {:unparsed_pdu, {header, body}, error}
+            {:pdu, Pdu.new(RawPdu.header(raw_pdu), fields, tlvs)}
+          {:error, error} -> {:unparsed_pdu, raw_pdu, error}
         end
-      {:error, error} -> {:unparsed_pdu, {header, body}, error}
+      {:error, error} -> {:unparsed_pdu, raw_pdu, error}
     end
   end
 

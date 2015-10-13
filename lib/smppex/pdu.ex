@@ -2,6 +2,14 @@ defmodule SMPPEX.Pdu do
   alias SMPPEX.Protocol.TlvFormat
   alias SMPPEX.Pdu
 
+  @type t :: %Pdu{
+    command_id: integer,
+    command_status: integer,
+    sequence_number: integer,
+    mandatory: map(),
+    optional: map()
+  } 
+
   defstruct [
     command_id: 0,
     command_status: 0,
