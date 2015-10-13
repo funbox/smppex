@@ -9,7 +9,7 @@ defmodule SMPPEX.Protocol.Unpack do
 
   @invalid_c_octet_string_format "C-Octet String: wrong format"
   @invalid_fixed_c_octet_string "C-Octet String(fixed): invalid"
-  @invalid_c_octet_string_no_terminator "C-Octet String: null terminator not found"
+  @invalid_c_octet_string_no_terminator "C-Octet String(var): null terminator not found"
 
   def integer(bin, size) when (size == 1 or size == 2 or size == 4) and is_binary(bin) do
     integer_bit_size = size * 8
@@ -70,4 +70,3 @@ defmodule SMPPEX.Protocol.Unpack do
   end
 
 end
-
