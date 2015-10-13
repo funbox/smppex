@@ -13,6 +13,12 @@ defmodule SMPPEX.Protocol do
     ok(nil, bin)
   end
 
+  @type error :: list
+  @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
+  @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
+
+  @spec parse(binary) :: parse_result
+
   def parse(bin) do
     <<command_length :: big-unsigned-integer-size(32), rest :: binary >> = bin
     cond do
@@ -26,9 +32,6 @@ defmodule SMPPEX.Protocol do
         ok(nil, bin)
     end
   end
-
-  @type error :: list
-  @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
 
   @spec parse_pdu(binary, binary) :: pdu_parse_result
 
