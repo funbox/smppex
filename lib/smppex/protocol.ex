@@ -49,8 +49,7 @@ defmodule SMPPEX.Protocol do
   end
 
   defp parse_body(command_name, raw_pdu) do
-    spec = MandatoryFieldsSpecs.spec_for(command_name)
-    case MandatoryFieldsParser.parse(RawPdu.body(raw_pdu), spec) do
+    case parse_mandatory_fields(command_name, raw_pdu) do
       {:ok, fields, rest} ->
         case OptionalFieldsParser.parse(rest) do
           {:ok, tlvs} ->
@@ -59,6 +58,11 @@ defmodule SMPPEX.Protocol do
         end
       {:error, error} -> {:unparsed_pdu, raw_pdu, error}
     end
+  end
+
+  defp parse_mandatory_fields(command_name, raw_pdu) do
+    spec = MandatoryFieldsSpecs.spec_for(command_name)
+    raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
   end
 
 end
