@@ -74,14 +74,13 @@ defmodule SMPPEX.Protocol.PackTest do
   end
 
   test "tlv" do
-    assert {:error, _} = tlv(:not_a_string, 1)
-    assert {:error, _} = tlv("val", :not_an_int)
-    assert {:error, _} = tlv("val", -1)
-    assert {:error, _} = tlv("val", 65536)
-    assert {:error, _} = tlv([0] |> Stream.cycle |> Enum.take(65536) |> to_string, 1)
+    assert {:error, _} = tlv(1, :not_a_string)
+    assert {:error, _} = tlv(:not_an_int, "val")
+    assert {:error, _} = tlv(-1, "val")
+    assert {:error, _} = tlv(65536, "val")
+    assert {:error, _} = tlv(1, [0] |> Stream.cycle |> Enum.take(65536) |> to_string)
 
-    assert {:ok, << 00, 01, 00, 03, ?a, ?b, ?c>>} = tlv("abc", 1)
+    assert {:ok, << 00, 01, 00, 03, ?a, ?b, ?c>>} = tlv(1, "abc")
   end
 
 end
-
