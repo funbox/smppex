@@ -42,7 +42,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
 
   defp build_value_with_format(value, {:integer, size}), do: integer(value, size)
   defp build_value_with_format(value, {:c_octet_string, {:max, size}}), do: c_octet_string(value, {:max, size})
-  defp build_value_with_format(value, {:octet_string, size}), do: octet_string(value, size)
+  defp build_value_with_format(value, {:octet_string, size}) when is_integer(size), do: octet_string(value, size)
   defp build_value_with_format(value, {:octet_string, {_from, _to}})
     when not is_binary(value) do
       error(@invalid_octet_string)
@@ -53,10 +53,10 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
       error(@invalid_octet_string)
   end
 
-  defp build_value_with_format(value, {:octet_string, {_from, _to}}), do: value
+  defp build_value_with_format(value, {:octet_string, {_from, _to}}), do: ok(value)
 
-  defp build_value_without_format(value) when not is_binary(value), do: error(@invalid_unknown_tlv_value)   
+  defp build_value_without_format(value) when not is_binary(value), do: error(@invalid_unknown_tlv_value)
 
-  defp build_value_without_format(value), do: value
+  defp build_value_without_format(value), do: ok(value)
 
 end
