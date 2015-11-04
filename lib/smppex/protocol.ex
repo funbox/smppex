@@ -4,6 +4,8 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
   alias SMPPEX.Protocol.MandatoryFieldsParser
   alias SMPPEX.Protocol.OptionalFieldsParser
+  alias SMPPEX.Protocol.MandatoryFieldsBuilder
+  alias SMPPEX.Protocol.OptionalFieldsBuilder
   alias SMPPEX.RawPdu
   alias SMPPEX.Pdu
 
@@ -13,7 +15,7 @@ defmodule SMPPEX.Protocol do
     ok(nil, bin)
   end
 
-  @type error :: list
+  @type error :: tuple
   @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
   @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
 
@@ -64,6 +66,10 @@ defmodule SMPPEX.Protocol do
     spec = MandatoryFieldsSpecs.spec_for(command_name)
     raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
   end
+
+  @type build_result :: {:ok, binary} | {:error, error}
+
+  @spec build(Pdu.t) :: build_result
 
   def build(pdu) do
     case build_header(pdu) do

@@ -62,4 +62,39 @@ defmodule SMPPEX.ProtocolTest do
 
   end
 
+  test "build: bind_transmitter_resp" do
+    data = <<00, 00, 00, 0x11,   0x80, 00, 00, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0x00>>
+
+    header = {0x80000002, 0, 1}
+    mandatory_fields = %{system_id: ""}
+    optional_fields = %{}
+    pdu = Pdu.new(header, mandatory_fields, optional_fields)
+
+    assert {:ok, data} == build(pdu)
+  end
+
+  test "build: bind_transmitter" do
+
+    data = <<
+      0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0x74, 0x65, 0x73, 0x74, 0x5f, 0x6d, 0x6f, 0x33, 0x00, 0x59, 0x37, 0x6c, 0x48, 0x7a, 0x76, 0x46,
+      0x6a, 0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x00, 0x7b, 0x01, 0x02, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x00
+    >>
+
+    header = {0x00000002, 0, 1}
+    mandatory_fields = %{
+      system_id: "test_mo3",
+      password: "Y7lHzvFj",
+      system_type: "comm",
+      interface_version: 123,
+      addr_ton: 1,
+      addr_npi: 2,
+      address_range: "range",
+    }
+    optional_fields = %{}
+    pdu = Pdu.new(header, mandatory_fields, optional_fields)
+
+    assert {:ok, data} == build(pdu)
+
+  end
 end
