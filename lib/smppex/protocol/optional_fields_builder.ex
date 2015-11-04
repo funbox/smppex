@@ -33,10 +33,6 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
     end
   end
 
-  # defp parse_known_tlv(value, {:integer, size}) do
-  # defp parse_known_tlv(value, {:c_octet_string, {:max, size}}) do
-  # defp parse_known_tlv(value, {:octet_string, size}) when is_integer(size) do
-  # defp parse_known_tlv(value, {:octet_string, {from, to}}) do
   @invalid_octet_string "TLV Octet String: invalid value"
   @invalid_unknown_tlv_value "TLV: value for unknown Tag is not binary"
 

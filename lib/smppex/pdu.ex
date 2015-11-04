@@ -8,7 +8,7 @@ defmodule SMPPEX.Pdu do
     sequence_number: integer,
     mandatory: map(),
     optional: map()
-  } 
+  }
 
   defstruct [
     command_id: 0,
@@ -58,4 +58,9 @@ defmodule SMPPEX.Pdu do
   def field(pdu, id_or_name) do
     mandatory_field(pdu, id_or_name) || optional_field(pdu, id_or_name)
   end
+
+  def optional_fields(pdu), do: pdu.optional
+
+  def mandatory_fields(pdu), do: pdu.mandatory
+
 end

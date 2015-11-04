@@ -17,6 +17,7 @@ defmodule SMPPEX.Protocol.Pack do
   @invalid_tlv_tag "TLV: invalid tag"
   @invalid_tlv_value "TLV: invalid value"
 
+  def integer(nil, size), do: integer(0, size)
   def integer(int, _size) when not is_integer(int), do: error(@invalid_integer)
 
   def integer(int, size) when (size == 1 or size == 2 or size == 4) do

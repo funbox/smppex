@@ -65,4 +65,47 @@ defmodule SMPPEX.Protocol do
     raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
   end
 
+  def build(pdu) do
+    case build_header(pdu) do
+      {:ok, mandatory_specs, header_bin} ->
+        case build_mandatory_fields(pdu, mandatory_specs) do
+          {:ok, mandatory_bin} ->
+            case build_optional_fields(pdu) do
+              {:ok, optional_bin} -> {:ok, concat_pdu_binary_parts(header_bin, mandatory_bin, optional_bin)}
+              {:error, error} -> {:error, {"Error building optional field part", error}}
+            end
+          {:error, error} -> {:error, {"Error building mandatory field part", error}}
+        end
+      {:error, error} -> {:error, {"Error building header part", error}}
+    end
+  end
+
+  defp build_header(pdu) do
+    {command_id, command_status, sequence_number} = {
+      Pdu.command_id(pdu),
+      Pdu.command_status(pdu),
+      Pdu.sequence_number(pdu)
+    }
+    case CommandNames.name_by_id(command_id) do
+      {:ok, name} -> {:ok,
+        MandatoryFieldsSpecs.spec_for(name),
+        <<command_id :: big-unsigned-integer-size(32), command_status :: big-unsigned-integer-size(32), sequence_number :: big-unsigned-integer-size(32)>>}
+      :unknown -> {:error, "Unknown command_id #{inspect command_id}"}
+    end
+  end
+
+  defp build_mandatory_fields(pdu, specs) do
+    pdu |> Pdu.mandatory_fields |> MandatoryFieldsBuilder.build(specs)
+  end
+
+  defp build_optional_fields(pdu) do
+    pdu |> Pdu.optional_fields |> OptionalFieldsBuilder.build
+  end
+
+  defp concat_pdu_binary_parts(header, mandatory, optional) do
+    pdu_data = [header, mandatory, optional] |> List.flatten |> Enum.join
+    size = byte_size(pdu_data) + 4
+    << size :: big-unsigned-integer-size(32), pdu_data :: binary >>
+  end
+
 end
