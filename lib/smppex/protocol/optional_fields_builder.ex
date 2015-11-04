@@ -1,6 +1,5 @@
 defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   import SMPPEX.Protocol.Pack
-  import SMPPEX.Protocol.PackResult
   import SMPPEX.Protocol.TlvFormat
 
   use Bitwise
@@ -14,14 +13,14 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   defp build([{id, value} | rest ], built) do
     case build_tlv(id, value) do
       {:ok, bin} -> build(rest, [bin | built])
-      {:error, error} -> error("Error building optional fields", error)
+      {:error, error} -> {:error, {"Error building optional fields", error}}
     end
   end
 
   defp build_tlv(id, value) do
     case build_value(id, value) do
       {:ok, bin} -> tlv(id, bin)
-      {:error, error} -> error("Invalid value for Tag #{id}", error)
+      {:error, error} -> {:error, {"Invalid value for Tag #{id}", error}}
     end
   end
 
@@ -41,17 +40,17 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   defp build_value_with_format(value, {:octet_string, size}) when is_integer(size), do: octet_string(value, size)
   defp build_value_with_format(value, {:octet_string, {_from, _to}})
     when not is_binary(value) do
-      error(@invalid_octet_string)
+      {:error, @invalid_octet_string}
   end
 
   defp build_value_with_format(value, {:octet_string, {from, to}})
     when byte_size(value) > to or byte_size(value) < from do
-      error(@invalid_octet_string)
+      {:error, @invalid_octet_string}
   end
 
   defp build_value_with_format(value, {:octet_string, {_from, _to}}), do: {:ok, value}
 
-  defp build_value_without_format(value) when not is_binary(value), do: error(@invalid_unknown_tlv_value)
+  defp build_value_without_format(value) when not is_binary(value), do: {:error, @invalid_unknown_tlv_value}
 
   defp build_value_without_format(value), do: {:ok, value}
 

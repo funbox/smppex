@@ -1,5 +1,4 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsParser do
-  import SMPPEX.Protocol.ParseResult
   import SMPPEX.Protocol.Unpack
 
   def parse(bin, spec), do: parse(bin, spec, Map.new)
@@ -13,7 +12,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
       {:ok, new_parsed_fields, rest} ->
         parse(rest, rest_field_specs, new_parsed_fields)
       {:error, error} ->
-        error("Error parsing field(s) #{inspect field_spec}", error)
+        {:error, {"Error parsing field(s) #{inspect field_spec}", error}}
     end
   end
 
@@ -21,7 +20,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
     case read_value(bin, spec, parsed_fields) do
       {:ok, value, rest} ->
         {:ok, Map.put(parsed_fields, field_name, value), rest}
-      {:error, parse_error} -> error(parse_error)
+      {:error, _} = err -> err
     end
   end
 
@@ -48,7 +47,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   defp read_value(bin, {:times, n, specs}, parsed_fields) do
     case read_values(bin, {expand(n, parsed_fields), []}, specs, Map.new) do
       {:ok, values, rest} -> {:ok, Enum.reverse(values), rest}
-      {:error, error} -> error(error)
+      {:error, _} = err -> err
     end
   end
 
@@ -58,11 +57,11 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
     case parse(bin, specs, parsed_fields) do
       {:ok, parsed_fields_inner, rest} ->
         read_values(rest, {n-1, [parsed_fields_inner | values]}, specs, parsed_fields)
-      {:error, error} -> error(error)
+      {:error, _} = err -> err
     end
   end
 
-  def read_cases(_bin, [], _parsed_fields), do: error("No cases left")
+  def read_cases(_bin, [], _parsed_fields), do: {:error, "No cases left"}
   def read_cases(bin, [current_case | rest_cases ], parsed_fields) do
     {field, value, specs} = current_case
     if expand(field, parsed_fields) == value do

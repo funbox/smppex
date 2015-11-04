@@ -9,8 +9,6 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.RawPdu
   alias SMPPEX.Pdu
 
-  import SMPPEX.Protocol.ParseResult
-
   @type error :: tuple
   @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
   @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
@@ -25,7 +23,7 @@ defmodule SMPPEX.Protocol do
     <<command_length :: big-unsigned-integer-size(32), rest :: binary >> = bin
     cond do
       command_length < 16 ->
-        error("Invalid PDU command_length #{inspect command_length}")
+        {:error, "Invalid PDU command_length #{command_length}"}
       command_length <= byte_size(bin) ->
         body_length = command_length - 16
         << header :: binary-size(12), body :: binary-size(body_length), next_pdus :: binary >> = rest

@@ -1,5 +1,4 @@
 defmodule SMPPEX.Protocol.OptionalFieldsParser do
-  import SMPPEX.Protocol.ParseResult
   import SMPPEX.Protocol.Unpack
   import SMPPEX.Protocol.TlvFormat
 
@@ -15,9 +14,9 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
         case parse_format(tag, value) do
           {:ok, parsed} ->
             parse(rest, Map.put(parsed_fields, tag, parsed))
-          {:error, error} -> error("Invalid format for tlv #{tag}", error)
+          {:error, error} -> {:error, {"Invalid format for tlv #{tag}", error}}
         end
-      {:error, error} -> error(error)
+      {:error, _} = err -> err
     end
   end
 
