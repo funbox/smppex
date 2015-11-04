@@ -5,7 +5,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
     build(fields, Enum.reverse(spec), [])
   end
 
-  defp build(_fields, [], built), do: built
+  defp build(_fields, [], built), do: {:ok, built}
 
   defp build(fields, [field_spec | specs], built) do
     case build_field(fields, field_spec) do
@@ -43,7 +43,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
     end
   end
 
-  defp build_subfields([], _specs, built), do: built
+  defp build_subfields([], _specs, built), do: {:ok, Enum.reverse(built)}
   defp build_subfields([value | values], specs, built) do
     case build(value, specs) do
       {:ok, bin} -> build_subfields(values, specs, [bin | built])
@@ -65,7 +65,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
 
   defp build_simple_value(value, {:c_octet_string, {:max, n}}), do: c_octet_string(value, {:max, n})
 
-  defp build_simple_value(value, {:c_octet_string, {:fixed, n}}), do: octet_string(value, {:fixed, n})
+  defp build_simple_value(value, {:c_octet_string, {:fixed, n}}), do: c_octet_string(value, {:fixed, n})
 
   defp build_simple_value(value, {:octet_string, n}), do: octet_string(value, n)
 
