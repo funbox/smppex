@@ -5,7 +5,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   def parse(bin, spec), do: parse(bin, spec, Map.new)
 
   def parse(bin, [], parsed_fields) do
-    ok(parsed_fields, bin)
+    {:ok, parsed_fields, bin}
   end
 
   def parse(bin, [field_spec | rest_field_specs], parsed_fields) do
@@ -20,7 +20,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   defp parse_field(bin, {field_name, spec}, parsed_fields) do
     case read_value(bin, spec, parsed_fields) do
       {:ok, value, rest} ->
-        ok(Map.put(parsed_fields, field_name, value), rest)
+        {:ok, Map.put(parsed_fields, field_name, value), rest}
       {:error, parse_error} -> error(parse_error)
     end
   end
@@ -47,12 +47,12 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
 
   defp read_value(bin, {:times, n, specs}, parsed_fields) do
     case read_values(bin, {expand(n, parsed_fields), []}, specs, Map.new) do
-      {:ok, values, rest} -> ok(Enum.reverse(values), rest)
+      {:ok, values, rest} -> {:ok, Enum.reverse(values), rest}
       {:error, error} -> error(error)
     end
   end
 
-  defp read_values(bin, {0, values}, _specs, _parsed_fields), do: ok(values, bin)
+  defp read_values(bin, {0, values}, _specs, _parsed_fields), do: {:ok, values, bin}
 
   defp read_values(bin, {n, values}, specs, parsed_fields) do
     case parse(bin, specs, parsed_fields) do

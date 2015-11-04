@@ -23,7 +23,7 @@ defmodule SMPPEX.Protocol.Pack do
   def integer(int, size) when (size == 1 or size == 2 or size == 4) do
     integer_bit_size = size * 8
     if int >= 0 and (int < (1 <<< integer_bit_size)) do
-      ok(<<int :: big-unsigned-integer-size(integer_bit_size)>>)
+      {:ok, <<int :: big-unsigned-integer-size(integer_bit_size)>>}
     else
       error(@invalid_integer)
     end
@@ -46,10 +46,10 @@ defmodule SMPPEX.Protocol.Pack do
   defp c_octet_string_with_general_check(str, check, kind) when is_function(check) do
     str_length = byte_size(str)
     cond do
-      str == "" -> ok(@null_str)
+      str == "" -> {:ok, @null_str}
       check.(str_length + 1) ->
         if valid_kind?(str, kind) do
-          ok( str <> @null_str )
+          {:ok,  str <> @null_str}
         else
           error(@invalid_c_octet_string_format)
         end
@@ -67,7 +67,7 @@ defmodule SMPPEX.Protocol.Pack do
 
   def octet_string(str, length) when is_integer(length) and length >= 0 do
     if byte_size(str) == length do
-      ok(str)
+      {:ok, str}
     else
       error(@invalid_octet_string)
     end
@@ -81,7 +81,7 @@ defmodule SMPPEX.Protocol.Pack do
 
   def tlv(tag, str) do
     length = byte_size(str)
-    ok(<<tag :: big-unsigned-integer-size(16), length :: big-unsigned-integer-size(16), str :: binary >>)
+    {:ok, <<tag :: big-unsigned-integer-size(16), length :: big-unsigned-integer-size(16), str :: binary >>}
   end
 
 end

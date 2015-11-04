@@ -11,15 +11,15 @@ defmodule SMPPEX.Protocol do
 
   import SMPPEX.Protocol.ParseResult
 
-  def parse(bin) when byte_size(bin) < 4 do
-    ok(nil, bin)
-  end
-
   @type error :: tuple
   @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
   @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
 
   @spec parse(binary) :: parse_result
+
+  def parse(bin) when byte_size(bin) < 4 do
+    {:ok, nil, bin}
+  end
 
   def parse(bin) do
     <<command_length :: big-unsigned-integer-size(32), rest :: binary >> = bin
@@ -29,9 +29,9 @@ defmodule SMPPEX.Protocol do
       command_length <= byte_size(bin) ->
         body_length = command_length - 16
         << header :: binary-size(12), body :: binary-size(body_length), next_pdus :: binary >> = rest
-        ok(parse_pdu(header, body), next_pdus)
+        {:ok, parse_pdu(header, body), next_pdus}
       true ->
-        ok(nil, bin)
+        {:ok, nil, bin}
     end
   end
 

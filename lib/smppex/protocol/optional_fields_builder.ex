@@ -9,7 +9,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
     fields |> Dict.to_list |> build([])
   end
 
-  defp build([], built), do: ok(built)
+  defp build([], built), do: {:ok, built}
 
   defp build([{id, value} | rest ], built) do
     case build_tlv(id, value) do
@@ -49,10 +49,10 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
       error(@invalid_octet_string)
   end
 
-  defp build_value_with_format(value, {:octet_string, {_from, _to}}), do: ok(value)
+  defp build_value_with_format(value, {:octet_string, {_from, _to}}), do: {:ok, value}
 
   defp build_value_without_format(value) when not is_binary(value), do: error(@invalid_unknown_tlv_value)
 
-  defp build_value_without_format(value), do: ok(value)
+  defp build_value_without_format(value), do: {:ok, value}
 
 end
