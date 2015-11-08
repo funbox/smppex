@@ -11,21 +11,21 @@ defmodule SMPPEX.Pdu.UDHTest do
     assert UDH.has_udh?(pdu)
   end
 
-  test "parse" do
+  test "extract" do
     data = <<5, 0, 3, 197, 3, 3, "message">>
-    assert UDH.parse(data) == {:ok, [{0, <<197, 3, 3>>}], "message"}
+    assert UDH.extract(data) == {:ok, [{0, <<197, 3, 3>>}], "message"}
 
     data = <<0x0B, 0x05, 0x04, 0x06, 0x2d, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x01, "message">>
-    assert UDH.parse(data) == {:ok, [{0x05, <<0x06, 0x2d, 0x00, 0x00>>}, {0x00, <<0x01, 0x02, 0x01>> }], "message"}
+    assert UDH.extract(data) == {:ok, [{0x05, <<0x06, 0x2d, 0x00, 0x00>>}, {0x00, <<0x01, 0x02, 0x01>> }], "message"}
 
     data = <<0x10, "short">>
-    assert {:error, _} = UDH.parse(data)
+    assert {:error, _} = UDH.extract(data)
 
     data = <<0x06, 0x00, 0x03, 0x01, 0x02, 0x01, "message">>
-    assert {:error, _} = UDH.parse(data)
+    assert {:error, _} = UDH.extract(data)
 
     data = <<5, 0, 4, 197, 3, 3, "message">>
-    assert {:error, _} = UDH.parse(data)
+    assert {:error, _} = UDH.extract(data)
   end
 
   test "add" do

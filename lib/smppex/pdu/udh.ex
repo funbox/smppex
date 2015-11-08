@@ -21,10 +21,10 @@ defmodule SMPPEX.Pdu.UDH do
   end
 
   defp has_udh_flag?(esm_class) do
-    (esm_class &&& @esm_class_gsm_udhi) == @esm_class_gsm_udhi
+    esm_class && (esm_class &&& @esm_class_gsm_udhi) == @esm_class_gsm_udhi
   end
 
-  def parse(data) do
+  def extract(data) do
     case data do
       << udh_length :: integer-unsigned-size(8), rest :: binary >> ->
         case rest do
