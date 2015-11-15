@@ -23,8 +23,7 @@ defimpl SMPPEX.TCP.ClientHandler, for: SMPPEX.TCP.Listener do
 
   def init(listener) do
     {:ok, socket} = :gen_tcp.listen(listener.port, listener.tcp_opts)
-    {:ok, port} = :inet.port(socket)
-    %Listener{ listener | socket: socket, port: port }
+    %Listener{ listener | socket: socket }
   end
 
   def accept(listener) do
