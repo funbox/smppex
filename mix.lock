@@ -1,4 +1,6 @@
-%{"coverex": {:hex, :coverex, "1.4.3"},
+%{"bunt": {:hex, :bunt, "0.1.4"},
+  "coverex": {:hex, :coverex, "1.4.3"},
+  "credo": {:hex, :credo, "0.1.3"},
   "dialyxir": {:git, "https://github.com/jeremyjh/dialyxir.git", "5a551d14ea8204e50fb0ad59238af947bbba6307", []},
   "hackney": {:hex, :hackney, "1.3.2"},
   "hexate": {:hex, :hexate, "0.5.1"},
