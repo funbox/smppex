@@ -55,8 +55,6 @@ defmodule SMPPEX.Pdu.MultipartTest do
   end
 
   test "split_message" do
-    message = "abc"
-
     assert {:ok, :unsplitted} == Multipart.split_message(123, "", 0)
     assert {:ok, :unsplitted} == Multipart.split_message(123, "abc", 3)
     assert {:error, _} = Multipart.split_message(123, "abcdefg", 6)
