@@ -55,10 +55,10 @@ defmodule SMPPEX.Pdu.MultipartTest do
   end
 
   test "split_message" do
-    assert {:ok, :unsplitted} == Multipart.split_message(123, "", 0)
-    assert {:ok, :unsplitted} == Multipart.split_message(123, "abc", 3)
+    assert {:ok, :unsplit} == Multipart.split_message(123, "", 0)
+    assert {:ok, :unsplit} == Multipart.split_message(123, "abc", 3)
     assert {:error, _} = Multipart.split_message(123, "abcdefg", 6)
-    assert {:ok, :splitted, [
+    assert {:ok, :split, [
         <<0x05, 0x00, 0x03, 0x7b, 0x08, 0x01, "a">>,
         <<0x05, 0x00, 0x03, 0x7b, 0x08, 0x02, "b">>,
         <<0x05, 0x00, 0x03, 0x7b, 0x08, 0x03, "c">>,
@@ -69,7 +69,7 @@ defmodule SMPPEX.Pdu.MultipartTest do
         <<0x05, 0x00, 0x03, 0x7b, 0x08, 0x08, "h">>
       ]} == Multipart.split_message(123, "abcdefgh", 7)
 
-    assert {:ok, :splitted, [
+    assert {:ok, :split, [
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x01, "ab">>,
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x02, "cd">>,
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x03, "ef">>,
@@ -77,7 +77,7 @@ defmodule SMPPEX.Pdu.MultipartTest do
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x05, "i">>,
       ]} == Multipart.split_message(123, "abcdefghi", 8)
 
-    assert {:ok, :splitted, [
+    assert {:ok, :split, [
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x01, "ab">>,
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x02, "cd">>,
         <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x03, "ef">>,
