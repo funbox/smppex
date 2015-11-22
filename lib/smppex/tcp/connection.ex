@@ -1,5 +1,5 @@
 defprotocol SMPPEX.TCP.ConnectionHandler do
-  def handle_connected(handler, socket)
+  def handle_connected(handler, connection)
   def handle_data_received(handler, data)
   def handle_data_sent(handler, data)
   def handle_peer_closed(handler)
