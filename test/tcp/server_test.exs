@@ -23,7 +23,7 @@ defmodule SMPPEX.TCP.ServerTest do
     {:ok, server} = Server.start_link(listener)
 
     {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, port, [:binary, {:packet, 0}])
-    :timer.sleep(100)
+    :timer.sleep(10)
     :ok = :gen_tcp.close(socket)
 
     clients = Agent.get(clients_agent, fn(st) -> st end)
