@@ -6,54 +6,9 @@ defmodule SMPPEX.TCP.ConnectionTest do
   alias SMPPEX.TCP.Listener
   alias SMPPEX.TCP.Connection
 
-  defmodule ConnectionHandlerSpy do
-    defstruct pid: nil
-
-    def start_link do
-      {:ok, pid} = Agent.start_link(fn ->
-        %{socket: nil, sent_data: [], received_data: [], closed: false, peer_closed: false, error_closed: nil}
-      end)
-
-      %ConnectionHandlerSpy{ pid: pid }
-    end
-
-    def get_data(spy) do
-      Agent.get(spy.pid, fn data -> data end)
-    end
-
-    def stop(spy) do
-      Agent.stop(spy.pid)
-    end
-  end
-
-  defimpl SMPPEX.TCP.ConnectionHandler, for: ConnectionHandlerSpy do
-    def handle_connected(handler, socket) do
-      Agent.update(handler.pid, fn data -> %{data | socket: socket} end)
-      {:ok, handler}
-    end
-
-    def handle_data_received(handler, received_data) do
-      Agent.update(handler.pid, fn data -> %{data | received_data: data.received_data ++ [received_data]} end)
-      {:ok, handler}
-    end
-
-    def handle_data_sent(handler, sent_data) do
-      Agent.update(handler.pid, fn data -> %{data | received_data: data.sent_data ++ [sent_data]} end)
-      {:ok, handler}
-    end
-
-    def handle_peer_closed(handler) do
-      Agent.update(handler.pid, fn data -> %{data | peer_closed: true} end)
-    end
-
-    def handle_closed(handler) do
-      Agent.update(handler.pid, fn data -> %{data | closed: true} end)
-    end
-
-    def handle_error_closed(handler, error) do
-      Agent.update(handler.pid, fn data -> %{data | error_closed: error} end)
-    end
-  end
+  alias Support.TCP.Helpers, as: TCPHelpers
+  alias Support.GenServerHelpers
+  alias Support.TCP.ConnectionHandlerSpy
 
   def start_server(port, handler) do
     client_handler = fn(client) ->
@@ -64,10 +19,72 @@ defmodule SMPPEX.TCP.ConnectionTest do
     server
   end
 
-
-  test "handle_connected" do
-
+  def connect_server(port, fun) do
+    {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, port, [:binary, {:packet, :raw}, {:active, false}])
+    :timer.sleep(10)
+    fun.(socket)
+    :timer.sleep(10)
+    :ok = :gen_tcp.close(socket)
+    :timer.sleep(10)
   end
 
+  def with_server_and_connected_client(fun) do
+    handler = ConnectionHandlerSpy.start_link
+    port = TCPHelpers.find_free_port
+    server = start_server(port, handler)
+
+    connect_server(port, fn(socket) ->
+      data = ConnectionHandlerSpy.get(handler)
+      fun.({data.connection, socket})
+    end)
+
+    GenServerHelpers.stop_gen_server(server)
+    spied_data = ConnectionHandlerSpy.get(handler)
+    ConnectionHandlerSpy.stop(handler)
+    spied_data
+  end
+
+  test "start_link && handle_connected callback" do
+    spied_data = with_server_and_connected_client(fn _ -> :ok end)
+    assert spied_data.connection != nil
+    assert is_pid(spied_data.connection)
+  end
+
+  test "handle_data_received callback" do
+    spied_data = with_server_and_connected_client fn {_server_connection, client_socket} ->
+      :gen_tcp.send(client_socket, "foo")
+      :gen_tcp.send(client_socket, "bar")
+    end
+    received_data = spied_data.received_data |> List.flatten |> Enum.join
+    assert received_data == "foobar"
+  end
+
+  test "handle_peer_closed callback" do
+    spied_data = with_server_and_connected_client fn _ -> :ok end
+    assert spied_data.peer_closed
+  end
+
+  test "send && handle_data_sent callback" do
+    spied_data = with_server_and_connected_client fn {server_connection, client_socket} ->
+      spawn fn ->
+        Connection.send(server_connection, "foo")
+        Connection.send(server_connection, "bar")
+      end
+      {:ok, "foobar"} = :gen_tcp.recv(client_socket, 6)
+    end
+
+    sent_data = spied_data.sent_data |> List.flatten |> Enum.join
+    assert sent_data == "foobar"
+  end
+
+  test "close && handle_closed callback" do
+    spied_data = with_server_and_connected_client fn {server_connection, _client_socket} ->
+      spawn fn ->
+        Connection.close(server_connection)
+      end
+    end
+
+    assert spied_data.closed
+  end
 end
 

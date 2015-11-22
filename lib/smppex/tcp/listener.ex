@@ -28,6 +28,7 @@ defimpl SMPPEX.TCP.ClientHandler, for: SMPPEX.TCP.Listener do
 
   def accept(listener) do
     {:ok, client} = :gen_tcp.accept(listener.socket)
+    :ok = :inet.setopts(client, [{:mode, :binary}])
     case listener.handler.(client) do
       {:ok, pid} when is_pid(pid) ->
         :gen_tcp.controlling_process(client, pid)

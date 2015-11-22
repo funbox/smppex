@@ -11,6 +11,7 @@ defmodule SMPPEX.TCP.Connection do
   defstruct [:socket, :handler]
 
   alias SMPPEX.TCP.Connection
+  alias SMPPEX.TCP.ConnectionHandler
 
   use GenServer
 
@@ -25,7 +26,7 @@ defmodule SMPPEX.TCP.Connection do
 
   def init([socket, handler]) do
     prepare_for_recv(socket)
-    case ConnectionHandler.handle_connected(handler, socket) do
+    case ConnectionHandler.handle_connected(handler, self) do
       {:ok, new_handler} -> {:ok, %Connection{socket: socket, handler: new_handler}}
       {:error, _} = err -> err
     end
@@ -81,7 +82,6 @@ defmodule SMPPEX.TCP.Connection do
       end
     end
   end
-
 
   defp handle_data(data, st) do
     case ConnectionHandler.handle_data_received(st.handler, data) do
