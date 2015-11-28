@@ -3,10 +3,5 @@ elixir:
 - 1.1.1
 otp_release:
 - 18.1
-before_script:
-- export PLT_FILENAME=dialyxir_core_18_1.1.1.plt
-- wget https://s3.amazonaws.com/elixir-plt/${PLT_FILENAME} -O /home/travis/.${PLT_FILENAME}
 script:
-- mix compile
 - mix test
-- mix dialyzer
