@@ -7,14 +7,19 @@ defmodule SMPPEX.Protocol.Pack do
   @null_str << @null >>
 
   @invalid_integer "Integer: invalid value"
-
   @invalid_c_octet_string_value "C-Octet String: invalid value"
   @invalid_c_octet_string_format "C-Octet String: invalid format"
-
   @invalid_octet_string "Octet String: invalid value"
-
   @invalid_tlv_tag "TLV: invalid tag"
   @invalid_tlv_value "TLV: invalid value"
+
+  @type pack_ok_result :: {:ok, binary}
+  @type pack_error_result :: {:error, any}
+  @type pack_result :: pack_ok_result | pack_error_result
+
+  @type integer_size :: 1 | 2 | 4
+
+  @spec integer(any, integer_size) :: pack_result
 
   def integer(nil, size), do: integer(0, size)
   def integer(int, _size) when not is_integer(int), do: {:error, @invalid_integer}
@@ -28,8 +33,15 @@ defmodule SMPPEX.Protocol.Pack do
     end
   end
 
+  @type kind :: :ascii | :hex | :dec
+  @type length_spec :: {:fixed, non_neg_integer} | {:max, non_neg_integer}
+
+  @spec c_octet_string(any, length_spec) :: pack_result
+
   def c_octet_string(nil, length_spec), do: c_octet_string("", length_spec, :ascii)
   def c_octet_string(str, length_spec), do: c_octet_string(str, length_spec, :ascii)
+
+  @spec c_octet_string(any, length_spec, kind) :: pack_result
 
   def c_octet_string(str, _spec, _kind) when not is_binary(str), do: {:error, @invalid_c_octet_string_value}
   def c_octet_string(nil, length_spec, kind), do: c_octet_string("", length_spec, kind)
@@ -41,6 +53,8 @@ defmodule SMPPEX.Protocol.Pack do
   def c_octet_string(str, {:max, max}, kind) when is_integer(max) and max >= 1 do
     c_octet_string_with_general_check(str, &(&1 <= max), kind)
   end
+
+  @spec c_octet_string_with_general_check(binary, (non_neg_integer -> boolean), kind) :: pack_result
 
   defp c_octet_string_with_general_check(str, check, kind) when is_function(check) do
     str_length = byte_size(str)
@@ -56,14 +70,15 @@ defmodule SMPPEX.Protocol.Pack do
     end
   end
 
+  @spec valid_kind?(binary, kind) :: boolean
+
   defp valid_kind?(_str, :ascii), do: true
-
   defp valid_kind?(str, :dec), do: Helpers.dec?(str)
-
   defp valid_kind?(str, :hex), do: Helpers.hex?(str)
 
-  def octet_string(str, _length) when not is_binary(str), do: {:error, @invalid_octet_string}
+  @spec octet_string(binary, non_neg_integer) :: pack_result
 
+  def octet_string(str, _length) when not is_binary(str), do: {:error, @invalid_octet_string}
   def octet_string(str, length) when is_integer(length) and length >= 0 do
     if byte_size(str) == length do
       {:ok, str}
@@ -71,6 +86,8 @@ defmodule SMPPEX.Protocol.Pack do
       {:error, @invalid_octet_string}
     end
   end
+
+  @spec tlv(integer, binary) :: pack_result
 
   def tlv(_tag, str) when not is_binary(str), do: {:error, @invalid_tlv_value}
   def tlv(tag, _str) when not is_integer(tag), do: {:error, @invalid_tlv_tag}
