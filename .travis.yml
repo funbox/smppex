@@ -4,7 +4,7 @@ elixir:
 otp_release:
 - 18.0
 before_script:
-- mix dialyzer.plt
+- wget 'https://s3.amazonaws.com/elixir-plt/dialyxir_core_18_1.1.1.plt' -O /home/travis/.dialyxir_core_18_1.1.1.plt
 script:
 - mix test
 - mix dialyzer
