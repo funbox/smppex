@@ -93,7 +93,7 @@ defmodule SMPPEX.Pdu.Multipart do
 
   @spec split_message(integer, binary, integer) :: split_result
 
-  def split_message(_ref_num, message, _max) when not is_binary(message) < 0, do: {:error, @error_invalid_message}
+  def split_message(_ref_num, message, _max) when not is_binary(message), do: {:error, @error_invalid_message}
   def split_message(ref_num, _message, _max) when ref_num < 0, do: {:error, @error_invalid_ref_num}
   def split_message(ref_num, _message, _max) when ref_num > 65535, do: {:error, @error_invalid_ref_num}
   def split_message(_ref_num, _message, max) when max < 0, do: {:error, @error_invalid_max}
@@ -107,7 +107,7 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
-  def split_message(_ref_num, message, _max_unsplit, _max_split) when not is_binary(message) < 0, do: {:error, @error_invalid_message}
+  def split_message(_ref_num, message, _max_unsplit, _max_split) when not is_binary(message), do: {:error, @error_invalid_message}
   def split_message(ref_num, _message, _max_unsplit, _max_split) when ref_num < 0, do: {:error, @error_invalid_ref_num}
   def split_message(ref_num, _message, _max_unsplit, _max_split) when ref_num > 65535, do: {:error, @error_invalid_ref_num}
   def split_message(_ref_num, _message, max_unsplit, _max_split) when max_unsplit < 0, do: {:error, @error_invalid_max}
