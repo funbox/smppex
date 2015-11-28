@@ -4,7 +4,8 @@ elixir:
 otp_release:
 - 18.0
 before_script:
-- wget 'https://s3.amazonaws.com/elixir-plt/dialyxir_core_18_1.1.1.plt' -O /home/travis/.dialyxir_core_18_1.1.1.plt
+- export PLT_FILENAME=dialyxir_core_18_1.1.1.plt
+- wget https://s3.amazonaws.com/elixir-plt/${PLT_FILENAME} -O /home/travis/${PLT_FILENAME}
 script:
 - mix test
-- mix dialyzer
+- dialyzer --no_check_plt --no_native --plt PLT_FILENAME -Wunmatched_returns -Werror_handling -Wrace_conditions _build/dev/lib/smppex/ebin
