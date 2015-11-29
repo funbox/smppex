@@ -1,7 +1,7 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   import SMPPEX.Protocol.Pack
 
-  def build(fields, spec) do
+  def build(fields, spec) when is_map(fields) do
     build(fields, Enum.reverse(spec), [])
   end
 
@@ -16,7 +16,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
 
   defp build_field(fields, {name, {:octet_string, len}}) when is_atom(len) do
     case fields[name] do
-      bin when is_binary(bin) -> {:ok, Dict.put(fields, len, byte_size(bin)), bin}
+      bin when is_binary(bin) -> {:ok, Map.put(fields, len, byte_size(bin)), bin}
       _ -> {:error, "Field #{name} is not an octet_string"}
     end
   end
@@ -25,18 +25,18 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
     case fields[name] do
       values when is_list(values) ->
         case build_subfields(values, subspecs, []) do
-          {:ok, bins} -> {:ok, Dict.put(fields, times, length(values)), bins}
+          {:ok, bins} -> {:ok, Map.put(fields, times, length(values)), bins}
           {:error, error} -> {:error, error}
         end
       _ -> {:error, "Field #{name} is not a list"}
     end
   end
 
-  defp build_field(fields, [:case | cases]) do
+  defp build_field(fields, {:case, cases}) when is_list(cases) do
     build_cases(fields, cases)
   end
 
-  defp build_field(fields, {name, simple_spec}) do
+  defp build_field(fields, {name, simple_spec}) when is_tuple(simple_spec) do
     case build_simple_value(fields[name], simple_spec) do
       {:ok, bin} -> {:ok, fields, bin}
       {:error, error} -> {:error, {"Error building simple field #{name}", error}}

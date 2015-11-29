@@ -16,7 +16,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
     end
   end
 
-  defp parse_field(bin, {field_name, spec}, parsed_fields) do
+  defp parse_field(bin, {field_name, spec}, parsed_fields) when is_tuple(spec) do
     case read_value(bin, spec, parsed_fields) do
       {:ok, value, rest} ->
         {:ok, Map.put(parsed_fields, field_name, value), rest}
@@ -24,7 +24,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
     end
   end
 
-  defp parse_field(bin, [:case | cases], parsed_fields) do
+  defp parse_field(bin, {:case, cases}, parsed_fields) when is_list(cases) do
     read_cases(bin, cases, parsed_fields)
   end
 

@@ -129,14 +129,14 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     spec = [
       {:a, {:integer, 1}},
       {:b, {:integer, 1}},
-      [:case,
-        {:a, 1, [
+      {:case,
+        [{:a, 1, [
           {:x, {:c_octet_string, {:max, 2}}}
         ]},
         {:b, 2, [
           {:y, {:c_octet_string, {:max, 2}}}
-        ]}
-      ]
+        ]}]
+      }
     ]
 
     data = <<01, 02, ?z, 00>>

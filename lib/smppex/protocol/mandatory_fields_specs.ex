@@ -1,4 +1,15 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
+
+
+  @type integer_size :: 1 | 2 | 4
+  @type field_value_spec :: {:c_octet_string, {:max, pos_integer}} | {:c_octet_string, {:fixed, pos_integer}} | {:integer, integer_size} | {:octet_string, non_neg_integer} | {:octet_string, atom} | {:times, atom, fields_spec}
+  @type case_spec :: {atom, any, fields_spec}
+  @type cases_spec :: {:case, list(case_spec)}
+  @type field_spec :: {atom, field_value_spec}
+  @type fields_spec :: list(field_spec | cases_spec)
+
+  @spec spec_for(atom) :: fields_spec
+
   def spec_for(:bind_transmitter) do
     [
       {:system_id, {:c_octet_string, {:max, 16}}},
@@ -110,16 +121,16 @@ defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
       {:number_of_dests, {:integer, 1}},
       {:dest_addresses, {:times, :number_of_dests, [
         {:dest_flag, {:integer, 1}},
-        [:case,
-          {:dest_flag, 1, [
+        {:case,
+          [{:dest_flag, 1, [
             {:dest_addr_ton, {:integer, 1}},
             {:dest_addr_npi, {:integer, 1}},
             {:destination_addr, {:c_octet_string, {:max, 21}}}
           ]},
           {:dest_flag, 2, [
             {:dl_name, {:c_octet_string, {:max, 21}}}
-          ]}
-        ]
+          ]}]
+        }
       ]}},
       {:esm_class, {:integer, 1}},
       {:protocol_id, {:integer, 1}},
