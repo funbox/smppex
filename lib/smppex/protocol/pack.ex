@@ -34,7 +34,7 @@ defmodule SMPPEX.Protocol.Pack do
   end
 
   @type kind :: :ascii | :hex | :dec
-  @type length_spec :: {:fixed, non_neg_integer} | {:max, non_neg_integer}
+  @type length_spec :: {:fixed, pos_integer} | {:max, pos_integer}
 
   @spec c_octet_string(any, length_spec) :: pack_result
 
@@ -54,7 +54,7 @@ defmodule SMPPEX.Protocol.Pack do
     c_octet_string_with_general_check(str, &(&1 <= max), kind)
   end
 
-  @spec c_octet_string_with_general_check(binary, (non_neg_integer -> boolean), kind) :: pack_result
+  @spec c_octet_string_with_general_check(binary, (integer -> boolean), kind) :: pack_result
 
   defp c_octet_string_with_general_check(str, check, kind) when is_function(check) do
     str_length = byte_size(str)
