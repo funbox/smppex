@@ -4,7 +4,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
   import SMPPEX.Protocol.MandatoryFieldsBuilder
 
   defp flatten(io_list) do
-    io_list |> List.flatten |> Enum.join
+    [io_list] |> List.flatten |> Enum.join
   end
 
   defp build_(fields, spec) do
