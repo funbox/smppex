@@ -9,7 +9,7 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.RawPdu
   alias SMPPEX.Pdu
 
-  @type error :: tuple
+  @type error :: any
   @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
   @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
 
@@ -32,8 +32,6 @@ defmodule SMPPEX.Protocol do
         {:ok, nil, bin}
     end
   end
-
-  @spec parse_pdu(binary, binary) :: pdu_parse_result
 
   defp parse_pdu(header, body) do
     header = parse_header(header)

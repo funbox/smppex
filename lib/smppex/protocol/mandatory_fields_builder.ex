@@ -2,13 +2,13 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   import SMPPEX.Protocol.Pack
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
 
-  @spec build(map, MandatoryFieldsSpecs.fields_spec) :: {:ok, binary} | {:error, any}
+  @spec build(map, MandatoryFieldsSpecs.fields_spec) :: {:ok, iodata} | {:error, any}
 
   def build(fields, spec) when is_map(fields) do
     build(fields, Enum.reverse(spec), [])
   end
 
-  defp build(_fields, [], built), do: {:ok, built |> List.flatten |> Enum.join }
+  defp build(_fields, [], built), do: {:ok, built}
 
   defp build(fields, [field_spec | specs], built) do
     case build_field(fields, field_spec) do

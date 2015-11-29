@@ -4,8 +4,10 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
 
   use Bitwise
 
-  def build(fields) do
-    fields |> Dict.to_list |> build([])
+  @spec build(map) :: {:ok, iodata} | {:error, any}
+
+  def build(fields) when is_map(fields) do
+    fields |> Map.to_list |> build([])
   end
 
   defp build([], built), do: {:ok, built}
