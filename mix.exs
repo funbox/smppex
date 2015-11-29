@@ -23,8 +23,10 @@ defmodule Smppex.Mixfile do
   defp deps do
     [
       {:coverex, "~> 1.4.1", only: :test},
-      {:dialyxir, git: "https://github.com/jeremyjh/dialyxir.git" },
-      {:credo, "~> 0.1.0"}
+      {:dialyxir, git: "https://github.com/jeremyjh/dialyxir.git", only: :dev},
+      {:credo, "~> 0.1.0", only: :dev},
+      {:earmark, "~> 0.1", only: :dev},
+      {:ex_doc, "~> 0.11", only: :dev}
     ]
   end
 end
