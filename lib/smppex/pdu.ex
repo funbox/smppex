@@ -19,7 +19,7 @@ defmodule SMPPEX.Pdu do
     optional: %{},
   ]
 
-  @type header :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @type header :: {integer, integer, integer}
 
   @spec new(header, map, map) :: t
 
@@ -33,19 +33,19 @@ defmodule SMPPEX.Pdu do
     }
   end
 
-  @spec command_id(t) :: non_neg_integer
+  @spec command_id(t) :: integer
 
   def command_id(pdu) do
     pdu.command_id
   end
 
-  @spec command_status(t) :: non_neg_integer
+  @spec command_status(t) :: integer
 
   def command_status(pdu) do
     pdu.command_status
   end
 
-  @spec sequence_number(t) :: non_neg_integer
+  @spec sequence_number(t) :: integer
 
   def sequence_number(pdu) do
     pdu.sequence_number
