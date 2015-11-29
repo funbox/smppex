@@ -1,4 +1,8 @@
 defmodule SMPPEX.Protocol.TlvFormat do
+
+  @type integer_size :: 1 | 2 | 4
+  @type tlv_value_spec :: {:integer, integer_size} | {:c_octet_string, {:max, pos_integer}} | {:octet_string, non_neg_integer} | {:octet_string, {non_neg_integer, non_neg_integer}}
+
   tlvs = [
     {:dest_addr_subunit, 0x0005, quote do: {:integer, 1}},
     {:dest_network_type, 0x0006, quote do: {:integer, 1}},
@@ -45,6 +49,10 @@ defmodule SMPPEX.Protocol.TlvFormat do
     {:its_reply_type, 0x1380, quote do: {:integer, 1}},
     {:its_session_info, 0x1383, quote do: {:octet_string, 2}},
   ]
+
+  @spec name_by_id(integer) :: :unknown | {:ok, atom}
+  @spec id_by_name(atom) :: :unknown | {:ok, non_neg_integer}
+  @spec format_by_id(integer) :: :unknown | {:ok, tlv_value_spec}
 
   Enum.each tlvs, fn({name, id, format}) ->
     def name_by_id(unquote(id)) do

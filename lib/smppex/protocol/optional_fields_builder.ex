@@ -20,7 +20,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   defp build_tlv(id, value) do
     case build_value(id, value) do
       {:ok, bin} -> tlv(id, bin)
-      {:error, error} -> {:error, {"Invalid value for Tag #{id}", error}}
+      {:error, error} -> {:error, {"Invalid value for Tag #{inspect id}", error}}
     end
   end
 
