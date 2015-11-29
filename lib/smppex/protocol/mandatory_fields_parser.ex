@@ -1,7 +1,13 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   import SMPPEX.Protocol.Unpack
 
+  alias SMPPEX.Protocol.MandatoryFieldsSpecs
+
+  @spec parse(binary, MandatoryFieldsSpecs.fields_spec) :: {:ok, map, binary} | {:error, any}
+
   def parse(bin, spec), do: parse(bin, spec, Map.new)
+
+  @spec parse(binary, MandatoryFieldsSpecs.fields_spec, map) :: {:ok, map, binary} | {:error, any}
 
   def parse(bin, [], parsed_fields) do
     {:ok, parsed_fields, bin}

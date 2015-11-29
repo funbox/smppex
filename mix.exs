@@ -11,7 +11,7 @@ defmodule Smppex.Mixfile do
      elixirc_paths: ["lib", "test/support"],
      test_coverage: [tool: Coverex.Task],
      dialyzer: [
-       flags: ["-Wunmatched_returns", "-Werror_handling", "-Wrace_conditions"]
+       flags: ["-Werror_handling", "-Wrace_conditions"]
      ]
    ]
   end
