@@ -13,6 +13,8 @@ defmodule SMPPEX.Pdu.UDH do
   @error_invalid_message_data "Invalid Message data"
   @error_udh_data_too_long "UDH is too long"
 
+  @spec has_udh?(Pdu.t) :: boolean
+
   def has_udh?(pdu) do
     case Pdu.field(pdu, :esm_class) do
       nil -> false
@@ -23,6 +25,9 @@ defmodule SMPPEX.Pdu.UDH do
   defp has_udh_flag?(esm_class) do
     esm_class && (esm_class &&& @esm_class_gsm_udhi) == @esm_class_gsm_udhi
   end
+
+  @type ie :: {byte, binary}
+  @spec extract(binary) :: {:error, any} | {:ok, list(ie), binary}
 
   def extract(data) do
     case data do
@@ -52,6 +57,8 @@ defmodule SMPPEX.Pdu.UDH do
     end
   end
   defp parse_ies_data(_, _), do: {:error, @error_invalid_udh_data}
+
+  @spec add(list(ie), binary) :: {:ok, binary} | {:error, any}
 
   def add(ies, message) do
     case pack_ies(ies, []) do
