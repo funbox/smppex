@@ -18,7 +18,8 @@ defmodule SMPPEX.Pdu.Multipart do
   @error_invalid_max "Invalid limits for splitting message"
   @error_invalid_message "Invalid message"
 
-  @type part_info :: :single | {integer, integer, integer}
+  @type actual_part_info :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @type part_info :: :single | actual_part_info
   @type extract_result :: {:ok, part_info, binary} | {:error, any}
   @type extract_source :: Pdu.t | binary
 
@@ -48,6 +49,8 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
+  @spec extract_from_ies(list(UDH.ie)) :: {:ok, part_info} | {:error, any}
+
   def extract_from_ies(ies) do
     cond do
       :proplists.is_defined(@concateneated_8bit_ref_ie_id, ies) ->
@@ -68,6 +71,8 @@ defmodule SMPPEX.Pdu.Multipart do
   end
   defp parse_16bit(_), do: {:error, @error_invalid_16bit_ie}
 
+  @spec multipart_ie(actual_part_info) :: {:error, any} | {:ok, UDH.ie}
+
   def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65535, do: {:error, @error_invalid_ref_num}
   def multipart_ie({_ref_num, count, _seq_num}) when count < 1 or count > 255, do: {:error, @error_invalid_count}
   def multipart_ie({_ref_num, _count, seq_num}) when seq_num < 1 or seq_num > 255, do: {:error, @error_invalid_seq_num}
@@ -81,6 +86,8 @@ defmodule SMPPEX.Pdu.Multipart do
         <<ref_num :: integer-unsigned-size(8), count :: integer-unsigned-size(8), seq_num :: integer-unsigned-size(8) >>}
     end}
   end
+
+  @spec prepend_message_with_part_info(actual_part_info, binary) :: {:error, any} | {:ok, binary}
 
   def prepend_message_with_part_info(part_info, message) do
     case multipart_ie(part_info) do
