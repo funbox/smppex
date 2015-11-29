@@ -69,16 +69,20 @@ defmodule SMPPEX.Pdu.UDH do
 
   defp pack_ies([], packed), do: {:ok, packed |> Enum.reverse |> Enum.join}
   defp pack_ies([ie | ies], packed) do
-    case ie do
-      {id, _} when not is_integer(id) -> {:error, @error_invalid_udh_ie_id}
-      {id, _} when id < 0x00 or id > 0xFF -> {:error, @error_invalid_udh_ie_id}
-      {_, value} when not is_binary(value) -> {:error, @error_invalid_udh_ie_data}
-      {_, value} when byte_size(value) > 0xFF -> {:error, @error_invalid_udh_ie_data}
-      {id, value} ->
-        len = byte_size(value)
-        packed_ie = << id :: integer-unsigned-size(8), len :: integer-unsigned-size(8), value :: binary >>
-        pack_ies(ies, [packed_ie | packed])
+    case pack_ie(ie) do
+      {:ok, packed_ie} -> pack_ies(ies, [packed_ie | packed])
+      {:error, _} = err -> err
     end
+  end
+
+  defp pack_ie({id, _}) when not is_integer(id), do: {:error, @error_invalid_udh_ie_id}
+  defp pack_ie({id, _}) when id < 0x00 or id > 0xFF, do: {:error, @error_invalid_udh_ie_id}
+  defp pack_ie({_, value}) when not is_binary(value), do: {:error, @error_invalid_udh_ie_data}
+  defp pack_ie({_, value}) when byte_size(value) > 0xFF, do: {:error, @error_invalid_udh_ie_data}
+  defp pack_ie({id, value}) do
+    len = byte_size(value)
+    packed_ie = << id :: integer-unsigned-size(8), len :: integer-unsigned-size(8), value :: binary >>
+    {:ok, packed_ie}
   end
 
   defp concat_ie_data_and_message(_data, message) when not is_binary(message), do: {:error, @error_invalid_message_data}

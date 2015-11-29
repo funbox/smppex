@@ -69,16 +69,19 @@ defmodule SMPPEX.Protocol do
 
   def build(pdu) do
     case build_header(pdu) do
-      {:ok, mandatory_specs, header_bin} ->
-        case build_mandatory_fields(pdu, mandatory_specs) do
-          {:ok, mandatory_bin} ->
-            case build_optional_fields(pdu) do
-              {:ok, optional_bin} -> {:ok, concat_pdu_binary_parts(header_bin, mandatory_bin, optional_bin)}
-              {:error, error} -> {:error, {"Error building optional field part", error}}
-            end
-          {:error, error} -> {:error, {"Error building mandatory field part", error}}
-        end
+      {:ok, mandatory_specs, header_bin} -> build_body(pdu, header_bin, mandatory_specs)
       {:error, error} -> {:error, {"Error building header part", error}}
+    end
+  end
+
+  defp build_body(pdu, header_bin, mandatory_specs) do
+    case build_mandatory_fields(pdu, mandatory_specs) do
+      {:ok, mandatory_bin} ->
+        case build_optional_fields(pdu) do
+          {:ok, optional_bin} -> {:ok, concat_pdu_binary_parts(header_bin, mandatory_bin, optional_bin)}
+          {:error, error} -> {:error, {"Error building optional field part", error}}
+        end
+      {:error, error} -> {:error, {"Error building mandatory field part", error}}
     end
   end
 

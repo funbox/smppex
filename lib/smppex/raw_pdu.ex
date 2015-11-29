@@ -20,12 +20,12 @@ defmodule SMPPEX.RawPdu do
 
   @spec new(header, binary) :: t
 
-  def new({command_id, command_status, sequence_number}, body) do
+  def new({c_id, c_status, s_number}, pdu_body) do
     %RawPdu{
-      command_id: command_id,
-      command_status: command_status,
-      sequence_number: sequence_number,
-      body: body
+      command_id: c_id,
+      command_status: c_status,
+      sequence_number: s_number,
+      body: pdu_body
     }
   end
 

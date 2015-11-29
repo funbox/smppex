@@ -23,13 +23,13 @@ defmodule SMPPEX.Pdu do
 
   @spec new(header, map, map) :: t
 
-  def new({command_id, command_status, sequence_number}, mandatory_fields, optional_fields) do
+  def new({c_id, c_status, s_number}, m_fields, opt_fields) do
     %Pdu{
-      command_id: command_id,
-      command_status: command_status,
-      sequence_number: sequence_number,
-      mandatory: mandatory_fields,
-      optional: optional_fields
+      command_id: c_id,
+      command_status: c_status,
+      sequence_number: s_number,
+      mandatory: m_fields,
+      optional: opt_fields
     }
   end
 

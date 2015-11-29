@@ -16,19 +16,19 @@ defmodule SMPPEX.Protocol.Unpack.Helpers do
 
   @spec take_until(binary, integer, integer) :: :not_found | {binary, binary}
 
-  def take_until(bin, char, max) do
-    _take_until(bin, char, max, 0)
+  def take_until(bin, char, take_max) do
+    _take_until(bin, char, take_max, 0)
   end
 
   @spec _take_until(binary, integer, integer, integer) :: :not_found | {binary, binary}
 
-  defp _take_until(_bin, _char, max, current) when current >= max, do: :not_found
-  defp _take_until(bin, _char, _max, current) when byte_size(bin) <= current, do: :not_found
+  defp _take_until(_bin, _char, take_max, current) when current >= take_max, do: :not_found
+  defp _take_until(bin, _char, _take_max, current) when byte_size(bin) <= current, do: :not_found
 
-  defp _take_until(bin, char, max, current) do
+  defp _take_until(bin, char, take_max, current) do
     case bin do
       << prefix :: binary-size(current), ^char, rest :: binary >> -> {prefix, rest}
-      _ -> _take_until(bin, char, max, current + 1)
+      _ -> _take_until(bin, char, take_max, current + 1)
     end
   end
 

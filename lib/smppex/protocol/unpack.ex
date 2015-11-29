@@ -36,8 +36,8 @@ defmodule SMPPEX.Protocol.Unpack do
 
   @spec c_octet_string(binary, length_spec, kind) :: c_octet_string_result
 
-  def c_octet_string(bin, {:fixed, length}, kind) when length >= 1 and is_binary(bin) do
-    str_length = length - 1
+  def c_octet_string(bin, {:fixed, len}, kind) when len >= 1 and is_binary(bin) do
+    str_length = len - 1
     case bin do
       << @null :: size(8), rest :: binary >> -> {:ok, "", rest}
       << str :: binary-size(str_length), @null :: size(8), rest :: binary >> ->
@@ -45,13 +45,13 @@ defmodule SMPPEX.Protocol.Unpack do
           true -> {:ok, str, rest}
           false -> {:error, @invalid_c_octet_string_format}
         end
-      << _ :: binary-size(length), _ :: binary >> -> {:error, @invalid_fixed_c_octet_string}
+      << _ :: binary-size(len), _ :: binary >> -> {:error, @invalid_fixed_c_octet_string}
       _ -> {:error, @unexpected_data_end}
     end
   end
 
-  def c_octet_string(bin, {:max, max}, kind) when max >= 1 and is_binary(bin) do
-    case Helpers.take_until(bin, @null, max) do
+  def c_octet_string(bin, {:max, len}, kind) when len >= 1 and is_binary(bin) do
+    case Helpers.take_until(bin, @null, len) do
       {str, rest} -> case valid_kind?(str, kind) do
         true -> {:ok, str, rest}
         false -> {:error, @invalid_c_octet_string_format}
@@ -68,9 +68,9 @@ defmodule SMPPEX.Protocol.Unpack do
 
   @spec c_octet_string(binary, non_neg_integer) :: unpack_error_result | {:ok, binary, binary}
 
-  def octet_string(bin, length) when length >= 0 and is_binary(bin) do
+  def octet_string(bin, len) when len >= 0 and is_binary(bin) do
     case bin do
-      << str :: binary-size(length), rest :: binary >> -> {:ok, str, rest}
+      << str :: binary-size(len), rest :: binary >> -> {:ok, str, rest}
       _ -> {:error, @unexpected_data_end}
     end
   end
@@ -83,9 +83,9 @@ defmodule SMPPEX.Protocol.Unpack do
     {:error, @unexpected_data_end}
   end
 
-  def tlv(<<tag :: big-unsigned-integer-size(16), length :: big-unsigned-integer-size(16), value_and_rest :: binary>>) do
+  def tlv(<<tag :: big-unsigned-integer-size(16), len :: big-unsigned-integer-size(16), value_and_rest :: binary>>) do
     case value_and_rest do
-      << value :: binary-size(length), rest :: binary >> -> {:ok, {tag, value}, rest}
+      << value :: binary-size(len), rest :: binary >> -> {:ok, {tag, value}, rest}
       _ -> {:error, @unexpected_data_end}
     end
   end
