@@ -1,9 +1,27 @@
 defprotocol SMPPEX.TCP.ConnectionHandler do
+
+  @spec handle_connected(h, pid) :: h when h: var
+
   def handle_connected(handler, connection)
+
+  @spec handle_data_received(h, iodata) :: h when h: var
+
   def handle_data_received(handler, data)
+
+  @spec handle_data_sent(h, iodata) :: h when h: var
+
   def handle_data_sent(handler, data)
+
+  @spec handle_peer_closed(any) :: any
+
   def handle_peer_closed(handler)
+
+  @spec handle_closed(any) :: any
+
   def handle_closed(handler)
+
+  @spec handle_error_closed(any, any) :: any
+
   def handle_error_closed(handler, error)
 end
 
@@ -15,11 +33,18 @@ defmodule SMPPEX.TCP.Connection do
 
   use GenServer
 
+  @spec start_link(port, any, list) :: GenServer.on_start
+
   def start_link(socket, handler, opts \\ []) do
     GenServer.start_link(__MODULE__, [socket, handler], opts)
   end
 
+  @spec send(pid, iodata) :: any
+
   def send(connection, data), do: GenServer.call(connection, {:send, data})
+
+  @spec close(pid) :: any
+
   def close(connection), do: GenServer.call(connection, :close)
 
   # GenServer
