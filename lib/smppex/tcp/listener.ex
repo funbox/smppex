@@ -1,14 +1,22 @@
 defmodule SMPPEX.TCP.Listener do
 
+  alias SMPPEX.TCP.Listener
+
   defstruct socket: nil, port: 0, tcp_opts: [], handler: nil
 
-  alias SMPPEX.TCP.Listener
+  @type handler_result :: {:ok, pid} | {:error, any}
+  @type handler :: (port -> handler_result)
+
+  @type t :: %Listener{
+    socket: port,
+    port: integer,
+    tcp_opts: list,
+    handler: handler
+  }
 
   @reuquired_tcp_opts [:binary, {:packet, :raw}, {:active, false}, {:reuseaddr, true}]
 
-  @type callback_result :: {:ok, pid} | {:error, any}
-
-  @spec new({integer, list}, (port -> callback_result)) :: %Listener{}
+  @spec new({integer, list}, handler) :: t
 
   def new({port, opts}, handler) when is_integer(port) and is_list(opts) and is_function(handler) do
     tcp_opts = add_required_tcp_options(opts)
@@ -19,16 +27,14 @@ defmodule SMPPEX.TCP.Listener do
     @reuquired_tcp_opts ++ opts
   end
 
-end
-
-defimpl SMPPEX.TCP.ClientHandler, for: SMPPEX.TCP.Listener do
-
-  alias SMPPEX.TCP.Listener
+  @spec init(t) :: t
 
   def init(listener) do
     {:ok, socket} = :gen_tcp.listen(listener.port, listener.tcp_opts)
     %Listener{ listener | socket: socket }
   end
+
+  @spec accept(t) :: t
 
   def accept(listener) do
     {:ok, client} = :gen_tcp.accept(listener.socket)
