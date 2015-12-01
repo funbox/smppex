@@ -5,25 +5,25 @@ defmodule SMPPEX.TCP.Server do
 
   @spec start_link(Listener.t, list) :: GenServer.on_start
 
-  def start_link(client_handler, opts \\ []) do
-    GenServer.start_link(__MODULE__, [client_handler], opts)
+  def start_link(listener, opts \\ []) do
+    GenServer.start_link(__MODULE__, [listener], opts)
   end
 
   # GenServer
 
   @spec init([Listener.t]) :: {:ok, Listener.t}
 
-  def init([client_handler]) do
+  def init([listener]) do
     schedule_accept
-    {:ok, Listener.init(client_handler)}
+    {:ok, Listener.init(listener)}
   end
 
   @spec handle_cast(:accept, Listener.t) :: {:noreply, Listener.t}
 
-  def handle_cast(:accept, client_handler) do
+  def handle_cast(:accept, listener) do
     schedule_accept
-    new_client_handler = Listener.accept(client_handler)
-    {:noreply, new_client_handler}
+    new_listener = Listener.accept(listener)
+    {:noreply, new_listener}
   end
 
   # Private
