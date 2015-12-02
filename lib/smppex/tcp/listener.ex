@@ -16,7 +16,9 @@ defmodule SMPPEX.TCP.Listener do
 
   @reuquired_tcp_opts [:binary, {:packet, :raw}, {:active, false}, {:reuseaddr, true}]
 
-  @spec new({integer, list}, handler) :: t
+  @type listen_opts :: {integer, list}
+
+  @spec new(listen_opts, handler) :: t
 
   def new({port, opts}, handler) when is_integer(port) and is_list(opts) and is_function(handler) do
     tcp_opts = add_required_tcp_options(opts)
