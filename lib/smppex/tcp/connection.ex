@@ -1,27 +1,20 @@
 defprotocol SMPPEX.TCP.ConnectionHandler do
-
   @spec handle_connected(h, pid) :: h when h: var
-
   def handle_connected(handler, connection)
 
   @spec handle_data_received(h, iodata) :: h when h: var
-
   def handle_data_received(handler, data)
 
   @spec handle_data_sent(h, iodata) :: h when h: var
-
   def handle_data_sent(handler, data)
 
   @spec handle_peer_closed(any) :: any
-
   def handle_peer_closed(handler)
 
   @spec handle_closed(any) :: any
-
   def handle_closed(handler)
 
   @spec handle_error_closed(any, any) :: any
-
   def handle_error_closed(handler, error)
 end
 

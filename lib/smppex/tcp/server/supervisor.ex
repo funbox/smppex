@@ -48,7 +48,7 @@ defmodule SMPPEX.TCP.Server.Supervisor do
     spec = connection_spec(socket, connection_handler)
     {:ok, _} = Supervisor.start_child(
       connections_supervisor,
-      connection_spec(socket, connection_handler)
+      spec
     )
   end
 
