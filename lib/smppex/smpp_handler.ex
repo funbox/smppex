@@ -32,4 +32,12 @@ defprotocol SMPPEX.SMPPHandler do
   @spec handle_socket_error(handler, any) :: any
   def handle_socket_error(handler, reason)
 
+  @spec handle_stop(handler) :: any
+  def handle_stop(handler)
+
+  @type send_pdu_result :: :ok | {:error, any}
+
+  @spec handle_send_pdu_result(handler, send_pdu_result) :: handler
+  def handle_send_pdu_result(handler, send_pdu_result)
+
 end

@@ -17,7 +17,7 @@ defmodule Smppex.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :ranch]]
   end
 
   defp deps do
