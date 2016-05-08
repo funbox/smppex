@@ -1,4 +1,4 @@
-defmodule SMPPEX.Ranch.Protocol do
+defmodule SMPPEX.Session do
 
   @behaviour :ranch_protocol
 
@@ -15,24 +15,16 @@ defmodule SMPPEX.Ranch.Protocol do
   # :ranch_tcp.controlling_process(sock, s)
   # :ranch_conns_sup.start_protocol(s, sock)
 
-  def send_pdu(pid, pdu, timeout) do
-    GenServer.call(pid, {:send_pdu, pdu}, timeout)
-  end
-
   def send_pdu(pid, pdu) do
-    GenServer.call(pid, {:send_pdu, pdu})
+    send_pdus(pid, [pdu])
   end
 
-  def stop(pid, timeout) do
-    GenServer.call(pid, :stop, timeout)
+  def send_pdus(pid, pdus) do
+    GenServer.cast(pid, {:send_pdus, pdus})
   end
 
   def stop(pid) do
-    GenServer.call(pid, :stop)
-  end
-
-  def send_pdus_async(pid, pdus) do
-    GenServer.cast(pid, {:send_pdus, pdus})
+    GenServer.cast(pid, :stop)
   end
 
   def start_link(ref, socket, transport, opts) do
@@ -45,8 +37,6 @@ defmodule SMPPEX.Ranch.Protocol do
       {:ok, handler} ->
         :ok = :proc_lib.init_ack({:ok, self})
         :ok = :ranch.accept_ack(ref)
-        :ok = transport.setopts(socket, [{:active, :once}])
-        SMPPHandler.setup_socket(handler, socket, transport)
         state = %{
           ref: ref,
           socket: socket,
@@ -54,10 +44,16 @@ defmodule SMPPEX.Ranch.Protocol do
           handler: handler,
           buffer: <<>>
         }
+        wait_for_data(state)
+        SMPPHandler.after_init(handler)
         :gen_server.enter_loop(__MODULE__, [], state)
       other ->
         :ok = :proc_lib.init_ack({:error, other})
     end
+  end
+
+  def wait_for_data(state) do
+    :ok = state.transport.setopts(state.socket, [{:active, :once}])
   end
 
   def handle_info(message, state) do
@@ -75,17 +71,12 @@ defmodule SMPPEX.Ranch.Protocol do
     end
   end
 
-  def handle_call({:send_pdu, pdu}, _from, state) do
-    {:reply, do_send_pdu(state, pdu), state}
-  end
-
-  def handle_call(:stop, _from, state) do
-    do_stop(state)
-    {:stop, :normal, :ok, state}
-  end
-
   def handle_cast({:send_pdus, pdus}, state) do
-    {:noreply, send_pdus(state, pdus)}
+    {:noreply, do_send_pdus(state, pdus)}
+  end
+
+  def handle_cast(:stop, state) do
+    do_stop(state)
   end
 
   defp do_send_pdu(state, pdu) do
@@ -95,10 +86,10 @@ defmodule SMPPEX.Ranch.Protocol do
     end
   end
 
-  defp send_pdus(state, []), do: state
-  defp send_pdus(state, [pdu | pdus]) do
-    new_handler = SMPPHandler.handle_send_pdu_result(state.handler, send_pdu(state, pdu))
-    send_pdus(%{state | handler: new_handler}, pdus)
+  defp do_send_pdus(state, []), do: state
+  defp do_send_pdus(state, [pdu | pdus]) do
+    new_handler = SMPPHandler.handle_send_pdu_result(state.handler, pdu, do_send_pdu(state, pdu))
+    do_send_pdus(%{state | handler: new_handler}, pdus)
   end
 
   defp handle_data(state, data) do
@@ -110,6 +101,7 @@ defmodule SMPPEX.Ranch.Protocol do
     case SMPP.parse(data) do
       {:ok, nil, data} ->
         new_state = %{state | buffer: data}
+        wait_for_data(state)
         {:noreply, new_state}
       {:ok, parse_result, rest_data} ->
         handle_parse_result(state, parse_result, rest_data)
@@ -142,8 +134,7 @@ defmodule SMPPEX.Ranch.Protocol do
 
   defp handle_socket_closed(state) do
     SMPPHandler.handle_socket_closed(state.handler)
-    SMPPHandler.handle_stop(state.handler)
-    {:stop, :normal, state}
+    do_stop(state)
   end
 
   defp handle_socket_error(state, reason) do
@@ -152,8 +143,8 @@ defmodule SMPPEX.Ranch.Protocol do
   end
 
   defp do_stop(state) do
+    _ = state.transport.close(state.socket)
     SMPPHandler.handle_stop(state.handler)
-    :ok = state.transport.close(state.socket)
     {:stop, :normal, state}
   end
 

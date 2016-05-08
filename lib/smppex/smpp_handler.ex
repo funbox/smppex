@@ -15,8 +15,8 @@ defprotocol SMPPEX.SMPPHandler do
   @spec init(handler, ref, socket, transport, protocol) :: init_error
   def init(handler, ref, socket, transport, protocol)
 
-  @spec setup_socket(handler, socket, transport) :: any
-  def setup_socket(handler, socket, transport)
+  @spec after_init(handler) :: any
+  def after_init(handler)
 
   @spec handle_parse_error(handler, SMPP.error) :: any
   def handle_parse_error(handler, error)
@@ -37,7 +37,7 @@ defprotocol SMPPEX.SMPPHandler do
 
   @type send_pdu_result :: :ok | {:error, any}
 
-  @spec handle_send_pdu_result(handler, send_pdu_result) :: handler
-  def handle_send_pdu_result(handler, send_pdu_result)
+  @spec handle_send_pdu_result(handler, Pdu.t, send_pdu_result) :: handler
+  def handle_send_pdu_result(handler, pdu, send_pdu_result)
 
 end

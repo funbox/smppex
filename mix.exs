@@ -8,7 +8,7 @@ defmodule Smppex.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps,
-     elixirc_paths: ["lib", "test/support"],
+     elixirc_paths: ["lib", "test/support", "examples"],
      test_coverage: [tool: Coverex.Task],
      dialyzer: [
        flags: ["-Werror_handling", "-Wrace_conditions"]
