@@ -81,7 +81,8 @@ defmodule SMPPEX.Session do
 
   defp do_send_pdu(state, pdu) do
     case SMPP.build(pdu) do
-      {:ok, binary} -> state.transport.send(state.socket, binary)
+      {:ok, binary} ->
+        state.transport.send(state.socket, binary)
       error -> error
     end
   end
@@ -119,6 +120,8 @@ defmodule SMPPEX.Session do
 
   defp handle_parse_result(state, parse_result, rest_data) do
     case SMPPHandler.handle_pdu(state.handler, parse_result) do
+      :ok ->
+        parse_pdus(state, rest_data)
       {:ok, handler} ->
         parse_pdus(%{state | handler: handler}, rest_data)
       {:ok, handler, pdus} ->

@@ -7,7 +7,7 @@ defmodule SMPPEX.ClientPool do
   def start(handler, capacity \\ @default_capacity, transport \\ @default_transport, ack_timeout \\ @default_timeout) do
     ref = make_ref
     :ranch_server.set_new_listener_opts(ref, capacity, [{:handler, handler}])
-    {:ok, pid} = :ranch_conns_sup.start_link(ref, :worker, :brutal_kill, transport, ack_timeout, SMPPEX.Ranch.Protocol)
+    {:ok, pid} = :ranch_conns_sup.start_link(ref, :worker, :brutal_kill, transport, ack_timeout, SMPPEX.Session)
     {pid, ref}
   end
 

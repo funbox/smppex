@@ -37,9 +37,11 @@ defmodule SMPPEX.Pdu.Factory do
         source_addr: source_addr,
         source_addr_ton: source_addr_ton,
         source_addr_npi: source_addr_npi,
-        dest_addr: dest_addr,
+        destination_addr: dest_addr,
         dest_addr_ton: dest_addr_ton,
-        dest_addr_npi: dest_addr_npi
+        dest_addr_npi: dest_addr_npi,
+        short_message: message,
+        registered_delivery: registered_delivery
       }
     }
   end
