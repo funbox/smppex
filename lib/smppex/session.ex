@@ -8,13 +8,6 @@ defmodule SMPPEX.Session do
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.SMPPHandler
 
-  # Application.start(:ranch, :permanent)
-  # :ranch_server.set_new_listener_opts(:foo, 400, [:foo, :bar])
-  # :ranch_conns_sup.start_link(:foo, :worker, :brutal_kill, :ranch_tcp, 5000, SMPPEX.Ranch.Protocol)
-  # {:ok, sock} = :gen_tcp.connect('rubybox.ru', 80, [])
-  # :ranch_tcp.controlling_process(sock, s)
-  # :ranch_conns_sup.start_protocol(s, sock)
-
   def send_pdu(pid, pdu) do
     send_pdus(pid, [pdu])
   end
