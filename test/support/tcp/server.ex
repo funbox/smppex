@@ -1,11 +1,11 @@
-defmodule Support.TCP.SimpleServer do
+defmodule Support.TCP.Server do
   defstruct [
     :server_pid,
     :received_data_pid,
     :port
   ]
 
-  alias Support.TCP.SimpleServer
+  alias Support.TCP.Server
 
   def start_link do
     port = Support.TCP.Helpers.find_free_port
@@ -14,18 +14,18 @@ defmodule Support.TCP.SimpleServer do
 
     server_pid = spawn_link(fn() -> listen(port, received_data_pid) end)
 
-    %SimpleServer{server_pid: server_pid, received_data_pid: received_data_pid, port: port}
+    %Server{server_pid: server_pid, received_data_pid: received_data_pid, port: port}
   end
 
   def port(server), do: server.port
 
   def stop(server) do
-    server.server_pid ! :tcp_close
+    Kernel.send server.server_pid, :tcp_close
     Agent.stop(server.received_data_pid)
   end
 
   def send(server, data) do
-    server.server_pid ! {:tcp_send, data}
+    Kernel.send server.server_pid, {:tcp_send, data}
   end
 
   def messages(server) do
@@ -37,8 +37,8 @@ defmodule Support.TCP.SimpleServer do
   end
 
   defp listen(port, received_data_pid) do
-    {:ok, listen_sock} = :gen_tcp.listen(port, [:binary])
-    {:ok, sock} = :gen_tcp.accept(listen_sock, {})
+    {:ok, listen_sock} = :gen_tcp.listen(port, [:binary, {:active, true}])
+    {:ok, sock} = :gen_tcp.accept(listen_sock)
     :ok = :gen_tcp.close(listen_sock)
     loop(received_data_pid, sock)
   end
@@ -46,7 +46,7 @@ defmodule Support.TCP.SimpleServer do
   defp loop(received_data_pid, sock) do
     receive do
       {:tcp, ^sock, data} = message ->
-        Agent.update(received_data_pid, fn(received_data) -> %{received_data: received_data.data <> data, messages: [message | received_data.messages]} end)
+        Agent.update(received_data_pid, fn(received_data) -> %{data: received_data.data <> data, messages: [message | received_data.messages]} end)
         loop(received_data_pid, sock)
       {:tcp_closed, ^sock} = message ->
         Agent.update(received_data_pid, fn(received_data) -> %{received_data | messages: [message | received_data.messages]} end)

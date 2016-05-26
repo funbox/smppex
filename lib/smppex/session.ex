@@ -109,8 +109,6 @@ defmodule SMPPEX.Session do
     do_stop(state)
   end
 
-  #   @type handle_pdu_result :: {:ok, session} | {:ok, session, [Pdu.t]} | {:stop, session, [Pdu.t]} | :stop
-
   defp handle_parse_result(state, parse_result, rest_data) do
     case SMPPHandler.handle_pdu(state.session, parse_result) do
       :ok ->

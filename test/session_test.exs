@@ -1,99 +1,132 @@
 defmodule SMPPEX.SessionTest do
   use ExUnit.Case
 
-  defmodule TestPool do
-    def create do
-      {:ok, pid} = Agent.start_link(fn() -> %{sessions: []} end)
+  alias Support.TCP.Server
+  alias Support.ClientPool
+  alias Support.SMPPSession
 
-      handler = fn(_ref, _socket, _transport, _protocol) ->
-        session = TestSession.create
-        Agent.update(pid, fn(pool_data) -> %{pool_data | sessions: [session | pool_data.sessions]} end)
-        {:ok, session}
-      end
+  setup do
+    {:ok, hello: "world"}
+    server = Server.start_link
+    client_pool = ClientPool.create
+    ClientPool.connect(client_pool, {127,0,0,1}, Server.port(server))
 
-      client_pool = ClientPool.start(handler)
-      Agent.update(pid, fn(pool_data) -> %{pool_data | client_pool: client_pool} end)
+    :timer.sleep(50)
 
-      pid
-    end
+    [session] = ClientPool.sessions(client_pool)
 
-    def stop(pid) do
-      {:ok, client_pool} = Agent.get(pid, fn(data) -> data.client_pool end)
-      for session <- sessions(pid), do: TestSession.stop(session)
-      Agent.stop(pid)
-      ClientPool.stop(client_pool)
-    end
-
-    def connect(pid, host, port) do
-      {:ok, client_pool} = Agent.get(pid, fn(data) -> data.client_pool end)
-      {:ok, socket} = :gen_tcp.connect(host, port, [:binary, {:packet, 0}])
-      ClientPool.start_session(client_pool, socket)
-    end
-
-    def sessions(pid) do
-      {:ok, sessions} = Agent.get(pid, fn(data) -> data.sessions end)
-      sessions
-    end
+    {:ok, session: session, server: server}
   end
 
-  defmodule TestSession do
-    defstruct [
-      :spied_data_pid
-    ]
-
-    def create do
-      {:ok, spied_data_pid} = Agent.start_link(fn() -> %{calls: []} end)
-      %TestSession{spied_data_pid: spied_data_pid}
-    end
-
-    def save_callback(session, name, args) do
-      Agent.update(session.spied_data_pid, fn(data) ->
-        %{data |
-          callbacks_received: [{name, args} | data.calls]
-        }
-      end)
-    end
-
-    def stop(session) do
-      Agent.stop(session.spied_data_pid)
-    end
+  test "connect & after_init", context do
+    assert [{:after_init, []}] == SMPPSession.callbacks_received(context[:session])
   end
 
-  defimpl SMPPEX.SMPPHandler, for: TestSession do
+  test "handle_parse_error", context do
+    Server.send(context[:server], <<00, 00, 00, 0x0F,   00, 00, 00, 00,   00, 00, 00, 00,   00, 00, 00, 00>>)
 
-    def after_init(session) do
-      TestSession.save_callback(session, :after_init, [])
-    end
+    :timer.sleep(50)
 
-    def handle_parse_error(session, error) do
-      TestSession.save_callback(session, :after_init, [])
-    end
-
-    def handle_pdu(session, {:unparsed_pdu, raw_pdu, error}) do
-      TestSession.save_callback(session, :handle_pdu, [{:unparsed_pdu, raw_pdu, error}])
-    end
-
-    def handle_pdu(session, {:pdu, pdu}) do
-      TestSession.save_callback(session, :handle_pdu, [{:pdu, pdu}])
-      :ok
-    end
-
-    def handle_socket_closed(session) do
-      TestSession.save_callback(session, :handle_socket_closed, [])
-    end
-
-    def handle_socket_error(session, reason) do
-      TestSession.save_callback(session, :handle_socket_error, [])
-    end
-
-    def handle_stop(session) do
-      TestSession.save_callback(session, :handle_stop, [])
-    end
-
-    def handle_send_pdu_result(session, pdu, send_pdu_result) do
-      TestSession.save_callback(session, :handle_send_pdu_result, [pdu, send_pdu_result])
-      session
-    end
+    assert [
+      {:after_init, []},
+      {:handle_parse_error, _},
+      {:handle_stop, []}
+    ] = SMPPSession.callbacks_received(context[:session])
   end
 
+  test "handle_pdu with valid pdu", context do
+    {:ok, pdu_data} = SMPPEX.Protocol.build(SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
+    Server.send(context[:server], pdu_data)
+
+    :timer.sleep(50)
+
+    assert [
+      {:after_init, []},
+      {:handle_pdu, [{:pdu, _}]}
+    ] = SMPPSession.callbacks_received(context[:session])
+  end
+
+  test "handle_pdu with unknown pdu", context do
+    Server.send(context[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+
+    :timer.sleep(50)
+
+    assert [
+      {:after_init, []},
+      {:handle_pdu, [{:unparsed_pdu, _, _}]}
+    ] = SMPPSession.callbacks_received(context[:session])
+  end
+
+  test "handle_socket_closed", context do
+    Server.stop(context[:server])
+
+    :timer.sleep(50)
+
+    assert [
+      {:after_init, []},
+      {:handle_socket_closed, []},
+      {:handle_stop, []}
+    ] == SMPPSession.callbacks_received(context[:session])
+  end
+
+  test "stop & handle_stop", context do
+    context[:session] |> SMPPSession.protocol |> SMPPEX.Session.stop
+
+    :timer.sleep(50)
+
+    assert [
+      {:after_init, []},
+      {:handle_stop, []}
+    ] == SMPPSession.callbacks_received(context[:session])
+
+    assert [{:tcp_closed, _}] = Server.messages(context[:server])
+  end
+
+  test "handle_send_pdu_result, single pdu", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    context[:session] |> SMPPSession.protocol |> SMPPEX.Session.send_pdu(pdu)
+
+    :timer.sleep(50)
+
+    assert [
+      {:after_init, []},
+      {:handle_send_pdu_result, [pdu, :ok]}
+    ] == SMPPSession.callbacks_received(context[:session])
+  end
+
+  test "handle_send_pdu_result, multiple pdus", context do
+    pdu_tx = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    pdu_rx = SMPPEX.Pdu.Factory.bind_receiver("system_id", "password")
+    context[:session] |> SMPPSession.protocol |> SMPPEX.Session.send_pdus([pdu_tx, pdu_rx])
+
+    :timer.sleep(50)
+
+    assert [
+      {:after_init, []},
+      {:handle_send_pdu_result, [pdu_tx, :ok]},
+      {:handle_send_pdu_result, [pdu_rx, :ok]}
+    ] == SMPPSession.callbacks_received(context[:session])
+  end
+
+  test "send_pdu", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    context[:session] |> SMPPSession.protocol |> SMPPEX.Session.send_pdu(pdu)
+
+    :timer.sleep(50)
+
+    {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
+    assert pdu_data == Server.received_data(context[:server])
+  end
+
+  test "send_pdus", context do
+    pdu_tx = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    pdu_rx = SMPPEX.Pdu.Factory.bind_receiver("system_id", "password")
+    context[:session] |> SMPPSession.protocol |> SMPPEX.Session.send_pdus([pdu_tx, pdu_rx])
+
+    :timer.sleep(50)
+
+    {:ok, pdu_tx_data} = SMPPEX.Protocol.build(pdu_tx)
+    {:ok, pdu_rx_data} = SMPPEX.Protocol.build(pdu_rx)
+    assert pdu_tx_data <> pdu_rx_data == Server.received_data(context[:server])
+  end
 end
