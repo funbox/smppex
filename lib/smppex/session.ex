@@ -25,20 +25,20 @@ defmodule SMPPEX.Session do
   end
 
   def init(ref, socket, transport, opts) do
-    handler = :proplists.get_value(:handler, opts)
-    case SMPPHandler.init(handler, ref, socket, transport, self) do
-      {:ok, handler} ->
+    session_factory = :proplists.get_value(:handler, opts)
+    case session_factory.(ref, socket, transport, self) do
+      {:ok, session} ->
         :ok = :proc_lib.init_ack({:ok, self})
         :ok = :ranch.accept_ack(ref)
         state = %{
           ref: ref,
           socket: socket,
           transport: transport,
-          handler: handler,
+          session: session,
           buffer: <<>>
         }
         wait_for_data(state)
-        SMPPHandler.after_init(handler)
+        SMPPHandler.after_init(session)
         :gen_server.enter_loop(__MODULE__, [], state)
       other ->
         :ok = :proc_lib.init_ack({:error, other})
@@ -82,8 +82,8 @@ defmodule SMPPEX.Session do
 
   defp do_send_pdus(state, []), do: state
   defp do_send_pdus(state, [pdu | pdus]) do
-    new_handler = SMPPHandler.handle_send_pdu_result(state.handler, pdu, do_send_pdu(state, pdu))
-    do_send_pdus(%{state | handler: new_handler}, pdus)
+    new_session = SMPPHandler.handle_send_pdu_result(state.session, pdu, do_send_pdu(state, pdu))
+    do_send_pdus(%{state | session: new_session}, pdus)
   end
 
   defp handle_data(state, data) do
@@ -105,23 +105,23 @@ defmodule SMPPEX.Session do
   end
 
   defp handle_parse_error(state, error) do
-    SMPPHandler.handle_parse_error(state.handler, error)
+    SMPPHandler.handle_parse_error(state.session, error)
     do_stop(state)
   end
 
-  #   @type handle_pdu_result :: {:ok, handler} | {:ok, handler, [Pdu.t]} | {:stop, handler, [Pdu.t]} | :stop
+  #   @type handle_pdu_result :: {:ok, session} | {:ok, session, [Pdu.t]} | {:stop, session, [Pdu.t]} | :stop
 
   defp handle_parse_result(state, parse_result, rest_data) do
-    case SMPPHandler.handle_pdu(state.handler, parse_result) do
+    case SMPPHandler.handle_pdu(state.session, parse_result) do
       :ok ->
         parse_pdus(state, rest_data)
-      {:ok, handler} ->
-        parse_pdus(%{state | handler: handler}, rest_data)
-      {:ok, handler, pdus} ->
-        new_state = send_pdus(%{ state | handler: handler }, pdus)
+      {:ok, session} ->
+        parse_pdus(%{state | session: session}, rest_data)
+      {:ok, session, pdus} ->
+        new_state = send_pdus(%{ state | session: session }, pdus)
         parse_pdus(new_state, rest_data)
-      {:stop, handler, pdus} ->
-        new_state = send_pdus(%{ state | handler: handler }, pdus)
+      {:stop, session, pdus} ->
+        new_state = send_pdus(%{ state | session: session }, pdus)
         do_stop(new_state)
       :stop ->
         do_stop(state)
@@ -129,18 +129,18 @@ defmodule SMPPEX.Session do
   end
 
   defp handle_socket_closed(state) do
-    SMPPHandler.handle_socket_closed(state.handler)
+    SMPPHandler.handle_socket_closed(state.session)
     do_stop(state)
   end
 
   defp handle_socket_error(state, reason) do
-    SMPPHandler.handle_socket_error(state.handler, reason)
+    SMPPHandler.handle_socket_error(state.session, reason)
     do_stop(state)
   end
 
   defp do_stop(state) do
     _ = state.transport.close(state.socket)
-    SMPPHandler.handle_stop(state.handler)
+    SMPPHandler.handle_stop(state.session)
     {:stop, :normal, state}
   end
 

@@ -19,14 +19,17 @@ defmodule SMPPEX.SimpleClient do
 
   def create(host, port, system_id, password, source_addr, destination_addr, message) do
     {:ok, seq} = Agent.start_link(fn -> 1 end)
-    handler = %SimpleClient{
-      system_id: system_id,
-      password: password,
-      source_addr: source_addr,
-      destination_addr: destination_addr,
-      message: message,
-      seq: seq
-    }
+    handler = fn(_ref, _socket, _transport, protocol) ->
+      {:ok, %SimpleClient{
+        pid: protocol,
+        system_id: system_id,
+        password: password,
+        source_addr: source_addr,
+        destination_addr: destination_addr,
+        message: message,
+        seq: seq
+      }}
+    end
 
     client_pool = ClientPool.start(handler)
     {:ok, socket} = :gen_tcp.connect(host, port, [:binary, {:packet, 0}])
@@ -44,7 +47,7 @@ defmodule SMPPEX.SimpleClient do
     Session.send_pdu(session.pid, set_sequence_number(session, pdu))
   end
 
-  def handle_submit_sm_resp(session, pdu) do
+  def handle_submit_sm_resp(session, _pdu) do
     Session.stop(session.pid)
   end
 
@@ -64,10 +67,6 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.SimpleClient do
   alias SMPPEX.Protocol.CommandNames
 
   require Logger
-
-  def init(session, _ref, _socket, _transport, protocol) do
-    {:ok, %SimpleClient{ session | pid: protocol}}
-  end
 
   def after_init(session) do
     pdu = Factory.bind_transceiver(session.system_id, session.password)

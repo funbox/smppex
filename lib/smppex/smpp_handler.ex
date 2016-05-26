@@ -3,41 +3,38 @@ defprotocol SMPPEX.SMPPHandler do
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.Pdu, as: Pdu
 
-  @type handler :: any
+  @type session :: any
   @type ref :: any
   @type socket :: port
   @type transport :: module
   @type protocol :: pid
 
   @type init_error :: any
-  @type init_reult :: {:ok, handler} | init_error
+  @type init_reult :: {:ok, session} | init_error
 
-  @spec init(handler, ref, socket, transport, protocol) :: init_error
-  def init(handler, ref, socket, transport, protocol)
+  @spec after_init(session) :: any
+  def after_init(session)
 
-  @spec after_init(handler) :: any
-  def after_init(handler)
+  @spec handle_parse_error(session, SMPP.error) :: any
+  def handle_parse_error(session, error)
 
-  @spec handle_parse_error(handler, SMPP.error) :: any
-  def handle_parse_error(handler, error)
+  @type handle_pdu_result :: {:ok, session} | {:ok, session, [Pdu.t]} | {:stop, session, [Pdu.t]} | :stop
 
-  @type handle_pdu_result :: {:ok, handler} | {:ok, handler, [Pdu.t]} | {:stop, handler, [Pdu.t]} | :stop
+  @spec handle_pdu(session, SMPP.pdu_parse_result) :: handle_pdu_result
+  def handle_pdu(session, parse_result)
 
-  @spec handle_pdu(handler, SMPP.pdu_parse_result) :: handle_pdu_result
-  def handle_pdu(handler, parse_result)
+  @spec handle_socket_closed(session) :: any
+  def handle_socket_closed(session)
 
-  @spec handle_socket_closed(handler) :: any
-  def handle_socket_closed(handler)
+  @spec handle_socket_error(session, any) :: any
+  def handle_socket_error(session, reason)
 
-  @spec handle_socket_error(handler, any) :: any
-  def handle_socket_error(handler, reason)
-
-  @spec handle_stop(handler) :: any
-  def handle_stop(handler)
+  @spec handle_stop(session) :: any
+  def handle_stop(session)
 
   @type send_pdu_result :: :ok | {:error, any}
 
-  @spec handle_send_pdu_result(handler, Pdu.t, send_pdu_result) :: handler
-  def handle_send_pdu_result(handler, pdu, send_pdu_result)
+  @spec handle_send_pdu_result(session, Pdu.t, send_pdu_result) :: session
+  def handle_send_pdu_result(session, pdu, send_pdu_result)
 
 end
