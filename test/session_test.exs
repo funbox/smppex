@@ -70,6 +70,8 @@ defmodule SMPPEX.SessionTest do
       {:handle_pdu, [{:pdu, _}]},
       {:handle_stop, []}
     ] = SMPPSession.callbacks_received(context[:session])
+
+     assert {:tcp_closed, _} = Server.messages(context[:server]) |> Enum.reverse |> hd
   end
 
   test "handle_pdu returning new session", context do
@@ -129,6 +131,7 @@ defmodule SMPPEX.SessionTest do
     ] = SMPPSession.callbacks_received(context[:session])
 
     assert pdu_rx_data == Server.received_data(context[:server])
+    assert {:tcp_closed, _} = Server.messages(context[:server]) |> Enum.reverse |> hd
   end
 
   test "handle_socket_closed", context do
