@@ -7,7 +7,8 @@ defmodule Support.SMPPSession do
   alias Support.SMPPSession
 
   def create(pid) do
-    {:ok, spied_data_pid} = Agent.start_link(fn() -> %{callbacks_received: []} end)
+    handle_pdu = fn(_pdu_info) -> :ok end
+    {:ok, spied_data_pid} = Agent.start_link(fn() -> %{callbacks_received: [], pdu_handler: handle_pdu} end)
     %SMPPSession{spied_data_pid: spied_data_pid, pid: pid}
   end
 
@@ -20,6 +21,12 @@ defmodule Support.SMPPSession do
       %{data |
         callbacks_received: [{name, args} | data.callbacks_received]
       }
+    end)
+  end
+
+  def set_pdu_handler(session, handle_pdu) do
+    Agent.update(session.spied_data_pid, fn(data) ->
+      %{data | pdu_handler: handle_pdu}
     end)
   end
 
@@ -44,13 +51,16 @@ defimpl SMPPEX.SMPPHandler, for: Support.SMPPSession do
     SMPPSession.save_callback(session, :handle_parse_error, [error])
   end
 
-  def handle_pdu(session, {:unparsed_pdu, raw_pdu, error}) do
+  def handle_pdu(session, {:unparsed_pdu, raw_pdu, error} = pdu_info) do
     SMPPSession.save_callback(session, :handle_pdu, [{:unparsed_pdu, raw_pdu, error}])
+    handle_pdu = Agent.get(session.spied_data_pid, fn(data) -> data.pdu_handler end)
+    handle_pdu.(pdu_info)
   end
 
-  def handle_pdu(session, {:pdu, pdu}) do
+  def handle_pdu(session, {:pdu, pdu} = pdu_info) do
     SMPPSession.save_callback(session, :handle_pdu, [{:pdu, pdu}])
-    :ok
+    handle_pdu = Agent.get(session.spied_data_pid, fn(data) -> data.pdu_handler end)
+    handle_pdu.(pdu_info)
   end
 
   def handle_socket_closed(session) do

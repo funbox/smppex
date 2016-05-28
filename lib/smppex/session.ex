@@ -116,10 +116,10 @@ defmodule SMPPEX.Session do
       {:ok, session} ->
         parse_pdus(%{state | session: session}, rest_data)
       {:ok, session, pdus} ->
-        new_state = send_pdus(%{ state | session: session }, pdus)
+        new_state = do_send_pdus(%{ state | session: session }, pdus)
         parse_pdus(new_state, rest_data)
       {:stop, session, pdus} ->
-        new_state = send_pdus(%{ state | session: session }, pdus)
+        new_state = do_send_pdus(%{ state | session: session }, pdus)
         do_stop(new_state)
       :stop ->
         do_stop(state)
