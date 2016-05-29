@@ -51,7 +51,7 @@ defmodule Support.TCP.Server do
       {:tcp_closed, ^sock} = message ->
         Agent.update(received_data_pid, fn(received_data) -> %{received_data | messages: [message | received_data.messages]} end)
         :gen_tcp.close(sock)
-      {:tcp_error, ^sock, reason} = message ->
+      {:tcp_error, ^sock, _reason} = message ->
         Agent.update(received_data_pid, fn(received_data) -> %{received_data | messages: [message | received_data.messages]} end)
         :gen_tcp.close(sock)
       {:tcp_send, data} ->

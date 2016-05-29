@@ -2,6 +2,8 @@ defmodule SMPPEX.Timer do
 
   @default_interval 1000
 
+  def start_link, do: start_link(self)
+
   def start_link(pid, interval \\ @default_interval) do
     spawn_link(fn() ->
       loop(pid, interval)
