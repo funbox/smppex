@@ -2,19 +2,14 @@ defmodule SMPPEX.RawPdu do
 
   alias SMPPEX.RawPdu
 
-  @type t :: %RawPdu{
-    command_id: integer,
-    command_status: integer,
-    sequence_number: integer,
-    body: binary
-  }
-
   defstruct [
     command_id: 0,
     command_status: 0,
     sequence_number: 0,
     body: ""
   ]
+
+  @type t :: %RawPdu{}
 
   @type header :: {integer, integer, integer}
 

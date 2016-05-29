@@ -18,7 +18,7 @@ defprotocol SMPPEX.SMPPHandler do
   @spec handle_parse_error(session, SMPP.error) :: any
   def handle_parse_error(session, error)
 
-  @type handle_pdu_result :: {:ok, session} | {:ok, session, [Pdu.t]} | {:stop, session, [Pdu.t]} | :stop
+  @type handle_pdu_result :: :ok | {:ok, session} | {:ok, session, [Pdu.t]} | {:stop, session, [Pdu.t]} | :stop
 
   @spec handle_pdu(session, SMPP.pdu_parse_result) :: handle_pdu_result
   def handle_pdu(session, parse_result)
