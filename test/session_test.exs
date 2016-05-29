@@ -104,7 +104,7 @@ defmodule SMPPEX.SessionTest do
     assert [
       {:after_init, []},
       {:handle_pdu, [{:pdu, _}]},
-      {:handle_send_pdu_result, [pdu_rx, :ok]}
+      {:handle_send_pdu_result, [^pdu_rx, :ok]}
     ] = SMPPSession.callbacks_received(context[:session])
 
     assert pdu_rx_data == Server.received_data(context[:server])
@@ -126,7 +126,7 @@ defmodule SMPPEX.SessionTest do
     assert [
       {:after_init, []},
       {:handle_pdu, [{:pdu, _}]},
-      {:handle_send_pdu_result, [pdu_rx, :ok]},
+      {:handle_send_pdu_result, [^pdu_rx, :ok]},
       {:handle_stop, []}
     ] = SMPPSession.callbacks_received(context[:session])
 
