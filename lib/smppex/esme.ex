@@ -99,6 +99,44 @@ defmodule SMPPEX.ESME do
 
   @callback handle_info(request, state) :: state
 
+  defmacro __using__(_) do
+    quote location: :keep do
+      @behaviour SMPPEX.ESME
+
+      def init(args) do
+        {:ok, args}
+      end
+
+      def handle_pdu(_pdu, state), do: state
+
+      def handle_resp(_pdu, _original_pdu, state), do: state
+
+      def handle_resp_timeout(_pdu, state), do: state
+
+      def handle_send_pdu_result(_pdu, _result, state), do: state
+
+      def handle_close(_state), do: nil
+
+      def handle_call(_request, _from, state), do: {:reply, :ok, state}
+
+      def handle_cast(_request, state), do: state
+
+      def handle_info(_request, state), do: state
+
+      defoverridable [
+        init: 1,
+        handle_pdu: 2,
+        handle_resp: 3,
+        handle_resp_timeout: 2,
+        handle_send_pdu_result: 3,
+        handle_close: 1,
+        handle_call: 3,
+        handle_cast: 2,
+        handle_info: 2
+      ]
+    end
+  end
+
   # Public interface
 
   def start_link(host, port, {module, args}, opts \\ []) do

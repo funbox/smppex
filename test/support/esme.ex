@@ -1,6 +1,6 @@
 defmodule Support.ESME do
 
-  @behaviour SMPPEX.ESME
+  use SMPPEX.ESME
 
   def start_link(host, port, esme_opts \\ []) do
     {:ok, st_store} = Agent.start_link(fn() -> [] end)
