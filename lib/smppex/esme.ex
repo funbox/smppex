@@ -25,7 +25,6 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.Session do
 
   def handle_pdu(session, {:pdu, pdu}) do
     :ok = ESME.handle_pdu(session.esme, pdu)
-    :ok
   end
 
   def handle_socket_closed(session) do
@@ -269,6 +268,7 @@ defmodule SMPPEX.ESME do
       false ->
         Logger.info("esme #{self}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
         Session.stop(st.session)
+        {:reply, :ok, st}
     end
   end
 
@@ -315,6 +315,7 @@ defmodule SMPPEX.ESME do
       {:stop, reason} ->
         Logger.info("esme #{self}, being stopped by timers(#{reason})")
         Session.stop(st.session)
+        {:noreply, st}
       {:enquire_link, new_timers} ->
         new_st = %ESME{ timers: new_timers, time: time }
         do_send_enquire_link(new_st)
