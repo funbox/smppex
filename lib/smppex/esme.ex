@@ -77,11 +77,12 @@ defmodule SMPPEX.ESME do
 
   @default_timer_resolution 100
 
-  @type state :: any
-  @type args :: any
-  @type reason :: any
+  @default_call_timeout 5000
 
-  @callback init(args) :: {:ok, state} | {:close, reason}
+  @type state :: term
+  @type request :: term
+
+  @callback init(args :: term) :: {:ok, state} | {:close, reason :: term}
 
   @callback handle_pdu(Pdu.t, state) :: state
 
@@ -92,6 +93,12 @@ defmodule SMPPEX.ESME do
   @callback handle_send_pdu_result(Pdu.t, SMPPEX.SMPPHandler.send_pdu_result, state) :: state
 
   @callback handle_close(state) :: any
+
+  @callback handle_call(request, GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
+
+  @callback handle_cast(request, state) :: state
+
+  @callback handle_info(request, state) :: state
 
   # Public interface
 
@@ -115,6 +122,10 @@ defmodule SMPPEX.ESME do
     GenServer.cast(esme, {:reply, pdu, reply_pdu})
   end
 
+  def stop(esme) do
+    GenServer.cast(esme, :stop)
+  end
+
   def handle_pdu(esme, pdu) do
     GenServer.call(esme, {:handle_pdu, pdu})
   end
@@ -125,6 +136,18 @@ defmodule SMPPEX.ESME do
 
   def handle_send_pdu_result(esme, pdu, send_pdu_result) do
     GenServer.call(esme, {:handle_send_pdu_result, pdu, send_pdu_result})
+  end
+
+  def call(esme, request, timeout \\ @default_call_timeout) do
+    GenServer.call(esme, {:call, request}, timeout)
+  end
+
+  def cast(esme, request) do
+    GenServer.cast(esme, {:cast, request})
+  end
+
+  def info(esme, request) do
+    Kernel.send esme, {:info, request}
   end
 
   # GenServer callbacks
@@ -160,6 +183,17 @@ defmodule SMPPEX.ESME do
     do_handle_send_pdu_result(pdu, send_pdu_result, st)
   end
 
+  def handle_call({:call, request}, from, st) do
+    case st.module.handle_call(request, from, st.module_state) do
+      {:reply, reply, new_module_state} ->
+        new_st = %ESME{ st | module_state: new_module_state }
+        {:reply, reply, new_st}
+      {:noreply, new_module_state} ->
+        new_st = %ESME{ st | module_state: new_module_state }
+        {:noreply, new_st}
+    end
+  end
+
   def handle_cast({:send_pdu, pdu}, st) do
     new_st = do_send_pdu(pdu, st)
     {:noreply, new_st}
@@ -170,8 +204,25 @@ defmodule SMPPEX.ESME do
     {:noreply, new_st}
   end
 
+  def handle_cast(:stop, st) do
+    Session.stop(st.session)
+    {:noreply, st}
+  end
+
+  def handle_cast({:cast, request}, st) do
+    new_module_state = st.module.handle_cast(request, st.module_state)
+    new_st = %ESME{ st | module_state: new_module_state }
+    {:noreply, new_st}
+  end
+
   def handle_info({:tick, time}, st) do
     do_handle_tick(time, st)
+  end
+
+  def handle_info({:info, request}, st) do
+    new_module_state = st.module.handle_info(request, st.module_state)
+    new_st = %ESME{ st | module_state: new_module_state }
+    {:noreply, new_st}
   end
 
   # Private functions
