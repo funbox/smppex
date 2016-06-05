@@ -93,6 +93,8 @@ defmodule SMPPEX.ESME do
 
   @callback handle_close(state) :: any
 
+  # Public interface
+
   def start_link(host, port, {module, args}, opts \\ []) do
     transport = Keyword.get(opts, :transport, :tcp)
     gen_server_opts = Keyword.get(opts, :gen_server_opts, [])
@@ -124,6 +126,8 @@ defmodule SMPPEX.ESME do
   def handle_send_pdu_result(esme, pdu, send_pdu_result) do
     GenServer.call(esme, {:handle_send_pdu_result, pdu, send_pdu_result})
   end
+
+  # GenServer callbacks
 
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
     esme = self
@@ -169,6 +173,8 @@ defmodule SMPPEX.ESME do
   def handle_info({:tick, time}, st) do
     do_handle_tick(time, st)
   end
+
+  # Private functions
 
   defp start_session(handler, host, port, transport, timeout) do
     case transport.connect(host, port, timeout) do
@@ -231,13 +237,13 @@ defmodule SMPPEX.ESME do
 
   defp resp?(pdu), do: Pdu.command_id(pdu) > 0x80000000
 
-  def do_handle_pdu(pdu, st) do
+  defp do_handle_pdu(pdu, st) do
     new_module_state = st.module.handle_pdu(pdu, st.module_state)
     new_timers = SMPPTimers.handle_peer_transaction(st.timers, st.time)
     {:reply, :ok, %ESME{ st | module_state: new_module_state, timers: new_timers }}
   end
 
-  def do_handle_resp(pdu, st) do
+  defp do_handle_resp(pdu, st) do
     sequence_number = Pdu.sequence_number(pdu)
     new_timers = SMPPTimers.handle_peer_action(st.timers, st.time)
     new_st = %ESME{ st | timers: new_timers }
@@ -250,7 +256,7 @@ defmodule SMPPEX.ESME do
     end
   end
 
-  def do_handle_resp_for_pdu(pdu, original_pdu, st) do
+  defp do_handle_resp_for_pdu(pdu, original_pdu, st) do
     new_module_state = st.module.handle_resp(pdu, original_pdu, st.module_state)
     new_st = %ESME{ st | module_state: new_module_state }
     case bind_resp?(pdu) do
