@@ -6,7 +6,6 @@ end
 
 defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.Session do
 
-  alias SMPPEX.ESME.Session, as: ESMESession
   alias SMPPEX.ESME, as: ESME
 
   require Logger
