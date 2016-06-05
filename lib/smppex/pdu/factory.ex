@@ -29,6 +29,13 @@ defmodule SMPPEX.Pdu.Factory do
     }
   end
 
+  def enquire_link do
+    {:ok, command_id} = CommandNames.id_by_name(:enquire_link)
+    %Pdu{
+      command_id: command_id
+    }
+  end
+
   def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message, registered_delivery \\ 0) do
     {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
     %Pdu{
