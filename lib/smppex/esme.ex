@@ -145,10 +145,6 @@ defmodule SMPPEX.ESME do
     GenServer.cast(esme, {:cast, request})
   end
 
-  def info(esme, request) do
-    Kernel.send esme, {:info, request}
-  end
-
   # GenServer callbacks
 
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
@@ -218,7 +214,7 @@ defmodule SMPPEX.ESME do
     do_handle_tick(time, st)
   end
 
-  def handle_info({:info, request}, st) do
+  def handle_info(request, st) do
     new_module_state = st.module.handle_info(request, st.module_state)
     new_st = %ESME{ st | module_state: new_module_state }
     {:noreply, new_st}
