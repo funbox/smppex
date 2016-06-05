@@ -18,11 +18,11 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.Session do
   end
 
   def handle_parse_error(session, error) do
-    Logger.info("esme #{session.esme}, parse error: #{error}, stopping")
+    Logger.info("esme #{inspect session.esme}, parse error: #{error}, stopping")
   end
 
   def handle_pdu(session, {:unparsed_pdu, raw_pdu, error}) do
-    Logger.info("esme #{session.esme}, unknown pdu: #{inspect raw_pdu}(#{error}), stopping")
+    Logger.info("esme #{inspect session.esme}, unknown pdu: #{inspect raw_pdu}(#{error}), stopping")
     :stop
   end
 
@@ -31,11 +31,11 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.Session do
   end
 
   def handle_socket_closed(session) do
-    Logger.info("esme #{session.esme}, socket closed, stopping")
+    Logger.info("esme #{inspect session.esme}, socket closed, stopping")
   end
 
   def handle_socket_error(session, reason) do
-    Logger.info("esme #{session.esme}, socket error #{reason}, stopping")
+    Logger.info("esme #{inspect session.esme}, socket error #{reason}, stopping")
   end
 
   def handle_stop(session) do

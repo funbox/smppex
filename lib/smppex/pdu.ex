@@ -3,34 +3,40 @@ defmodule SMPPEX.Pdu do
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
 
-  @type t :: %Pdu{
-    command_id: integer,
-    command_status: integer,
-    sequence_number: integer,
-    mandatory: map,
-    optional: map
-  }
+  @type t :: %Pdu{}
 
   defstruct [
     command_id: 0,
     command_status: 0,
     sequence_number: 0,
+    ref: nil,
     mandatory: %{},
     optional: %{},
   ]
 
-  @type header :: {integer, integer, integer}
+  @type header :: {integer, integer, integer} | integer
 
   @spec new(header, map, map) :: t
 
-  def new({c_id, c_status, s_number}, m_fields, opt_fields) do
-    %Pdu{
-      command_id: c_id,
-      command_status: c_status,
-      sequence_number: s_number,
-      mandatory: m_fields,
-      optional: opt_fields
-    }
+  def new(header, m_fields \\ %{}, opt_fields \\ %{}) do
+    case header do
+      c_id when is_integer(c_id) ->
+        %Pdu{
+          command_id: c_id,
+          ref: make_ref,
+          mandatory: m_fields,
+          optional: opt_fields
+        }
+      {c_id, c_status, s_number} ->
+        %Pdu{
+          command_id: c_id,
+          command_status: c_status,
+          sequence_number: s_number,
+          ref: make_ref,
+          mandatory: m_fields,
+          optional: opt_fields
+        }
+    end
   end
 
   @spec command_id(t) :: integer
@@ -90,5 +96,9 @@ defmodule SMPPEX.Pdu do
   @spec mandatory_fields(t) :: map
 
   def mandatory_fields(pdu), do: pdu.mandatory
+
+  @spec same?(t, t) :: boolean
+
+  def same?(pdu1, pdu2), do: pdu1.ref != nil and pdu2.ref != nil and pdu1.ref == pdu2.ref
 
 end

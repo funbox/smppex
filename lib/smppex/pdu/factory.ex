@@ -19,28 +19,26 @@ defmodule SMPPEX.Pdu.Factory do
   end
 
   def bind(command_id, system_id, password, conn_type \\ "") do
-    %Pdu{
-      command_id: command_id,
-      mandatory: %{
+    Pdu.new(
+      command_id,
+      %{
         system_id: system_id,
         password: password,
         conn_type: conn_type
       }
-    }
+    )
   end
 
   def enquire_link do
     {:ok, command_id} = CommandNames.id_by_name(:enquire_link)
-    %Pdu{
-      command_id: command_id
-    }
+    Pdu.new(command_id)
   end
 
   def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message, registered_delivery \\ 0) do
     {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
-    %Pdu{
-      command_id: command_id,
-      mandatory: %{
+    Pdu.new(
+      command_id,
+      %{
         source_addr: source_addr,
         source_addr_ton: source_addr_ton,
         source_addr_npi: source_addr_npi,
@@ -50,7 +48,7 @@ defmodule SMPPEX.Pdu.Factory do
         short_message: message,
         registered_delivery: registered_delivery
       }
-    }
+    )
   end
 
 end

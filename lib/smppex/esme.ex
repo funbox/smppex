@@ -1,8 +1,11 @@
 defmodule SMPPEX.ESME do
 
+  alias SMPPEX.ClientPool
+  alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.ESME
   alias SMPPEX.Pdu
   alias SMPPEX.PduStorage
+  alias SMPPEX.Session
   alias SMPPEX.SMPPTimers
 
   use GenServer
@@ -18,7 +21,8 @@ defmodule SMPPEX.ESME do
     :response_limit,
     :bound,
     :sequence_number,
-    :time
+    :time,
+    :timer_resolution
   ]
 
   @default_timeout 5000
@@ -142,7 +146,7 @@ defmodule SMPPEX.ESME do
     esme = self
     handler = fn(ref, _socket, _transport, session) ->
       Kernel.send esme, {ref, session}
-      SMPPEX.ESME.Session.new(esme)
+      {:ok, SMPPEX.ESME.Session.new(esme)}
     end
 
     case start_session(handler, host, port, transport, timeout) do
@@ -154,8 +158,8 @@ defmodule SMPPEX.ESME do
 
   def handle_call({:handle_pdu, pdu}, _from, st) do
     case resp?(pdu) do
-      true -> do_handle_pdu(pdu, st)
-      false -> do_handle_resp(pdu, st)
+      true -> do_handle_resp(pdu, st)
+      false -> do_handle_pdu(pdu, st)
     end
   end
 
@@ -189,7 +193,7 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_cast(:stop, st) do
-    Session.stop(st.session)
+    Session.stop(st.smpp_session)
     {:noreply, st}
   end
 
@@ -197,6 +201,12 @@ defmodule SMPPEX.ESME do
     new_module_state = st.module.handle_cast(request, st.module_state)
     new_st = %ESME{ st | module_state: new_module_state }
     {:noreply, new_st}
+  end
+
+  def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
+    :erlang.start_timer(st.timer_resolution, self, :emit_tick)
+    Kernel.send self, {:tick, :erlang.system_time(:milli_seconds)}
+    {:noreply, st}
   end
 
   def handle_info({:tick, time}, st) do
@@ -212,13 +222,14 @@ defmodule SMPPEX.ESME do
   # Private functions
 
   defp start_session(handler, host, port, transport, timeout) do
-    case transport.connect(host, port, timeout) do
+    case transport.connect(host, port, [:binary, {:packet, 0}, {:active, :once}], timeout) do
       {:ok, socket} ->
-        pool = ClientPool.start(handler, 1, transport, timeout)
+        pool = ClientPool.start(handler, 2, transport, timeout)
         ClientPool.start_session(pool, socket)
         ref = ClientPool.ref(pool)
         receive do
-          {^ref, session} -> {:ok, pool, session}
+          {^ref, session} ->
+            {:ok, pool, session}
         after timeout ->
           {:error, :session_init_timeout}
         end
@@ -230,7 +241,7 @@ defmodule SMPPEX.ESME do
     case module.init(args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(esme_opts, :timer_resolution, @default_timer_resolution)
-        SMPPEX.Timer.start_link(self, timer_resolution)
+        :erlang.start_timer(timer_resolution, self, :emit_tick)
 
         enquire_link_limit = Keyword.get(esme_opts, :enquire_link_limit,  @default_enquire_link_limit)
         enquire_link_resp_limit = Keyword.get(esme_opts, :enquire_link_resp_limit,  @default_enquire_link_resp_limit)
@@ -258,8 +269,9 @@ defmodule SMPPEX.ESME do
           pdus: pdu_storage,
           response_limit: response_limit,
           bound: false,
-          sequence_number: 1,
-          time: time
+          sequence_number: 0,
+          time: time,
+          timer_resolution: timer_resolution
         }}
       {:stop, _} = stop ->
         ClientPool.stop(pool)
@@ -284,7 +296,7 @@ defmodule SMPPEX.ESME do
     new_st = %ESME{ st | timers: new_timers }
     case PduStorage.fetch(st.pdus, sequence_number) do
       [] ->
-        Logger.info("esme #{self}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
+        Logger.info("esme #{inspect self}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
         {:reply, :ok, new_st}
       [original_pdu] ->
         do_handle_resp_for_pdu(pdu, original_pdu, new_st)
@@ -307,8 +319,8 @@ defmodule SMPPEX.ESME do
         new_st = %ESME{ st | timers: new_timers, bound: true }
         {:reply, :ok, new_st}
       false ->
-        Logger.info("esme #{self}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
-        Session.stop(st.session)
+        Logger.info("esme #{inspect self}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
+        Session.stop(st.smpp_session)
         {:reply, :ok, st}
     end
   end
@@ -325,8 +337,8 @@ defmodule SMPPEX.ESME do
 
   defp do_handle_stop(st) do
     _ = st.module.handle_stop(st.module_state)
-    ClientPool.stop(st.pool)
-    {:stop, :stop, :ok, st}
+    ClientPool.stop(st.client_pool)
+    {:stop, :normal, :ok, st}
   end
 
   defp do_handle_send_pdu_result(pdu, send_pdu_result, st) do
@@ -351,14 +363,14 @@ defmodule SMPPEX.ESME do
   defp do_handle_timers(time, st) do
     case SMPPTimers.handle_tick(st.timers, time) do
       {:ok, new_timers} ->
-        new_st = %ESME{ timers: new_timers, time: time }
+        new_st = %ESME{ st | timers: new_timers, time: time }
         {:noreply, new_st}
       {:stop, reason} ->
-        Logger.info("esme #{self}, being stopped by timers(#{reason})")
-        Session.stop(st.session)
+        Logger.info("esme #{inspect self}, being stopped by timers(#{reason})")
+        Session.stop(st.smpp_session)
         {:noreply, st}
       {:enquire_link, new_timers} ->
-        new_st = %ESME{ timers: new_timers, time: time }
+        new_st = %ESME{ st | timers: new_timers, time: time }
         do_send_enquire_link(new_st)
     end
   end
@@ -372,15 +384,15 @@ defmodule SMPPEX.ESME do
   defp do_send_pdu(pdu, st) do
     sequence_number = st.sequence_number + 1
     new_pdu = %Pdu{ pdu | sequence_number: sequence_number}
-    true = PduStorage.store(st.pdus, pdu, st.time + st.response_limit)
-    Session.send_pdu(st.session, new_pdu)
+    true = PduStorage.store(st.pdus, new_pdu, st.time + st.response_limit)
+    Session.send_pdu(st.smpp_session, new_pdu)
     new_st = %ESME{ st | sequence_number: sequence_number}
     new_st
   end
 
   defp do_reply(pdu, reply_pdu, st) do
     new_reply_pdu = %Pdu{ reply_pdu | sequence_number: pdu.sequence_number }
-    Session.send_pdu(st.session, new_reply_pdu)
+    Session.send_pdu(st.smpp_session, new_reply_pdu)
     st
   end
 

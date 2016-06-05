@@ -1,112 +1,33 @@
-defmodule SMPPEX.SimpleClient do
-  defstruct [
-    :pid,
-    :system_id,
-    :password,
-    :source_addr,
-    :destination_addr,
-    :message,
-    :seq
-  ]
+defmodule SMPPSimpleClient do
+
+  alias SMPPEX.ESME.Sync, as: ESME
+  alias SMPPEX.Pdu.Factory
 
   require Logger
 
-  alias SMPPEX.SimpleClient
-  alias SMPPEX.Pdu.Factory
-  alias SMPPEX.ClientPool
-  alias SMPPEX.Session
-  alias SMPPEX.Pdu
+  def run(host, port, system_id, password, source_addr, destination_addr, message) do
 
-  def create(host, port, system_id, password, source_addr, destination_addr, message) do
-    {:ok, seq} = Agent.start_link(fn -> 1 end)
-    handler = fn(_ref, _socket, _transport, protocol) ->
-      {:ok, %SimpleClient{
-        pid: protocol,
-        system_id: system_id,
-        password: password,
-        source_addr: source_addr,
-        destination_addr: destination_addr,
-        message: message,
-        seq: seq
-      }}
-    end
+    {:ok, esme} = ESME.start_link(host, port)
 
-    client_pool = ClientPool.start(handler)
-    {:ok, socket} = :gen_tcp.connect(host, port, [:binary, {:packet, 0}])
-    ClientPool.start_session(client_pool, socket)
-    client_pool
-  end
+    bind = Factory.bind_transceiver(system_id, password)
+    Logger.info("bind: #{inspect bind}")
 
-  def send_pdu(session) do
-    pdu = Factory.submit_sm(
-      {session.source_addr, 5, 1},
-      {session.destination_addr, 1, 1},
-      session.message,
+    resp = ESME.request(esme, bind)
+    Logger.info("bind resp: #{inspect resp}")
+
+    submit_sm = Factory.submit_sm(
+      {source_addr, 5, 1},
+      {destination_addr, 1, 1},
+      message,
       1
     )
-    Session.send_pdu(session.pid, set_sequence_number(session, pdu))
-  end
+    Logger.info("submit_sm: #{inspect submit_sm}")
 
-  def handle_submit_sm_resp(session, _pdu) do
-    Session.stop(session.pid)
-  end
+    resp = ESME.request(esme, submit_sm)
+    Logger.info("submit_sm resp: #{inspect resp}")
 
-  def set_sequence_number(session, pdu) do
-    sequence_number = Agent.get_and_update(session.seq, fn(seq_num) -> {seq_num, seq_num + 1} end)
-    %Pdu{ pdu | sequence_number: sequence_number}
-  end
+    ESME.stop(esme)
 
-end
-
-defimpl SMPPEX.SMPPHandler, for: SMPPEX.SimpleClient do
-
-  alias SMPPEX.SimpleClient
-  alias SMPPEX.Session
-  alias SMPPEX.Pdu
-  alias SMPPEX.Pdu.Factory
-  alias SMPPEX.Protocol.CommandNames
-
-  require Logger
-
-  def after_init(session) do
-    pdu = Factory.bind_transceiver(session.system_id, session.password)
-    Session.send_pdu(session.pid, SimpleClient.set_sequence_number(session, pdu))
-  end
-
-  def handle_parse_error(_session, error) do
-    Logger.info("parse error: #{inspect error}")
-  end
-
-  def handle_pdu(_session, {:unparsed_pdu, raw_pdu, error}) do
-    Logger.info("unparsed pdu: #{inspect raw_pdu}, error: #{inspect error}")
-  end
-
-  def handle_pdu(session, {:pdu, pdu}) do
-    Logger.info("in pdu: #{inspect pdu}")
-    case pdu |> Pdu.command_id |> CommandNames.name_by_id do
-      {:ok, :bind_transceiver_resp} ->
-        SimpleClient.send_pdu(session)
-      {:ok, :submit_sm_resp} ->
-        SimpleClient.handle_submit_sm_resp(session, pdu)
-    end
-    :ok
-  end
-
-  def handle_socket_closed(_session) do
-    Logger.info("socket closed")
-  end
-
-  def handle_socket_error(_session, reason) do
-    Logger.info("socket error: #{inspect reason}")
-  end
-
-  def handle_stop(_session) do
-    Logger.info("stop")
-  end
-
-  def handle_send_pdu_result(session, pdu, send_pdu_result) do
-    Logger.info("out pdu: #{inspect pdu} (#{send_pdu_result})")
-    session
   end
 
 end
