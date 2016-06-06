@@ -6,7 +6,6 @@ defmodule SMPPEX.SessionTest do
   alias Support.SMPPSession
 
   setup do
-    {:ok, hello: "world"}
     server = Server.start_link
     client_pool = ClientPool.create
     ClientPool.connect(client_pool, {127,0,0,1}, Server.port(server))

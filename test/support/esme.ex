@@ -2,17 +2,22 @@ defmodule Support.ESME do
 
   use SMPPEX.ESME
 
+  # We need Agent, not simple state to retain callback history when ESME stops
+
   def start_link(host, port, esme_opts \\ []) do
     {:ok, st_store} = Agent.start_link(fn() -> [] end)
     {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, st_store}, [{:esme_opts, esme_opts}])
     {st_store, esme}
   end
 
-  def callbacks_received(esme) do
-    SMPPEX.ESME.call(esme, :get_callbacks_received)
+  def callbacks_received(st_store) do
+    Agent.get(st_store, fn(st) ->
+      Enum.reverse(st)
+    end)
   end
 
   def init(st_store) do
+    register_callback(st_store, {:init})
     {:ok, st_store}
   end
 
@@ -32,12 +37,13 @@ defmodule Support.ESME do
     register_callback(st_store, {:handle_send_pdu_result, pdu, result})
   end
 
-  def handle_close(st_store) do
-    register_callback(st_store, {:handle_close})
+  def handle_stop(st_store) do
+    register_callback(st_store, {:handle_stop})
   end
 
-  def handle_call(:get_callbacks_received, _from, st_store) do
-    {:reply, do_callbacks_received(st_store), st_store}
+  def handle_call(request, from, st_store) when is_function(request) do
+    register_callback(st_store, {:handle_call, from, request})
+    {:reply, request.(st_store), st_store}
   end
 
   def handle_call(request, from, st_store) do
@@ -58,12 +64,6 @@ defmodule Support.ESME do
       [callback_info | st]
     end)
     st_store
-  end
-
-  defp do_callbacks_received(st_store) do
-    Agent.get(st_store, fn(st) ->
-      Enum.reverse(st)
-    end)
   end
 
 end

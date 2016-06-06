@@ -49,7 +49,7 @@ defmodule SMPPEX.ESME do
 
   @callback handle_send_pdu_result(Pdu.t, SMPPEX.SMPPHandler.send_pdu_result, state) :: state
 
-  @callback handle_close(state) :: any
+  @callback handle_stop(state) :: any
 
   @callback handle_call(request, GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
 
@@ -73,7 +73,7 @@ defmodule SMPPEX.ESME do
 
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
-      def handle_close(_state), do: nil
+      def handle_stop(_state), do: nil
 
       def handle_call(_request, _from, state), do: {:reply, :ok, state}
 
@@ -87,7 +87,7 @@ defmodule SMPPEX.ESME do
         handle_resp: 3,
         handle_resp_timeout: 2,
         handle_send_pdu_result: 3,
-        handle_close: 1,
+        handle_stop: 1,
         handle_call: 3,
         handle_cast: 2,
         handle_info: 2

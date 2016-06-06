@@ -29,6 +29,30 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
+  def bind_transmitter_resp(command_status, system_id \\ "") do
+    {:ok, command_id} = CommandNames.id_by_name(:bind_transmitter_resp)
+    bind_resp(command_id, command_status, system_id)
+  end
+
+  def bind_receiver_resp(command_status, system_id \\ "") do
+    {:ok, command_id} = CommandNames.id_by_name(:bind_receiver_resp)
+    bind_resp(command_id, command_status, system_id)
+  end
+
+  def bind_transceiver_resp(command_status, system_id \\ "") do
+    {:ok, command_id} = CommandNames.id_by_name(:bind_transceiver_resp)
+    bind_resp(command_id, command_status, system_id)
+  end
+
+  def bind_resp(command_id, command_status, system_id) do
+    Pdu.new(
+      {command_id, command_status, 0},
+      %{
+        system_id: system_id
+      }
+    )
+  end
+
   def enquire_link do
     {:ok, command_id} = CommandNames.id_by_name(:enquire_link)
     Pdu.new(command_id)
