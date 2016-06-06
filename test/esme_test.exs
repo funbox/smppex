@@ -18,7 +18,7 @@ defmodule SMPPEX.ESMETest do
 
     server = Server.start_link
     :timer.sleep(50)
-    assert {:ok, _} = SMPPEX.ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, context[:st_store]})
+    assert {:ok, _} = ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, context[:st_store]})
 
   end
 
@@ -26,6 +26,17 @@ defmodule SMPPEX.ESMETest do
 
     assert [{:init}] == SupportESME.callbacks_received(context[:st_store])
     assert context[:st_store] == ESME.call(context[:esme], fn(st) -> st end)
+
+  end
+
+  test "init, stop from init", context do
+
+    server = Server.start_link
+    :timer.sleep(50)
+
+    Process.flag(:trap_exit, true)
+
+    assert {:error, :oops} == ESME.start_link({127,0,0,1}, Server.port(server), {Support.StoppingESME, :oops})
 
   end
 
