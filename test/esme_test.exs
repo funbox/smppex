@@ -9,23 +9,24 @@ defmodule SMPPEX.ESMETest do
   setup do
     server = Server.start_link
     :timer.sleep(50)
-    {st_store, esme} = SupportESME.start_link({127,0,0,1}, Server.port(server))
+    {callback_backup, esme} = SupportESME.start_link({127,0,0,1}, Server.port(server))
 
-    {:ok, esme: esme, st_store: st_store, server: server}
+    {:ok, esme: esme, callback_backup: callback_backup, server: server}
   end
 
   test "start_link", context do
 
     server = Server.start_link
     :timer.sleep(50)
-    assert {:ok, _} = ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, context[:st_store]})
+    {:ok, pid} = Agent.start_link(fn() -> [] end)
+
+    assert {:ok, _} = ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
 
   end
 
   test "init", context do
 
-    assert [{:init}] == SupportESME.callbacks_received(context[:st_store])
-    assert context[:st_store] == ESME.call(context[:esme], fn(st) -> st end)
+    assert [{:init}] == SupportESME.callbacks_received(context[:esme])
 
   end
 
@@ -75,7 +76,7 @@ defmodule SMPPEX.ESMETest do
 
     :timer.sleep(50)
 
-    assert [{:init}, {:handle_pdu, received_pdu}] = SupportESME.callbacks_received(context[:st_store])
+    assert [{:init}, {:handle_pdu, received_pdu}] = SupportESME.callbacks_received(context[:esme])
 
     reply_pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0)
 
@@ -93,7 +94,7 @@ defmodule SMPPEX.ESMETest do
 
     :timer.sleep(50)
 
-    assert [{:init}, {:handle_stop}] = SupportESME.callbacks_received(context[:st_store])
+    assert [{:init}, {:handle_stop}] = SupportESME.callbacks_received_backuped(context[:callback_backup])
     refute Process.alive?(context[:esme])
 
   end
@@ -105,14 +106,14 @@ defmodule SMPPEX.ESMETest do
 
     :timer.sleep(10)
 
-    assert [{:init}, {:handle_cast, ref}] == SupportESME.callbacks_received(context[:st_store])
+    assert [{:init}, {:handle_cast, ref}] == SupportESME.callbacks_received(context[:esme])
   end
 
   test "call", context do
     ref = make_ref
 
     ESME.call(context[:esme], ref)
-    assert [{:init}, {:handle_call, _, ^ref}] = SupportESME.callbacks_received(context[:st_store])
+    assert [{:init}, {:handle_call, _, ^ref}] = SupportESME.callbacks_received(context[:esme])
   end
 
   test "info", context do
@@ -122,7 +123,7 @@ defmodule SMPPEX.ESMETest do
 
     :timer.sleep(10)
 
-    assert [{:init}, {:handle_info, ^ref}] = SupportESME.callbacks_received(context[:st_store])
+    assert [{:init}, {:handle_info, ^ref}] = SupportESME.callbacks_received(context[:esme])
   end
 
 end

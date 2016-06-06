@@ -5,65 +5,74 @@ defmodule Support.ESME do
   # We need Agent, not simple state to retain callback history when ESME stops
 
   def start_link(host, port, esme_opts \\ []) do
-    {:ok, st_store} = Agent.start_link(fn() -> [] end)
-    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, st_store}, [{:esme_opts, esme_opts}])
-    {st_store, esme}
+    {:ok, callback_backup} = Agent.start_link(fn() -> nil end)
+    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, %{callbacks: [], callback_backup: callback_backup} }, [{:esme_opts, esme_opts}])
+    {callback_backup, esme}
   end
 
-  def callbacks_received(st_store) do
-    Agent.get(st_store, fn(st) ->
+  def callbacks_received_backuped(pid) do
+    Agent.get(pid, fn(st) ->
       Enum.reverse(st)
     end)
   end
 
-  def init(st_store) do
-    register_callback(st_store, {:init})
-    {:ok, st_store}
+  def callbacks_received(esme) do
+    SMPPEX.ESME.call(esme, :callbacks_received)
   end
 
-  def handle_pdu(pdu, st_store) do
-    register_callback(st_store, {:handle_pdu, pdu})
+  def init(st) do
+    new_st = register_callback(st, {:init})
+    {:ok, new_st}
   end
 
-  def handle_resp(pdu, original_pdu, st_store) do
-    register_callback(st_store, {:handle_resp, pdu, original_pdu})
+  def handle_pdu(pdu, st) do
+    register_callback(st, {:handle_pdu, pdu})
   end
 
-  def handle_resp_timeout(pdu, st_store) do
-    register_callback(st_store, {:handle_resp_timeout, pdu})
+  def handle_resp(pdu, original_pdu, st) do
+    register_callback(st, {:handle_resp, pdu, original_pdu})
   end
 
-  def handle_send_pdu_result(pdu, result, st_store) do
-    register_callback(st_store, {:handle_send_pdu_result, pdu, result})
+  def handle_resp_timeout(pdu, st) do
+    register_callback(st, {:handle_resp_timeout, pdu})
   end
 
-  def handle_stop(st_store) do
-    register_callback(st_store, {:handle_stop})
+  def handle_send_pdu_result(pdu, result, st) do
+    register_callback(st, {:handle_send_pdu_result, pdu, result})
   end
 
-  def handle_call(request, from, st_store) when is_function(request) do
-    register_callback(st_store, {:handle_call, from, request})
-    {:reply, request.(st_store), st_store}
+  def handle_stop(st) do
+    register_callback(st, {:handle_stop})
   end
 
-  def handle_call(request, from, st_store) do
-    register_callback(st_store, {:handle_call, from, request})
-    {:reply, request, st_store}
+  def handle_call(:callbacks_received, _, st) do
+    {:reply, Enum.reverse(st.callbacks), st}
   end
 
-  def handle_cast(request, st_store) do
-    register_callback(st_store, {:handle_cast, request})
+  def handle_call(request, from, st) when is_function(request) do
+    new_st = register_callback(st, {:handle_call, from, request})
+    {:reply, request.(new_st), st}
   end
 
-  def handle_info(request, st_store) do
-    register_callback(st_store, {:handle_info, request})
+  def handle_call(request, from, st) do
+    new_st = register_callback(st, {:handle_call, from, request})
+    {:reply, request, new_st}
   end
 
-  defp register_callback(st_store, callback_info) do
-    Agent.update(st_store, fn(st) ->
-      [callback_info | st]
+  def handle_cast(request, st) do
+    register_callback(st, {:handle_cast, request})
+  end
+
+  def handle_info(request, st) do
+    register_callback(st, {:handle_info, request})
+  end
+
+  defp register_callback(st, callback_info) do
+    new_st = %{ st | callbacks: [callback_info | st.callbacks] }
+    Agent.update(st.callback_backup, fn(_) ->
+      new_st.callbacks
     end)
-    st_store
+    new_st
   end
 
 end
