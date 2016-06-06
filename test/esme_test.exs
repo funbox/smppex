@@ -18,9 +18,36 @@ defmodule SMPPEX.ESMETest do
   test "start_link" do
     server = Server.start_link
     :timer.sleep(50)
-    {:ok, pid} = Agent.start_link(fn() -> [] end)
 
+    {:ok, pid} = Agent.start_link(fn() -> [] end)
     assert {:ok, _} = ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
+  end
+
+  test "start_link by hostname" do
+    server = Server.start_link
+    :timer.sleep(50)
+
+    {:ok, pid} = Agent.start_link(fn() -> [] end)
+    assert {:ok, _} = ESME.start_link('localhost', Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
+  end
+
+  test "start_link by hostname as a string" do
+    server = Server.start_link
+    :timer.sleep(50)
+
+    {:ok, pid} = Agent.start_link(fn() -> [] end)
+    assert {:ok, _} = ESME.start_link("localhost", Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
+  end
+
+  test "start_link when MC is down" do
+    server = Server.start_link
+    port = Server.port(server)
+    {:ok, sock} = :gen_tcp.connect('localhost', port, [])
+    :ok = :gen_tcp.close(sock)
+
+    Process.flag(:trap_exit, true)
+    {:ok, pid} = Agent.start_link(fn() -> [] end)
+    assert {:error, :econnrefused} = ESME.start_link("localhost", port, {SupportESME, %{callbacks: [], callback_backup: pid}})
   end
 
   test "send_pdu", context do
