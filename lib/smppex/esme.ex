@@ -22,7 +22,8 @@ defmodule SMPPEX.ESME do
     :bound,
     :sequence_number,
     :time,
-    :timer_resolution
+    :timer_resolution,
+    :tick_timer_ref
   ]
 
   @default_timeout 5000
@@ -204,9 +205,10 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
-    :erlang.start_timer(st.timer_resolution, self, :emit_tick)
+    new_tick_timer_ref = :erlang.start_timer(st.timer_resolution, self, :emit_tick)
+    :erlang.cancel_timer(st.tick_timer_ref)
     Kernel.send self, {:tick, :erlang.system_time(:milli_seconds)}
-    {:noreply, st}
+    {:noreply, %ESME{ st | tick_timer_ref: new_tick_timer_ref }}
   end
 
   def handle_info({:tick, time}, st) do
@@ -241,7 +243,7 @@ defmodule SMPPEX.ESME do
     case module.init(args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(esme_opts, :timer_resolution, @default_timer_resolution)
-        :erlang.start_timer(timer_resolution, self, :emit_tick)
+        timer_ref = :erlang.start_timer(timer_resolution, self, :emit_tick)
 
         enquire_link_limit = Keyword.get(esme_opts, :enquire_link_limit,  @default_enquire_link_limit)
         enquire_link_resp_limit = Keyword.get(esme_opts, :enquire_link_resp_limit,  @default_enquire_link_resp_limit)
@@ -271,7 +273,8 @@ defmodule SMPPEX.ESME do
           bound: false,
           sequence_number: 0,
           time: time,
-          timer_resolution: timer_resolution
+          timer_resolution: timer_resolution,
+          tick_timer_ref: timer_ref
         }}
       {:stop, _} = stop ->
         ClientPool.stop(pool)
