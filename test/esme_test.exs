@@ -98,5 +98,32 @@ defmodule SMPPEX.ESMETest do
 
   end
 
+  test "cast", context do
+    ref = make_ref
+
+    ESME.cast(context[:esme], ref)
+
+    :timer.sleep(10)
+
+    assert [{:init}, {:handle_cast, ref}] == SupportESME.callbacks_received(context[:st_store])
+  end
+
+  test "call", context do
+    ref = make_ref
+
+    ESME.call(context[:esme], ref)
+    assert [{:init}, {:handle_call, _, ^ref}] = SupportESME.callbacks_received(context[:st_store])
+  end
+
+  test "info", context do
+    ref = make_ref
+
+    Kernel.send context[:esme], ref
+
+    :timer.sleep(10)
+
+    assert [{:init}, {:handle_info, ^ref}] = SupportESME.callbacks_received(context[:st_store])
+  end
+
 end
 
