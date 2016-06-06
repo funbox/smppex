@@ -154,7 +154,7 @@ defmodule SMPPEX.ESMETest do
     ESME.send_pdu(context[:esme], pdu)
     :timer.sleep(50)
 
-    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0) | sequence_number: 1}
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(context[:server], reply_pdu_data)
     :timer.sleep(50)
@@ -162,7 +162,24 @@ defmodule SMPPEX.ESMETest do
     assert [
       {:init},
       {:handle_send_pdu_result, _, :ok},
-      {:handle_resp, reply_pdu, _}
+      {:handle_resp, received_reply_pdu, _}
+    ] = SupportESME.callbacks_received(context[:esme])
+    assert Pdu.mandatory_field(received_reply_pdu, :system_id) == "sid"
+  end
+
+  test "handle_resp with unknown resp", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    ESME.send_pdu(context[:esme], pdu)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
     ] = SupportESME.callbacks_received(context[:esme])
   end
 
