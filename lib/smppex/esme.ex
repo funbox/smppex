@@ -104,7 +104,7 @@ defmodule SMPPEX.ESME do
     esme_opts = Keyword.get(opts, :esme_opts, [])
     GenServer.start_link(
       __MODULE__,
-      [host, port, {module, args}, ranch_transport(transport), timeout, esme_opts],
+      [convert_host(host), port, {module, args}, ranch_transport(transport), timeout, esme_opts],
       gen_server_opts
     )
   end
@@ -398,5 +398,8 @@ defmodule SMPPEX.ESME do
     Session.send_pdu(st.smpp_session, new_reply_pdu)
     st
   end
+
+  defp convert_host(host) when is_binary(host), do: to_char_list(host)
+  defp convert_host(host), do: host
 
 end
