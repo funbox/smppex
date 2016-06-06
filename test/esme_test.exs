@@ -23,18 +23,6 @@ defmodule SMPPEX.ESMETest do
     assert {:ok, _} = ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
   end
 
-  test "init", context do
-    assert [{:init}] == SupportESME.callbacks_received(context[:esme])
-  end
-
-  test "init, stop from init" do
-    server = Server.start_link
-    :timer.sleep(50)
-
-    Process.flag(:trap_exit, true)
-    assert {:error, :oops} == ESME.start_link({127,0,0,1}, Server.port(server), {Support.StoppingESME, :oops})
-  end
-
   test "send_pdu", context do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
     ESME.send_pdu(context[:esme], pdu)
@@ -104,6 +92,47 @@ defmodule SMPPEX.ESMETest do
     :timer.sleep(10)
 
     assert [{:init}, {:handle_info, ^ref}] = SupportESME.callbacks_received(context[:esme])
+  end
+
+  test "init", context do
+    assert [{:init}] == SupportESME.callbacks_received(context[:esme])
+  end
+
+  test "init, stop from init" do
+    server = Server.start_link
+    :timer.sleep(50)
+
+    Process.flag(:trap_exit, true)
+    assert {:error, :oops} == ESME.start_link({127,0,0,1}, Server.port(server), {Support.StoppingESME, :oops})
+  end
+
+  test "handle_pdu", context do
+    pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123 }
+    {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
+    Server.send(context[:server], pdu_data)
+    :timer.sleep(50)
+
+    assert [{:init}, {:handle_pdu, received_pdu}] = SupportESME.callbacks_received(context[:esme])
+    assert Pdu.mandatory_field(received_pdu, :system_id) == "system_id"
+    assert Pdu.mandatory_field(received_pdu, :password) == "password"
+    assert Pdu.sequence_number(received_pdu) == 123
+  end
+
+  test "handle_resp", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    ESME.send_pdu(context[:esme], pdu)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0) | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, reply_pdu, _}
+    ] = SupportESME.callbacks_received(context[:esme])
   end
 
 end
