@@ -86,6 +86,10 @@ defmodule SMPPEX.ESMETest do
     assert [{:init}, {:handle_call, _, ^ref}] = SupportESME.callbacks_received(context[:esme])
   end
 
+  test "call with delayed reply", context do
+    assert :delayed_reply == ESME.call(context[:esme], :reply_delayed)
+  end
+
   test "info", context do
     ref = make_ref
     Kernel.send context[:esme], ref

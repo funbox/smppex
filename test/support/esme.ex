@@ -49,6 +49,11 @@ defmodule Support.ESME do
     {:reply, Enum.reverse(st.callbacks), st}
   end
 
+  def handle_call(:reply_delayed, from, st) do
+    spawn(fn() -> GenServer.reply(from, :delayed_reply) end)
+    {:noreply, st}
+  end
+
   def handle_call(request, from, st) when is_function(request) do
     new_st = register_callback(st, {:handle_call, from, request})
     {:reply, request.(new_st), st}
