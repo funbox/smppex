@@ -1,6 +1,7 @@
 defmodule SMPPEX.ESMETest do
   use ExUnit.Case
 
+  alias SMPPEX.Protocol.CommandNames
   alias Support.TCP.Server
   alias Support.ESME, as: SupportESME
   alias SMPPEX.ESME
@@ -10,7 +11,12 @@ defmodule SMPPEX.ESMETest do
     server = Server.start_link
     :timer.sleep(50)
 
-    {callback_backup, esme} = SupportESME.start_link({127,0,0,1}, Server.port(server))
+    {callback_backup, esme} = SupportESME.start_link({127,0,0,1}, Server.port(server), [
+      enquire_link_limit: 1000,
+      enquire_link_resp_limit: 1000,
+      inactivity_limit: 10000,
+      response_limit: 2000
+    ])
 
     {:ok, esme: esme, callback_backup: callback_backup, server: server}
   end
@@ -167,6 +173,36 @@ defmodule SMPPEX.ESMETest do
     assert Pdu.mandatory_field(received_reply_pdu, :system_id) == "sid"
   end
 
+  test "handle_resp (with additional submit_sm)", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    ESME.send_pdu(context[:esme], pdu)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    pdu = SMPPEX.Pdu.Factory.submit_sm({"from", 1, 2}, {"to", 1, 2}, "message")
+    ESME.send_pdu(context[:esme], pdu)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.submit_sm_resp(0) | sequence_number: 2}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, bind_resp, _},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, submit_sm_resp, _}
+    ] = SupportESME.callbacks_received(context[:esme])
+    assert Pdu.command_id(bind_resp) |> CommandNames.name_by_id == {:ok, :bind_transmitter_resp}
+    assert Pdu.command_id(submit_sm_resp) |> CommandNames.name_by_id == {:ok, :submit_sm_resp}
+  end
+
   test "handle_resp with unknown resp", context do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
     ESME.send_pdu(context[:esme], pdu)
@@ -181,6 +217,183 @@ defmodule SMPPEX.ESMETest do
       {:init},
       {:handle_send_pdu_result, _, :ok},
     ] = SupportESME.callbacks_received(context[:esme])
+  end
+
+  test "handle_resp_timeout", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 2050})
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp_timeout, timeout_pdu},
+    ] = SupportESME.callbacks_received(context[:esme])
+
+    assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"
+  end
+
+  test "handle_send_pdu_result", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "too_long_password")
+    ESME.send_pdu(context[:esme], pdu)
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, {:error, _}}
+    ] = SupportESME.callbacks_received(context[:esme])
+  end
+
+  test "enquire_link by timeout", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 1050})
+    :timer.sleep(50)
+
+    assert {:ok, {:pdu, _}, rest_data} = Server.received_data(context[:server]) |> SMPPEX.Protocol.parse
+    assert {:ok, {:pdu, enquire_link}, _} = rest_data |> SMPPEX.Protocol.parse
+    assert Pdu.command_id(enquire_link) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+
+  test "enquire_link cancel by peer action", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 950})
+    :timer.sleep(50)
+
+    action_pdu = %Pdu{ SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
+    {:ok, action_pdu_data} = SMPPEX.Protocol.build(action_pdu)
+    Server.send(context[:server], action_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 1050})
+    :timer.sleep(50)
+
+    assert {:ok, {:pdu, _bind_pdu}, <<>>} = Server.received_data(context[:server]) |> SMPPEX.Protocol.parse
+  end
+
+  test "enquire_link timeout cancel by peer action", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 1050})
+    :timer.sleep(50)
+
+    action_pdu = %Pdu{ SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
+    {:ok, action_pdu_data} = SMPPEX.Protocol.build(action_pdu)
+    Server.send(context[:server], action_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 2100})
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
+      {:handle_resp, _, _},
+      {:handle_send_pdu_result, _, :ok}, # enquire_link sent
+      {:handle_pdu, _},                  # pdu from server
+      {:handle_send_pdu_result, _, :ok} # no timeout or stop, new enquire_link sent
+    ] = SupportESME.callbacks_received(context[:esme])
+
+  end
+
+
+  test "stop by enquire_link timeout", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 1050})
+    Kernel.send(context[:esme], {:tick, time + 2050})
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
+      {:handle_resp, _, _},
+      {:handle_send_pdu_result, _, :ok}, # enquire_link sent
+      {:handle_stop}
+    ] = SupportESME.callbacks_received_backuped(context[:callback_backup])
+    refute Process.alive?(context[:esme])
+  end
+
+  test "stop by inactivity timeout", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    Kernel.send(context[:esme], {:tick, time + 10050})
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
+      {:handle_resp, _, _},
+      {:handle_stop}
+    ] = SupportESME.callbacks_received_backuped(context[:callback_backup])
+    refute Process.alive?(context[:esme])
+  end
+
+  test "bind fail", context do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(context[:esme], pdu)
+    time = :erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(1) | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(context[:server], reply_pdu_data)
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
+      {:handle_resp, _, _},
+      {:handle_stop}
+    ] = SupportESME.callbacks_received_backuped(context[:callback_backup])
+    refute Process.alive?(context[:esme])
   end
 
 end

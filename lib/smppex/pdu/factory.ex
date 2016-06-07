@@ -75,4 +75,14 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
+  def submit_sm_resp(command_status, message_id \\ "") do
+    {:ok, command_id} = CommandNames.id_by_name(:submit_sm_resp)
+    Pdu.new(
+      {command_id, command_status, 0},
+      %{
+        message_id: message_id
+      }
+    )
+  end
+
 end
