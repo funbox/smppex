@@ -43,7 +43,7 @@ defmodule SMPPSimpleClient do
     bind = Factory.bind_transceiver(options[:system_id], options[:password])
     Logger.info("bind: #{inspect bind}")
 
-    resp = ESME.request(esme, bind)
+    resp = ESME.request(esme, bind, 1)
     Logger.info("bind resp: #{inspect resp}")
 
     submit_sm = Factory.submit_sm(

@@ -18,11 +18,19 @@ defmodule SMPPEX.ESME.Sync do
   @spec request(esme :: pid, pdu :: Pdu.t, timeout :: non_neg_integer) :: {:ok, resp :: Pdu.t} | :timeout | :stop | {:error, reason :: term}
 
   def request(esme, pdu, timeout \\ @default_timeout) do
-    ESME.call(esme, {:request, pdu}, timeout)
+    try do
+      ESME.call(esme, {:request, pdu}, timeout)
+    catch
+      :exit, {:timeout, _} -> :timeout
+    end
   end
 
   def wait_for_pdus(esme, timeout \\ @default_timeout) do
-    ESME.call(esme, :wait_for_pdus, timeout)
+    try do
+      ESME.call(esme, :wait_for_pdus, timeout)
+    catch
+      :exit, {:timeout, _} -> :timeout
+    end
   end
 
   def pdus(esme, timeout \\ @default_timeout) do
