@@ -379,7 +379,6 @@ defmodule SMPPEX.ESMETest do
   test "bind fail", context do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(context[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
     :timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(1) | sequence_number: 1}

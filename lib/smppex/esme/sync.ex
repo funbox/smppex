@@ -25,6 +25,8 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
+  @spec wait_for_pdus(esme :: pid, timeout :: non_neg_integer) :: [Pdu.t] | :timeout | :stop
+
   def wait_for_pdus(esme, timeout \\ @default_timeout) do
     try do
       ESME.call(esme, :wait_for_pdus, timeout)

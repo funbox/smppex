@@ -39,6 +39,15 @@ defmodule SMPPEX.Pdu do
     end
   end
 
+  @spec command_name(t) :: atom
+
+  def command_name(pdu) do
+    case CommandNames.name_by_id(pdu.command_id) do
+      {:ok, name} -> name
+      :unknown -> :unknown
+    end
+  end
+
   @spec command_id(t) :: integer
 
   def command_id(pdu) do
@@ -57,17 +66,16 @@ defmodule SMPPEX.Pdu do
     pdu.sequence_number
   end
 
-  @spec mandatory_field(t, integer | atom) :: any
+  @spec mandatory_field(t, atom) :: any
 
   def mandatory_field(pdu, name) when is_atom(name) do
     pdu.mandatory[name]
   end
 
-  def mandatory_field(pdu, id) when is_integer(id) do
-    case CommandNames.name_by_id(id) do
-      {:ok, name} -> pdu.mandatory[name]
-      :unknown -> nil
-    end
+  @spec set_mandatory_field(t, atom, any) :: t
+
+  def set_mandatory_field(pdu, name, value) do
+    %Pdu{pdu | mandatory: Map.put(pdu.mandatory, name, value)}
   end
 
   @spec optional_field(t, integer | atom) :: any
@@ -81,6 +89,12 @@ defmodule SMPPEX.Pdu do
       {:ok, id} -> optional_field(pdu, id)
       :unknown -> nil
     end
+  end
+
+  @spec set_optional_field(t, atom, any) :: t
+
+  def set_optional_field(pdu, name, value) do
+    %Pdu{pdu | optional: Map.put(pdu.optional, name, value)}
   end
 
   @spec field(t, integer | atom) :: any

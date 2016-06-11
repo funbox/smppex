@@ -2,6 +2,7 @@ defmodule SMPPSimpleClient do
 
   alias SMPPEX.ESME.Sync, as: ESME
   alias SMPPEX.Pdu.Factory
+  alias SMPPEX.Pdu.PP
 
   require Logger
 
@@ -41,10 +42,10 @@ defmodule SMPPSimpleClient do
     {:ok, esme} = ESME.start_link(options[:host], options[:port])
 
     bind = Factory.bind_transceiver(options[:system_id], options[:password])
-    Logger.info("bind: #{inspect bind}")
+    bind |> PP.fopmat |> Logger.info
 
-    resp = ESME.request(esme, bind, 1)
-    Logger.info("bind resp: #{inspect resp}")
+    resp = ESME.request(esme, bind)
+    pp_resp(resp)
 
     submit_sm = Factory.submit_sm(
       {options[:source_addr], 5, 1},
@@ -52,19 +53,39 @@ defmodule SMPPSimpleClient do
       options[:message],
       1
     )
-    Logger.info("submit_sm: #{inspect submit_sm}")
+    submit_sm |> PP.fopmat |> Logger.info
 
     resp = ESME.request(esme, submit_sm)
-    Logger.info("submit_sm resp: #{inspect resp}")
+    pp_resp(resp)
 
     # Wait for deliver report
     pdus = ESME.wait_for_pdus(esme, 15000)
-    Logger.info("pdus: #{inspect pdus}")
+    pp_pdus(pdus)
 
     ESME.stop(esme)
 
   end
 
+  defp pp_resp(resp) do
+    case resp do
+      {:ok, pdu} ->
+        pdu |> PP.fopmat |> Logger.info
+      other ->
+        other |> Logger.error
+    end
+  end
+
+  defp pp_pdus([{:pdu, pdu} | pdus]) do
+    pdu |> PP.fopmat |> Logger.info
+    pp_pdus(pdus)
+  end
+
+  defp pp_pdus([]) do
+  end
+
+  defp pp_pdus(other) do
+    other |> Logger.error
+  end
 end
 
 SMPPSimpleClient.main(System.argv)

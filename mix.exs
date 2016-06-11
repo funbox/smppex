@@ -28,7 +28,8 @@ defmodule Smppex.Mixfile do
       {:credo, "~> 0.1.0", only: :dev},
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
-      {:ranch, "~> 1.2"}
+      {:ranch, "~> 1.2"},
+      {:dye, "~> 0.4.0"}
     ]
   end
 end
