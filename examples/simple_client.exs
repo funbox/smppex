@@ -42,7 +42,7 @@ defmodule SMPPSimpleClient do
     {:ok, esme} = ESME.start_link(options[:host], options[:port])
 
     bind = Factory.bind_transceiver(options[:system_id], options[:password])
-    bind |> PP.fopmat |> Logger.info
+    bind |> PP.format |> Logger.info
 
     resp = ESME.request(esme, bind)
     pp_resp(resp)
@@ -53,7 +53,7 @@ defmodule SMPPSimpleClient do
       options[:message],
       1
     )
-    submit_sm |> PP.fopmat |> Logger.info
+    submit_sm |> PP.format |> Logger.info
 
     resp = ESME.request(esme, submit_sm)
     pp_resp(resp)
@@ -69,14 +69,14 @@ defmodule SMPPSimpleClient do
   defp pp_resp(resp) do
     case resp do
       {:ok, pdu} ->
-        pdu |> PP.fopmat |> Logger.info
+        pdu |> PP.format |> Logger.info
       other ->
         other |> Logger.error
     end
   end
 
   defp pp_pdus([{:pdu, pdu} | pdus]) do
-    pdu |> PP.fopmat |> Logger.info
+    pdu |> PP.format |> Logger.info
     pp_pdus(pdus)
   end
 

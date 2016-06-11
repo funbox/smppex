@@ -5,59 +5,48 @@ defmodule SMPPEX.Pdu.PP do
 
   use Dye
 
-  @pad "  "
+  @pad ""
+  @indent "  "
 
-  @spec fopmat(Pdu.t) :: iolist
+  @spec format(Pdu.t, String.t, String.t) :: iolist
 
-  def fopmat(pdu) do
+  def format(pdu, indent \\ @indent, pad \\ @pad) do
+    [ "\n", pdu |> pdu_lines |> Enum.map(fn([section_head | section_lines]) ->
+      [ pad, section_head, "\n", section_lines |> Enum.map(fn(line) ->
+        [ pad, indent, line, "\n"]
+      end) ]
+    end) ]
+  end
+
+  defp pdu_lines(pdu) do
     [
-      name(pdu),
       header(pdu),
       mandatory_fields(pdu),
       optional_fields(pdu)
     ]
   end
 
-  defp name(pdu) do
-    ["\n", "pdu: ", pp_command_name(pdu), "\n"]
-  end
-
-  defp pp_command_name(pdu) do
-    name = pdu |> Pdu.command_name |> to_string
-    ~s/#{name}/Cd
-  end
-
   defp header(pdu) do
     [
-      @pad, pp_field_name("command_id"), ": ", pdu |> Pdu.command_id |> inspect |> pp_val, "\n",
-      @pad, pp_field_name("command_id"), ": ", pdu |> Pdu.command_status |> pp_command_status, "\n",
-      @pad, pp_field_name("sequence_number"), ": ", pdu |> Pdu.sequence_number |> inspect |> pp_val, "\n"
+      name(pdu),
+      [ pp_field_name("command_id"), ": ", pdu |> Pdu.command_id |> inspect |> pp_val ],
+      [ pp_field_name("command_id"), ": ", pdu |> Pdu.command_status |> pp_command_status ],
+      [ pp_field_name("sequence_number"), ": ", pdu |> Pdu.sequence_number |> inspect |> pp_val ]
     ]
   end
 
-  defp pp_command_status(status) do
-    case status do
-      0 -> ~s/0 (ok)/Gd
-      _ -> ~s/#{status} (error)/Rd
-    end
-  end
-
-  defp pp_field_name(field_name) do
-    ~s/#{field_name}/gd
+  defp name(pdu) do
+    ["pdu: ", pp_command_name(pdu)]
   end
 
   defp mandatory_fields(pdu) do
-    [
-      "mandatory fields:",
-      Pdu.mandatory_fields(pdu) |> Map.to_list |> pp_fields
-    ]
+    [ [ "mandatory fields:", pdu |> Pdu.mandatory_fields |> pp_empty_list ] ] ++
+      (pdu |> Pdu.mandatory_fields |> Map.to_list |> pp_fields)
   end
 
   defp optional_fields(pdu) do
-    [
-      "optional fields:",
-      Pdu.optional_fields(pdu) |> Map.to_list |> name_known_tlvs |> pp_fields
-    ]
+    [ [ "optional fields:", pdu |> Pdu.optional_fields |> pp_empty_list ] ] ++
+      (pdu |> Pdu.optional_fields |> Map.to_list |> name_known_tlvs |> pp_fields)
   end
 
   defp name_known_tlvs(_, res \\ [])
@@ -68,6 +57,21 @@ defmodule SMPPEX.Pdu.PP do
       :unknown -> name_known_tlvs(left, [{k, v} | res])
     end
   end
+
+  defp pp_empty_list(map) when map == %{}, do: " []"
+  defp pp_empty_list(_), do: ""
+
+  defp pp_command_status(status) do
+    case status do
+      0 -> ~s/0 (ok)/DGd
+      _ -> ~s/#{status} (error)/DRd
+    end
+  end
+
+  defp pp_field_name(field_name) do
+    ~s/#{field_name}/gd
+  end
+
 
   defp pp_val(str) when is_binary(str) do
     ~s/#{str}/yd
@@ -82,12 +86,15 @@ defmodule SMPPEX.Pdu.PP do
   end
 
   defp pp_fields(fields) do
-    case fields do
-      [] -> " []\n"
-      _ -> ["\n", fields |> Enum.sort |> Enum.map(fn({key, val}) ->
-          [@pad, key |> to_string |> pp_field_name , ": ", val |> inspect |> pp_val, "\n"]
-        end) ]
-    end
+    fields |> Enum.sort |> Enum.map(fn({key, val}) ->
+      [key |> to_string |> pp_field_name , ": ", val |> inspect |> pp_val]
+    end)
   end
+
+  defp pp_command_name(pdu) do
+    name = pdu |> Pdu.command_name |> to_string
+    ~s/#{name}/DCd
+  end
+
 end
 
