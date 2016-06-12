@@ -3,29 +3,31 @@ defmodule SMPPEX.Pdu.Factory do
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
 
-  def bind_transmitter(system_id, password, conn_type \\ "") do
-    {:ok, command_id} = CommandNames.id_by_name(:bind_transmitter)
-    bind(command_id, system_id, password, conn_type)
+  def bind_transmitter(system_id, password, opts \\ %{}) do
+    bind(:bind_transmitter, system_id, password, opts)
   end
 
-  def bind_receiver(system_id, password, conn_type \\ "") do
-    {:ok, command_id} = CommandNames.id_by_name(:bind_receiver)
-    bind(command_id, system_id, password, conn_type)
+  def bind_receiver(system_id, password, opts \\ %{}) do
+    bind(:bind_receiver, system_id, password, opts)
   end
 
-  def bind_transceiver(system_id, password, conn_type \\ "") do
-    {:ok, command_id} = CommandNames.id_by_name(:bind_transceiver)
-    bind(command_id, system_id, password, conn_type)
+  def bind_transceiver(system_id, password, opts \\ %{}) do
+    bind(:bind_transceiver, system_id, password, opts)
   end
 
-  def bind(command_id, system_id, password, conn_type \\ "") do
+
+  def bind(command_name, system_id, password, opts \\ %{}) when command_name == :bind_transceiver or command_name == :bind_transmitter or command_name == :bind_receiver do
+    mandatory = opts
+      |> Map.put(:system_id, system_id)
+      |> Map.put(:password, password)
+    bind(command_name, mandatory)
+  end
+
+  def bind(command_name, opts) when command_name == :bind_transceiver or command_name == :bind_transmitter or command_name == :bind_receiver do
+    {:ok, command_id} = CommandNames.id_by_name(command_name)
     Pdu.new(
       command_id,
-      %{
-        system_id: system_id,
-        password: password,
-        conn_type: conn_type
-      }
+      opts
     )
   end
 
