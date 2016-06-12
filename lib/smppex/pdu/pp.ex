@@ -30,7 +30,7 @@ defmodule SMPPEX.Pdu.PP do
     [
       name(pdu),
       [ pp_field_name("command_id"), ": ", pdu |> Pdu.command_id |> inspect |> pp_val ],
-      [ pp_field_name("command_id"), ": ", pdu |> Pdu.command_status |> pp_command_status ],
+      [ pp_field_name("command_status"), ": ", pdu |> Pdu.command_status |> pp_command_status ],
       [ pp_field_name("sequence_number"), ": ", pdu |> Pdu.sequence_number |> inspect |> pp_val ]
     ]
   end
