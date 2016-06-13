@@ -34,6 +34,18 @@ defmodule SMPPEX.ProtocolTest do
     assert Pdu.field(pdu, :system_id) == ""
   end
 
+  test "parse: bind_transmitter_resp, unsuccessful" do
+    parse_result = parse(<<0, 0, 0, 16, 128, 0, 0, 2, 0, 0, 0, 15, 0, 0, 0, 1>>)
+
+    assert {:ok, {:pdu, pdu}, tail} = parse_result
+
+    assert tail == <<>>
+    assert Pdu.command_id(pdu) == 0x80000002
+    assert Pdu.command_status(pdu) == 15
+    assert Pdu.sequence_number(pdu) == 1
+    assert Pdu.field(pdu, :system_id) == nil
+  end
+
   test "parse: bind_transmitter" do
 
     data = <<
@@ -67,6 +79,17 @@ defmodule SMPPEX.ProtocolTest do
 
     header = {0x80000002, 0, 1}
     mandatory_fields = %{system_id: ""}
+    optional_fields = %{}
+    pdu = Pdu.new(header, mandatory_fields, optional_fields)
+
+    assert {:ok, data} == build(pdu)
+  end
+
+  test "build: bind_transmitter_resp (unsuccessful)" do
+    data = <<00, 00, 00, 0x10,   0x80, 00, 00, 0x02,   00, 00, 00, 0x0f,   00, 00, 00, 0x01>>
+
+    header = {0x80000002, 0x0f, 1}
+    mandatory_fields = %{system_id: "sid"}
     optional_fields = %{}
     pdu = Pdu.new(header, mandatory_fields, optional_fields)
 

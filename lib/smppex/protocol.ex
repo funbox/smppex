@@ -9,6 +9,13 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.RawPdu
   alias SMPPEX.Pdu
 
+  @pdus_with_status_dependant_body %{
+     0x80000001 => true, # bind_transmitter_resp
+     0x80000002 => true, # bind_receiver_resp
+     0x80000009 => true, # bind_transceiver_resp
+     0x80000004 => true # submit_sm_resp
+  }
+
   @type error :: any
   @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
   @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
@@ -58,9 +65,20 @@ defmodule SMPPEX.Protocol do
     end
   end
 
+  defp parse_mandatory?(raw_pdu) do
+    command_status = RawPdu.command_status(raw_pdu)
+    command_id = RawPdu.command_id(raw_pdu)
+    (command_status == 0) or (not Map.has_key?(@pdus_with_status_dependant_body, command_id))
+  end
+
   defp parse_mandatory_fields(command_name, raw_pdu) do
-    spec = MandatoryFieldsSpecs.spec_for(command_name)
-    raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
+    case parse_mandatory?(raw_pdu) do
+      true ->
+        spec = MandatoryFieldsSpecs.spec_for(command_name)
+        raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
+      false ->
+        {:ok, %{}, RawPdu.body(raw_pdu) }
+    end
   end
 
   @type build_result :: {:ok, binary} | {:error, error}
@@ -99,8 +117,17 @@ defmodule SMPPEX.Protocol do
     end
   end
 
+  defp build_mandatory?(pdu) do
+    command_status = Pdu.command_status(pdu)
+    command_id = Pdu.command_id(pdu)
+    (command_status == 0) or (command_status == nil) or (not Map.has_key?(@pdus_with_status_dependant_body, command_id))
+  end
+
   defp build_mandatory_fields(pdu, specs) do
-    pdu |> Pdu.mandatory_fields |> MandatoryFieldsBuilder.build(specs)
+    case build_mandatory?(pdu) do
+      true -> pdu |> Pdu.mandatory_fields |> MandatoryFieldsBuilder.build(specs)
+      false -> {:ok, <<>>}
+    end
   end
 
   defp build_optional_fields(pdu) do
