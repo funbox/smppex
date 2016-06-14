@@ -36,9 +36,7 @@ defmodule Smppex.Mixfile do
   end
 
   defp description do
-    '''
-      SMPP 3.4 protocol and framework implemented in Elixir
-    '''
+    "SMPP 3.4 protocol and framework implemented in Elixir"
   end
 
   defp package do
