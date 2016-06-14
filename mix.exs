@@ -9,8 +9,10 @@ defmodule Smppex.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps,
+      description: description,
       elixirc_paths: ["lib", "test/support"],
       test_coverage: [tool: Coverex.Task],
+      package: package,
       dialyzer: [
         flags: ["-Werror_handling", "-Wrace_conditions"]
       ],
@@ -32,4 +34,24 @@ defmodule Smppex.Mixfile do
       {:dye, "~> 0.4.0"}
     ]
   end
+
+  defp description do
+    '''
+      SMPP 3.4 protocol and framework implemented in Elixir
+    '''
+  end
+
+  defp package do
+    [
+      name: :postgrex,
+      files: ["lib", "mix.exs", "README*", "LICENSE"],
+      maintainers: ["Ilya Averyanov"],
+      licenses: ["Apache 2.0"],
+      links: %{
+        "GitHub" => "https://github.com/savonarola/smppex"
+      }
+    ]
+  end
+
+
 end
