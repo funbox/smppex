@@ -41,7 +41,7 @@ defmodule Smppex.Mixfile do
 
   defp package do
     [
-      name: :postgrex,
+      name: :smppex,
       files: ["lib", "mix.exs", "README*", "LICENSE"],
       maintainers: ["Ilya Averyanov"],
       licenses: ["Apache 2.0"],
