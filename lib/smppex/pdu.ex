@@ -99,8 +99,11 @@ defmodule SMPPEX.Pdu do
 
   @spec field(t, integer | atom) :: any
 
-  def field(pdu, id_or_name) do
-    mandatory_field(pdu, id_or_name) || optional_field(pdu, id_or_name)
+  def field(pdu, id) when is_integer(id) do
+    optional_field(pdu, id)
+  end
+  def field(pdu, name) do
+    mandatory_field(pdu, name) || optional_field(pdu, name)
   end
 
   @spec optional_fields(t) :: map
