@@ -67,7 +67,7 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   def handle_resp(pdu, original_pdu, st) do
-    case Pdu.same?(original_pdu, st.pdu) and st.state == :wait_for_resp do
+    case st.pdu != nil and Pdu.same?(original_pdu, st.pdu) and st.state == :wait_for_resp do
       true ->
         GenServer.reply(st.from, {:ok, pdu})
         do_set_free(st)
