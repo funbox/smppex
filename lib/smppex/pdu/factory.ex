@@ -3,6 +3,8 @@ defmodule SMPPEX.Pdu.Factory do
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
 
+  @message_state_delivered 2
+
   def bind_transmitter(system_id, password, opts \\ %{}) do
     bind(:bind_transmitter, system_id, password, opts)
   end
@@ -60,6 +62,11 @@ defmodule SMPPEX.Pdu.Factory do
     Pdu.new(command_id)
   end
 
+  def enquire_link_resp(command_status \\ 0) do
+    {:ok, command_id} = CommandNames.id_by_name(:enquire_link_resp)
+    Pdu.new({command_id, command_status, 0})
+  end
+
   def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message, registered_delivery \\ 0) do
     {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
     Pdu.new(
@@ -85,6 +92,47 @@ defmodule SMPPEX.Pdu.Factory do
         message_id: message_id
       }
     )
+  end
+
+  def deliver_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message) do
+    {:ok, command_id} = CommandNames.id_by_name(:deliver_sm)
+    Pdu.new(
+      command_id,
+      %{
+        source_addr: source_addr,
+        source_addr_ton: source_addr_ton,
+        source_addr_npi: source_addr_npi,
+        destination_addr: dest_addr,
+        dest_addr_ton: dest_addr_ton,
+        dest_addr_npi: dest_addr_npi,
+        short_message: message
+      }
+    )
+  end
+
+  def delivery_report(message_id, {source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message \\ "", message_state \\ @message_state_delivered) do
+    {:ok, command_id} = CommandNames.id_by_name(:deliver_sm)
+    Pdu.new(
+      command_id,
+      %{
+        source_addr: source_addr,
+        source_addr_ton: source_addr_ton,
+        source_addr_npi: source_addr_npi,
+        destination_addr: dest_addr,
+        dest_addr_ton: dest_addr_ton,
+        dest_addr_npi: dest_addr_npi,
+        short_message: message
+      },
+      %{
+        message_state: message_state,
+        receipted_message_id: message_id
+      }
+    )
+  end
+
+  def deliver_sm_resp(command_status \\ 0) do
+    {:ok, command_id} = CommandNames.id_by_name(:deliver_sm_resp)
+    Pdu.new({command_id, command_status, 0})
   end
 
 end

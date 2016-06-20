@@ -85,9 +85,12 @@ defmodule SMPPEX.Pdu do
   end
 
   def optional_field(pdu, name) when is_atom(name) do
-    case TlvFormat.id_by_name(name) do
-      {:ok, id} -> optional_field(pdu, id)
-      :unknown -> nil
+    case Map.has_key?(pdu.optional, name) do
+      true -> pdu.optional[name]
+      false -> case TlvFormat.id_by_name(name) do
+        {:ok, id} -> optional_field(pdu, id)
+        :unknown -> nil
+      end
     end
   end
 
