@@ -25,7 +25,7 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
-  @type awaited :: {:pdu, Pdu.t} | {:resp, Pdu.t} | {:timeout, Pdu.t} | {:error, Pdu.t, reason :: any}
+  @type awaited :: {:pdu, pdu :: Pdu.t} | {:resp, resp_pdu :: Pdu.t, original_pdu :: Pdu.t} | {:timeout, pdu :: Pdu.t} | {:error, pdu :: Pdu.t, reason :: any}
 
   @spec wait_for_pdus(esme :: pid, timeout :: non_neg_integer) :: [awaited] | :timeout | :stop
 
