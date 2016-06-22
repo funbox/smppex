@@ -7,6 +7,7 @@ defmodule SMPPEX.Pdu.PP do
 
   @pad ""
   @indent "  "
+  @field_inspect_limit 999999
 
   @spec format(Pdu.t, String.t, String.t) :: iolist
 
@@ -87,7 +88,7 @@ defmodule SMPPEX.Pdu.PP do
 
   defp pp_fields(fields) do
     fields |> Enum.sort |> Enum.map(fn({key, val}) ->
-      [key |> to_string |> pp_field_name , ": ", val |> inspect |> pp_val]
+      [key |> to_string |> pp_field_name , ": ", val |> inspect(limit: @field_inspect_limit) |> pp_val]
     end)
   end
 
