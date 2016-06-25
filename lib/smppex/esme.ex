@@ -20,7 +20,6 @@ defmodule SMPPEX.ESME do
     :timers,
     :pdus,
     :response_limit,
-    :bound,
     :sequence_number,
     :time,
     :timer_resolution,
@@ -273,7 +272,6 @@ defmodule SMPPEX.ESME do
           timers: timers,
           pdus: pdu_storage,
           response_limit: response_limit,
-          bound: false,
           sequence_number: 0,
           time: time,
           timer_resolution: timer_resolution,
@@ -317,7 +315,7 @@ defmodule SMPPEX.ESME do
     case Pdu.success_resp?(pdu) do
       true ->
         new_timers = SMPPTimers.handle_bind(st.timers, st.time)
-        new_st = %ESME{ st | timers: new_timers, bound: true }
+        new_st = %ESME{ st | timers: new_timers }
         {:reply, :ok, new_st}
       false ->
         Logger.info("esme #{inspect self}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
