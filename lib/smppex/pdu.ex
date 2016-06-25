@@ -121,4 +121,35 @@ defmodule SMPPEX.Pdu do
 
   def same?(pdu1, pdu2), do: pdu1.ref != nil and pdu2.ref != nil and pdu1.ref == pdu2.ref
 
+  @spec resp?(t) :: boolean
+
+  def resp?(pdu), do: Pdu.command_id(pdu) > 0x80000000
+
+  @spec success_resp?(t) :: boolean
+
+  def success_resp?(pdu) do
+    resp?(pdu) and Pdu.command_status(pdu) == 0
+  end
+
+  @spec bind?(t) :: boolean
+
+  def bind?(pdu) do
+    command_id = Pdu.command_id(pdu)
+    case CommandNames.name_by_id(command_id) do
+      {:ok, command_name} -> command_name == :bind_receiver or command_name == :bind_transmitter or command_name == :bind_transceiver
+      :unknown -> false
+    end
+  end
+
+  @spec bind_resp?(t) :: boolean
+
+  def bind_resp?(pdu) do
+    command_id = Pdu.command_id(pdu)
+    case CommandNames.name_by_id(command_id) do
+      {:ok, command_name} -> command_name == :bind_receiver_resp or command_name == :bind_transmitter_resp or command_name == :bind_transceiver_resp
+      :unknown -> false
+    end
+  end
+
+
 end

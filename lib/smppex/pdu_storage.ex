@@ -1,6 +1,8 @@
 defmodule SMPPEX.PduStorage do
   use GenServer
 
+  alias :ets, as: ETS
+
   defstruct [
     :by_sequence_number
   ]
@@ -26,20 +28,20 @@ defmodule SMPPEX.PduStorage do
 
   def init([]) do
     {:ok, %PduStorage{
-      by_sequence_number: :ets.new(:pdu_storage_by_sequence_number, [:set])
+      by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set])
     }}
   end
 
   def handle_call({:store, pdu, expire_time}, _from, st) do
     sequence_number = Pdu.sequence_number(pdu)
-    result = :ets.insert_new(st.by_sequence_number, {sequence_number, {expire_time, pdu}})
+    result = ETS.insert_new(st.by_sequence_number, {sequence_number, {expire_time, pdu}})
     {:reply, result, st}
   end
 
   def handle_call({:fetch, sequence_number}, _from, st) do
-    case :ets.lookup(st.by_sequence_number, sequence_number) do
+    case ETS.lookup(st.by_sequence_number, sequence_number) do
       [{^sequence_number, {_expire_time, pdu}}] ->
-        true = :ets.delete(st.by_sequence_number, sequence_number)
+        true = ETS.delete(st.by_sequence_number, sequence_number)
         {:reply, [pdu], st}
       [] ->
         {:reply, [], st}
@@ -47,9 +49,9 @@ defmodule SMPPEX.PduStorage do
   end
 
   def handle_call({:fetch_expired, expire_time}, _from, st) do
-    expired = :ets.select(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2'] }])
+    expired = ETS.select(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2'] }])
     expired_count = length(expired)
-    ^expired_count = :ets.select_delete(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [true] }])
+    ^expired_count = ETS.select_delete(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [true] }])
     {:reply, expired, st}
   end
 
