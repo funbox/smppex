@@ -1,14 +1,14 @@
-defmodule SMPPEX.MC.Session do
+defmodule SMPPEX.MC.SMPPHandler do
 
   defstruct [
     :mc_conn
   ]
 
-  def new(mc_conn), do: %SMPPEX.MC.Session{mc_conn: mc_conn}
+  def new(mc_conn), do: %__MODULE__{mc_conn: mc_conn}
 
 end
 
-defimpl SMPPEX.SMPPHandler, for: SMPPEX.MC.Session do
+defimpl SMPPEX.SMPPHandler, for: SMPPEX.MC.SMPPHandler do
 
   alias SMPPEX.MC, as: MC
 

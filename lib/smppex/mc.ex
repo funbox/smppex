@@ -108,7 +108,7 @@ defmodule SMPPEX.MC do
     transport_opts = Keyword.get(opts, :transport_opts, [{:port, 0}])
     handler = fn(ref, socket, transport, session) ->
       case start_mc(mod_with_args, ref, socket, transport, session, opts) do
-        {:ok,  mc} -> {:ok, SMPPEX.MC.Session.new(mc)}
+        {:ok,  mc} -> {:ok, SMPPEX.MC.SMPPHandler.new(mc)}
         {:error, _} = error -> error
       end
     end

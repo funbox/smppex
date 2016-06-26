@@ -1,14 +1,14 @@
-defmodule SMPPEX.ESME.Session do
+defmodule SMPPEX.ESME.SMPPHandler do
 
   defstruct [
     :esme
   ]
 
-  def new(esme), do: %SMPPEX.ESME.Session{esme: esme}
+  def new(esme), do: %__MODULE__{esme: esme}
 
 end
 
-defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.Session do
+defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.SMPPHandler do
 
   alias SMPPEX.ESME, as: ESME
 

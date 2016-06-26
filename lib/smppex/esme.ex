@@ -149,7 +149,7 @@ defmodule SMPPEX.ESME do
     esme = self
     handler = fn(ref, _socket, _transport, session) ->
       Kernel.send esme, {ref, session}
-      {:ok, SMPPEX.ESME.Session.new(esme)}
+      {:ok, SMPPEX.ESME.SMPPHandler.new(esme)}
     end
 
     case start_session(handler, host, port, transport, timeout) do
