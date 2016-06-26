@@ -37,6 +37,12 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
+  @spec send_pdu(pdu :: Pdu.t, timeout :: non_neg_integer) :: :ok
+
+  def send_pdu(esme, pdu, timeout \\ @default_timeout) do
+    ESME.call(esme, {:send_pdu, pdu}, timeout)
+  end
+
   def pdus(esme, timeout \\ @default_timeout) do
     ESME.call(esme, :pdus, timeout)
   end
@@ -46,6 +52,11 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   # ESME callbacks
+
+  def handle_call({:send_pdu, pdu}, _from, st) do
+    ESME.send_pdu(self, pdu)
+    {:reply, :ok, st}
+  end
 
   def handle_call({:request, pdu}, from, st) do
     ESME.send_pdu(self, pdu)
@@ -125,7 +136,7 @@ defmodule SMPPEX.ESME.Sync do
   defp do_set_free(st), do: %{ st | from: nil, pdu: nil, state: :free }
 
   defp do_get_pdus(st) do
-    pdus = st.additional_pdus
+    pdus = Enum.reverse(st.additional_pdus)
     new_st = %{ st | additional_pdus: [] }
     {:reply, pdus, new_st}
   end

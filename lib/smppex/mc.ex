@@ -120,6 +120,10 @@ defmodule SMPPEX.MC do
     end
   end
 
+  def stop(mc_server) do
+    Ranch.stop_listener(mc_server)
+  end
+
   def send_pdu(mc, pdu) do
     GenServer.cast(mc, {:send_pdu, pdu})
   end
@@ -128,7 +132,7 @@ defmodule SMPPEX.MC do
     GenServer.cast(mc, {:reply, pdu, reply_pdu})
   end
 
-  def stop(mc) do
+  def stop_session(mc) do
     GenServer.cast(mc, :stop)
   end
 

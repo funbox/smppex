@@ -5,6 +5,10 @@ defmodule SMPPEX.Session do
   use GenServer
   require Logger
 
+  alias :proc_lib, as: ProcLib
+  alias :proplists, as: Proplists
+  alias :ranch, as: Ranch
+
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.SMPPHandler
 
@@ -21,15 +25,15 @@ defmodule SMPPEX.Session do
   end
 
   def start_link(ref, socket, transport, opts) do
-	:proc_lib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+	ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
   end
 
   def init(ref, socket, transport, opts) do
-    session_factory = :proplists.get_value(:handler, opts)
+    session_factory = Proplists.get_value(:handler, opts)
     case session_factory.(ref, socket, transport, self) do
       {:ok, session} ->
-        :ok = :proc_lib.init_ack({:ok, self})
-        :ok = :ranch.accept_ack(ref)
+        :ok = ProcLib.init_ack({:ok, self})
+        :ok = Ranch.accept_ack(ref)
         state = %{
           ref: ref,
           socket: socket,
@@ -41,7 +45,7 @@ defmodule SMPPEX.Session do
         SMPPHandler.after_init(session)
         :gen_server.enter_loop(__MODULE__, [], state)
       other ->
-        :ok = :proc_lib.init_ack({:error, other})
+        :ok = ProcLib.init_ack({:error, other})
     end
   end
 
