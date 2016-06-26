@@ -1,10 +1,10 @@
 defmodule SMPPEX.MCTest do
   use ExUnit.Case
 
+  alias :erlang, as: Erlang
   alias :timer, as: Timer
   alias :ranch, as: Ranch
 
-  alias SMPPEX.Protocol.CommandNames
   alias Support.MC, as: SupportMC
   alias SMPPEX.MC
   alias SMPPEX.ESME.Sync, as: ESME
@@ -70,9 +70,9 @@ defmodule SMPPEX.MCTest do
   test "reply, reply sequence_number", ctx do
     in_pdu = Factory.bind_transmitter("system_id", "password")
 
-    ESME.send_pdu(ctx[:esme], in_pdu)
-    ESME.send_pdu(ctx[:esme], in_pdu)
-    ESME.send_pdu(ctx[:esme], in_pdu)
+    SMPPEX.ESME.send_pdu(ctx[:esme], in_pdu)
+    SMPPEX.ESME.send_pdu(ctx[:esme], in_pdu)
+    SMPPEX.ESME.send_pdu(ctx[:esme], in_pdu)
 
     Timer.sleep(50)
     assert [{:init}, _, _, {:handle_pdu, received_in_pdu}] = ctx[:callbacks].()
@@ -93,6 +93,115 @@ defmodule SMPPEX.MCTest do
 
     assert [{:init}, {:handle_stop}] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
+  end
+
+  test "cast", ctx do
+    ref = make_ref
+    MC.cast(ctx[:mc], ref)
+    Timer.sleep(10)
+
+    assert [{:init}, {:handle_cast, ref}] == ctx[:callbacks].()
+  end
+
+  test "call", ctx do
+    ref = make_ref
+    MC.call(ctx[:mc], ref)
+
+    assert [{:init}, {:handle_call, _, ^ref}] = ctx[:callbacks].()
+  end
+
+  test "call with delayed reply", ctx do
+    assert :delayed_reply == MC.call(ctx[:mc], :reply_delayed)
+  end
+
+  test "info", ctx do
+    ref = make_ref
+    Kernel.send ctx[:mc], ref
+    Timer.sleep(10)
+
+    assert [{:init}, {:handle_info, ref}] == ctx[:callbacks].()
+  end
+
+  test "init", ctx do
+    assert [{:init}] == ctx[:callbacks].()
+  end
+
+  test "init, stop from init" do
+
+    Process.flag(:trap_exit, true)
+    {:ok, ref} = MC.start({Support.StoppingMC, :ooops})
+
+    port = Ranch.get_port(ref)
+
+    Timer.sleep(50)
+    {:ok, esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
+
+    pdu = Factory.bind_transmitter("system_id", "password")
+    assert :stop = ESME.request(esme, pdu)
+  end
+
+  test "handle_pdu", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
+    Timer.sleep(50)
+
+    assert [{:init}, {:handle_pdu, received_pdu}] = ctx[:callbacks].()
+    assert Pdu.mandatory_field(received_pdu, :system_id) == "system_id"
+    assert Pdu.mandatory_field(received_pdu, :password) == "password"
+  end
+
+  test "handle_resp", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    MC.send_pdu(ctx[:mc], pdu)
+    Timer.sleep(50)
+
+    [{:pdu, bind}] = ESME.pdus(ctx[:esme])
+    reply_pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid")
+    SMPPEX.ESME.reply(ctx[:esme], bind, reply_pdu)
+    Timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, received_reply_pdu, _}
+    ] = ctx[:callbacks].()
+    assert Pdu.mandatory_field(received_reply_pdu, :system_id) == "sid"
+  end
+
+  test "handle_resp with unknown resp", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    MC.send_pdu(ctx[:mc], pdu)
+    Timer.sleep(50)
+
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
+    SMPPEX.ESME.with_session(ctx[:esme], fn(s) -> SMPPEX.Session.send_pdu(s, reply_pdu) end)
+    Timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
+    ] = ctx[:callbacks].()
+  end
+
+  test "handle_resp_timeout", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    MC.send_pdu(ctx[:mc], pdu)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
+
+    Kernel.send(ctx[:mc], {:tick, time + 2050})
+    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    SMPPEX.ESME.with_session(ctx[:esme], fn(s) -> SMPPEX.Session.send_pdu(s, reply_pdu) end)
+
+    Timer.sleep(50)
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp_timeout, timeout_pdu},
+    ] = ctx[:callbacks].()
+
+    assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"
   end
 
 end

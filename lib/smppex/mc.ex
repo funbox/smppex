@@ -61,7 +61,7 @@ defmodule SMPPEX.MC do
 
   defmacro __using__(_) do
     quote location: :keep do
-      @behaviour SMPPEX.ESME
+      @behaviour SMPPEX.MC
 
       def init(_socket, _transport, args) do
         {:ok, args}

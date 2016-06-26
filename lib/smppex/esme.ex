@@ -143,6 +143,10 @@ defmodule SMPPEX.ESME do
     GenServer.cast(esme, {:cast, request})
   end
 
+  def with_session(esme, fun) do
+    GenServer.cast(esme, {:with_session, fun})
+  end
+
   # GenServer callbacks
 
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
@@ -193,6 +197,11 @@ defmodule SMPPEX.ESME do
   def handle_cast({:reply, pdu, reply_pdu}, st) do
     new_st = do_reply(pdu, reply_pdu, st)
     {:noreply, new_st}
+  end
+
+  def handle_cast({:with_session, fun}, st) do
+    fun.(st.smpp_session)
+    {:noreply, st}
   end
 
   def handle_cast(:stop, st) do

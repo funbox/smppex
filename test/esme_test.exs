@@ -229,6 +229,8 @@ defmodule SMPPEX.ESMETest do
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(context[:server], reply_pdu_data)
+
+    :timer.sleep(50)
     assert [
       {:init},
       {:handle_send_pdu_result, _, :ok},
