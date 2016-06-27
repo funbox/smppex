@@ -1,6 +1,9 @@
 defmodule SMPPEX.ESMETest do
   use ExUnit.Case
 
+  alias :erlang, as: Erlang
+  alias :timer, as: Timer
+
   alias SMPPEX.Protocol.CommandNames
   alias Support.TCP.Server
   alias Support.ESME, as: SupportESME
@@ -9,7 +12,7 @@ defmodule SMPPEX.ESMETest do
 
   setup do
     server = Server.start_link
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     {callback_backup, esme} = SupportESME.start_link({127,0,0,1}, Server.port(server), [
       enquire_link_limit: 1000,
@@ -23,7 +26,7 @@ defmodule SMPPEX.ESMETest do
 
   test "start_link" do
     server = Server.start_link
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     {:ok, pid} = Agent.start_link(fn() -> [] end)
     assert {:ok, _} = ESME.start_link({127,0,0,1}, Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
@@ -31,7 +34,7 @@ defmodule SMPPEX.ESMETest do
 
   test "start_link by hostname" do
     server = Server.start_link
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     {:ok, pid} = Agent.start_link(fn() -> [] end)
     assert {:ok, _} = ESME.start_link('localhost', Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
@@ -39,7 +42,7 @@ defmodule SMPPEX.ESMETest do
 
   test "start_link by hostname as a string" do
     server = Server.start_link
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     {:ok, pid} = Agent.start_link(fn() -> [] end)
     assert {:ok, _} = ESME.start_link("localhost", Server.port(server), {SupportESME, %{callbacks: [], callback_backup: pid}})
@@ -59,7 +62,7 @@ defmodule SMPPEX.ESMETest do
   test "send_pdu", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert {:ok, {:pdu, pdu1}, _} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert Pdu.mandatory_field(pdu, :system_id) == Pdu.mandatory_field(pdu1, :system_id)
@@ -72,7 +75,7 @@ defmodule SMPPEX.ESMETest do
 
     ESME.send_pdu(ctx[:esme], pdu1)
     ESME.send_pdu(ctx[:esme], pdu2)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert {:ok, {:pdu, pdu1r}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert {:ok, {:pdu, pdu2r}, _} = rest_data |> SMPPEX.Protocol.parse
@@ -84,13 +87,13 @@ defmodule SMPPEX.ESMETest do
     pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123 }
     {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
     Server.send(ctx[:server], pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [{:init}, {:handle_pdu, received_pdu}] = SupportESME.callbacks_received(ctx[:esme])
 
     reply_pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0)
     ESME.reply(ctx[:esme], received_pdu, reply_pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert {:ok, {:pdu, reply_received}, _} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert Pdu.sequence_number(reply_received) == 123
@@ -98,7 +101,7 @@ defmodule SMPPEX.ESMETest do
 
   test "stop", ctx do
     ESME.stop(ctx[:esme])
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [{:init}, {:handle_stop}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
@@ -107,7 +110,7 @@ defmodule SMPPEX.ESMETest do
   test "cast", ctx do
     ref = make_ref
     ESME.cast(ctx[:esme], ref)
-    :timer.sleep(10)
+    Timer.sleep(10)
 
     assert [{:init}, {:handle_cast, ref}] == SupportESME.callbacks_received(ctx[:esme])
   end
@@ -126,7 +129,7 @@ defmodule SMPPEX.ESMETest do
   test "info", ctx do
     ref = make_ref
     Kernel.send ctx[:esme], ref
-    :timer.sleep(10)
+    Timer.sleep(10)
 
     assert [{:init}, {:handle_info, ^ref}] = SupportESME.callbacks_received(ctx[:esme])
   end
@@ -137,7 +140,7 @@ defmodule SMPPEX.ESMETest do
 
   test "init, stop from init" do
     server = Server.start_link
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Process.flag(:trap_exit, true)
     assert {:error, :oops} == ESME.start_link({127,0,0,1}, Server.port(server), {Support.StoppingESME, :oops})
@@ -147,7 +150,7 @@ defmodule SMPPEX.ESMETest do
     pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123 }
     {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
     Server.send(ctx[:server], pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [{:init}, {:handle_pdu, received_pdu}] = SupportESME.callbacks_received(ctx[:esme])
     assert Pdu.mandatory_field(received_pdu, :system_id) == "system_id"
@@ -158,12 +161,12 @@ defmodule SMPPEX.ESMETest do
   test "handle_resp", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -176,21 +179,21 @@ defmodule SMPPEX.ESMETest do
   test "handle_resp (with additional submit_sm)", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     pdu = SMPPEX.Pdu.Factory.submit_sm({"from", 1, 2}, {"to", 1, 2}, "message")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.submit_sm_resp(0) | sequence_number: 2}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -206,12 +209,12 @@ defmodule SMPPEX.ESMETest do
   test "handle_resp with unknown resp", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -222,15 +225,15 @@ defmodule SMPPEX.ESMETest do
   test "handle_resp_timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
-    :timer.sleep(50)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 2050})
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
 
-    :timer.sleep(50)
+    Timer.sleep(50)
     assert [
       {:init},
       {:handle_send_pdu_result, _, :ok},
@@ -243,7 +246,7 @@ defmodule SMPPEX.ESMETest do
   test "handle_send_pdu_result", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "too_long_password")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -254,16 +257,16 @@ defmodule SMPPEX.ESMETest do
   test "enquire_link by timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
-    :timer.sleep(50)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 1050})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert {:ok, {:pdu, enquire_link}, _} = rest_data |> SMPPEX.Protocol.parse
@@ -274,24 +277,24 @@ defmodule SMPPEX.ESMETest do
   test "enquire_link cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
-    :timer.sleep(50)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 950})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     action_pdu = %Pdu{ SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
     {:ok, action_pdu_data} = SMPPEX.Protocol.build(action_pdu)
     Server.send(ctx[:server], action_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 1050})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert {:ok, {:pdu, _bind_pdu}, <<>>} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
   end
@@ -299,24 +302,24 @@ defmodule SMPPEX.ESMETest do
   test "enquire_link timeout cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
-    :timer.sleep(50)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 1050})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     action_pdu = %Pdu{ SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
     {:ok, action_pdu_data} = SMPPEX.Protocol.build(action_pdu)
     Server.send(ctx[:server], action_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 2100})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -333,17 +336,17 @@ defmodule SMPPEX.ESMETest do
   test "stop by enquire_link timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
-    :timer.sleep(50)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 1050})
     Kernel.send(ctx[:esme], {:tick, time + 2050})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -358,16 +361,16 @@ defmodule SMPPEX.ESMETest do
   test "stop by inactivity timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = :erlang.system_time(:milli_seconds)
-    :timer.sleep(50)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 10050})
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},
@@ -381,12 +384,12 @@ defmodule SMPPEX.ESMETest do
   test "bind fail", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(1) | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
-    :timer.sleep(50)
+    Timer.sleep(50)
 
     assert [
       {:init},

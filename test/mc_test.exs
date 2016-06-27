@@ -316,5 +316,21 @@ defmodule SMPPEX.MCTest do
     refute Process.alive?(ctx[:mc])
   end
 
+  test "stop by inactivity timeout", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
+    time = Erlang.system_time(:milli_seconds)
+    :timer.sleep(50)
+    Kernel.send(ctx[:mc], {:tick, time + 10050})
+    :timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_pdu, _}, # bind_transmitter sent
+      {:handle_stop}
+    ] = ctx[:callbacks].()
+    refute Process.alive?(ctx[:mc])
+  end
+
 end
 
