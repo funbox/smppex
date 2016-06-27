@@ -1,8 +1,14 @@
 defmodule SMPPEX.MC.SMPPHandler do
 
+  alias SMPPEX.MC.SMPPHandler
+
   defstruct [
     :mc_conn
   ]
+
+  @type t :: %SMPPHandler{}
+
+  @spec new(pid) :: t
 
   def new(mc_conn), do: %__MODULE__{mc_conn: mc_conn}
 

@@ -2,13 +2,17 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
   import SMPPEX.Protocol.Unpack
   import SMPPEX.Protocol.TlvFormat
 
+  @type parse_result :: {:ok, map} | {:error, reason :: term}
+
+  @spec parse(binary) :: parse_result
+
   def parse(bin), do: parse(bin, Map.new)
 
-  def parse(<<>>, parsed_fields) do
+  defp parse(<<>>, parsed_fields) do
     {:ok, parsed_fields}
   end
 
-  def parse(bin, parsed_fields) do
+  defp parse(bin, parsed_fields) do
     case tlv(bin) do
       {:ok, {tag, value}, rest} ->
         case parse_format(tag, value) do

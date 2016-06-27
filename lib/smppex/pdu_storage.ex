@@ -3,24 +3,34 @@ defmodule SMPPEX.PduStorage do
 
   alias :ets, as: ETS
 
+  alias SMPPEX.PduStorage
+  alias SMPPEX.Pdu
+
   defstruct [
     :by_sequence_number
   ]
 
-  alias SMPPEX.PduStorage
-  alias SMPPEX.Pdu
+  @type t :: %PduStorage{}
+
+  @spec start_link :: GenServer.on_start
 
   def start_link do
     GenServer.start_link(__MODULE__, [])
   end
 
+  @spec store(pid, Pdu.t, non_neg_integer) :: boolean
+
   def store(storage, %Pdu{} = pdu, expire_time) do
     GenServer.call(storage, {:store, pdu, expire_time})
   end
 
+  @spec fetch(pid, non_neg_integer) :: [Pdu.t]
+
   def fetch(storage, sequence_number) do
     GenServer.call(storage, {:fetch, sequence_number})
   end
+
+  @spec fetch_expired(pid, non_neg_integer) :: [Pdu.t]
 
   def fetch_expired(storage, expire_time) do
     GenServer.call(storage, {:fetch_expired, expire_time})

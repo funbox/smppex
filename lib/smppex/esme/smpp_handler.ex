@@ -1,8 +1,14 @@
 defmodule SMPPEX.ESME.SMPPHandler do
 
+  alias SMPPEX.ESME.SMPPHandler
+
   defstruct [
     :esme
   ]
+
+  @type t :: %SMPPHandler{}
+
+  @spec new(pid) :: t
 
   def new(esme), do: %__MODULE__{esme: esme}
 

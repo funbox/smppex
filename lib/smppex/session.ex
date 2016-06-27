@@ -46,8 +46,8 @@ defmodule SMPPEX.Session do
         wait_for_data(state)
         SMPPHandler.after_init(session)
         ErlangGenServer.enter_loop(__MODULE__, [], state)
-      other ->
-        :ok = ProcLib.init_ack({:error, other})
+      {:error, _} = error ->
+        :ok = ProcLib.init_ack(error)
     end
   end
 

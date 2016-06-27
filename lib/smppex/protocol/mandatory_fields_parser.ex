@@ -67,8 +67,8 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
     end
   end
 
-  def read_cases(_bin, [], _parsed_fields), do: {:error, "No cases left"}
-  def read_cases(bin, [current_case | rest_cases ], parsed_fields) do
+  defp read_cases(_bin, [], _parsed_fields), do: {:error, "No cases left"}
+  defp read_cases(bin, [current_case | rest_cases ], parsed_fields) do
     {field, value, specs} = current_case
     if expand(field, parsed_fields) == value do
       parse(bin, specs, parsed_fields)

@@ -16,6 +16,10 @@ defmodule SMPPEX.SMPPTimers do
     inactivity_limit: 0
   ]
 
+  @type t :: %SMPPTimers{}
+
+  @spec new(non_neg_integer, timeout, timeout, timeout, timeout) :: t
+
   def new(time, session_init_limit, enquire_link_limit, enquire_link_resp_limit, inactivity_limit) do
     %SMPPTimers{
       connection_time: time,
@@ -26,13 +30,19 @@ defmodule SMPPEX.SMPPTimers do
     }
   end
 
+  @spec handle_bind(t, non_neg_integer) :: t
+
   def handle_bind(timers, time) do
     handle_peer_transaction(%SMPPTimers{ timers | session_init_state: :bound}, time)
   end
 
+  @spec handle_peer_transaction(t, non_neg_integer) :: t
+
   def handle_peer_transaction(timers, time) do
     handle_peer_action(%SMPPTimers{ timers | last_transaction_time: time}, time)
   end
+
+  @spec handle_peer_action(t, non_neg_integer) :: t
 
   def handle_peer_action(timers, time) do
     %SMPPTimers{ timers |
@@ -40,6 +50,10 @@ defmodule SMPPEX.SMPPTimers do
       enquire_link_state: :active,
     }
   end
+
+  @type tick_result :: {:ok, t} | {:stop, reason :: term} | {:enquire_link, t}
+
+  @spec handle_tick(t, non_neg_integer) :: tick_result
 
   def handle_tick(timers, time) do
     case timers.session_init_state do

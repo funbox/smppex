@@ -66,7 +66,7 @@ defmodule SMPPEX.Protocol.Unpack do
   defp valid_kind?(str, :dec), do: Helpers.dec?(str)
   defp valid_kind?(str, :hex), do: Helpers.hex?(str)
 
-  @spec c_octet_string(binary, non_neg_integer) :: unpack_error_result | {:ok, binary, binary}
+  @spec octet_string(binary, non_neg_integer) :: unpack_error_result | {:ok, binary, binary}
 
   def octet_string(bin, len) when len >= 0 and is_binary(bin) do
     case bin do

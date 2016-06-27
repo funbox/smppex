@@ -1,6 +1,7 @@
 defmodule Support.TCP.Server do
 
   alias :gen_tcp, as: GenTCP
+  alias Support.TCP.Server
 
   defstruct [
     :server_pid,
@@ -8,7 +9,9 @@ defmodule Support.TCP.Server do
     :port
   ]
 
-  alias Support.TCP.Server
+  @type t :: %Server{}
+
+  @spec start_link :: t
 
   def start_link do
     port = Support.TCP.Helpers.find_free_port
@@ -20,24 +23,38 @@ defmodule Support.TCP.Server do
     %Server{server_pid: server_pid, received_data_pid: received_data_pid, port: port}
   end
 
+  @spec port(t) :: non_neg_integer
+
   def port(server), do: server.port
+
+  @spec stop(t) :: :ok
 
   def stop(server) do
     Kernel.send server.server_pid, :tcp_close
     Agent.stop(server.received_data_pid)
   end
 
+  @spec send(t, data :: binary) :: binary
+
   def send(server, data) do
     Kernel.send server.server_pid, {:tcp_send, data}
   end
+
+  @type message :: {:tcp, port, binary} | {:tcp_closed, port} | {:tcp_error, port, term}
+
+  @spec messages(t) :: [message]
 
   def messages(server) do
     Agent.get(server.received_data_pid, fn(received_data) -> Enum.reverse(received_data.messages) end)
   end
 
+  @spec received_data(t) :: binary
+
   def received_data(server) do
     Agent.get(server.received_data_pid, fn(received_data) -> received_data.data end)
   end
+
+  @spec listen(non_neg_integer, pid) :: :ok
 
   defp listen(port, received_data_pid) do
     {:ok, listen_sock} = GenTCP.listen(port, [:binary, {:active, true}])
