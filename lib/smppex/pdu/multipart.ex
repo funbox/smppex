@@ -116,6 +116,7 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
+  @spec split_message(integer, binary, integer, integer) :: split_result
   def split_message(_ref_num, message, _max_unsplit, _max_split) when not is_binary(message), do: {:error, @error_invalid_message}
   def split_message(ref_num, _message, _max_unsplit, _max_split) when ref_num < 0, do: {:error, @error_invalid_ref_num}
   def split_message(ref_num, _message, _max_unsplit, _max_split) when ref_num > 65535, do: {:error, @error_invalid_ref_num}

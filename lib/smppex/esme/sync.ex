@@ -11,6 +11,8 @@ defmodule SMPPEX.ESME.Sync do
 
   # Public interface
 
+  @spec start_link(term, non_neg_integer, Keyword.t) :: GenServer.on_start
+
   def start_link(host, port, opts \\ []) do
     ESME.start_link(host, port, {__MODULE__, %{from: nil, pdu: nil, additional_pdus: [], state: :free}}, opts)
   end
@@ -37,9 +39,13 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
+  @spec pdus(esme :: pid, timeout) :: [awaited]
+
   def pdus(esme, timeout \\ @default_timeout) do
     ESME.call(esme, :pdus, timeout)
   end
+
+  @spec stop(esme :: pid) :: :ok
 
   def stop(esme) do
     ESME.stop(esme)

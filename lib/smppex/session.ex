@@ -2,29 +2,38 @@ defmodule SMPPEX.Session do
 
   @behaviour :ranch_protocol
 
-  alias :gen_server, as: ErlangGenServer
-
   use GenServer
   require Logger
 
+  alias :gen_server, as: ErlangGenServer
   alias :proc_lib, as: ProcLib
   alias :proplists, as: Proplists
   alias :ranch, as: Ranch
 
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.SMPPHandler
+  alias SMPPEX.Pdu
+
+  @spec send_pdu(pid, Pdu.t) :: :ok
 
   def send_pdu(pid, pdu) do
     send_pdus(pid, [pdu])
   end
 
+  @spec send_pdus(pid, [Pdu.t]) :: :ok
+
   def send_pdus(pid, pdus) do
     GenServer.cast(pid, {:send_pdus, pdus})
   end
 
+  @spec stop(pid) :: :ok
+
   def stop(pid) do
     GenServer.cast(pid, :stop)
   end
+
+  # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
+  # Ranch handles this return type, but Dialyzer is not happy with it
 
   def start_link(ref, socket, transport, opts) do
 	ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
@@ -51,7 +60,7 @@ defmodule SMPPEX.Session do
     end
   end
 
-  def wait_for_data(state) do
+  defp wait_for_data(state) do
     :ok = state.transport.setopts(state.socket, [{:active, :once}])
   end
 

@@ -11,7 +11,7 @@ defmodule SMPPEX.ClientPool do
 
   @type session :: term
   @type handler_result :: {:ok, session} | {:error, reason :: term}
-  @type handler :: (Ranch.ref, port, module, pid -> handler_result)
+  @type handler :: (Ranch.ref, term, module, pid -> handler_result)
 
   @type pool :: {pid, Ranch.ref, module}
 

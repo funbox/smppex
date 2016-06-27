@@ -99,6 +99,8 @@ defmodule SMPPEX.ESME do
 
   # Public interface
 
+  @spec start_link(term, non_neg_integer, {module, term}, Keyword.t) :: GenServer.on_start
+
   def start_link(host, port, {module, args}, opts \\ []) do
     transport = Keyword.get(opts, :transport, @default_transport)
     gen_server_opts = Keyword.get(opts, :gen_server_opts, [])
@@ -111,37 +113,56 @@ defmodule SMPPEX.ESME do
     )
   end
 
+  @spec send_pdu(pid, Pdu.t) :: :ok
+
   def send_pdu(esme, pdu) do
     GenServer.cast(esme, {:send_pdu, pdu})
   end
+
+  @spec reply(pid, Pdu.t, Pdu.t) :: :ok
 
   def reply(esme, pdu, reply_pdu) do
     GenServer.cast(esme, {:reply, pdu, reply_pdu})
   end
 
+  @spec stop(pid) :: :ok
+
   def stop(esme) do
     GenServer.cast(esme, :stop)
   end
+
+  @spec handle_pdu(pid, Pdu.t) :: :ok
 
   def handle_pdu(esme, pdu) do
     GenServer.call(esme, {:handle_pdu, pdu})
   end
 
+  @spec handle_stop(pid) :: :ok
+
   def handle_stop(esme) do
     GenServer.call(esme, :handle_stop)
   end
+
+  @type send_pdu_result :: :ok | {:error, term}
+  @spec handle_send_pdu_result(pid, Pdu.t, send_pdu_result) :: :ok
 
   def handle_send_pdu_result(esme, pdu, send_pdu_result) do
     GenServer.call(esme, {:handle_send_pdu_result, pdu, send_pdu_result})
   end
 
+  @spec call(pid, term, timeout) :: term
+
   def call(esme, request, timeout \\ @default_call_timeout) do
     GenServer.call(esme, {:call, request}, timeout)
   end
 
+  @spec cast(pid, term) :: :ok
+
   def cast(esme, request) do
     GenServer.cast(esme, {:cast, request})
   end
+
+  @spec with_session(pid, (pid -> any)) :: :ok
 
   def with_session(esme, fun) do
     GenServer.cast(esme, {:with_session, fun})
