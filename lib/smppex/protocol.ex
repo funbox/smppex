@@ -120,7 +120,7 @@ defmodule SMPPEX.Protocol do
   defp build_mandatory?(pdu) do
     command_status = Pdu.command_status(pdu)
     command_id = Pdu.command_id(pdu)
-    (command_status == 0) or (command_status == nil) or (not Map.has_key?(@pdus_with_status_dependant_body, command_id))
+    (command_status == 0) or (not Map.has_key?(@pdus_with_status_dependant_body, command_id))
   end
 
   defp build_mandatory_fields(pdu, specs) do

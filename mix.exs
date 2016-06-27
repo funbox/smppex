@@ -14,7 +14,10 @@ defmodule Smppex.Mixfile do
       test_coverage: [tool: Coverex.Task],
       package: package,
       dialyzer: [
-        flags: ["-Werror_handling", "-Wrace_conditions"]
+        plt_file: ".local.plt",
+        plt_add_deps: true,
+        plt_add_apps: [:ssl],
+        flags: ["-Werror_handling", "-Wrace_conditions"],
       ],
     ]
   end

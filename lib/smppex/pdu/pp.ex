@@ -73,17 +73,8 @@ defmodule SMPPEX.Pdu.PP do
     ~s/#{field_name}/gd
   end
 
-
-  defp pp_val(str) when is_binary(str) do
+  defp pp_val(str) do
     ~s/#{str}/yd
-  end
-
-  defp pp_val(int) when is_integer(int) do
-    ~s/#{int}/yd
-  end
-
-  defp pp_val(val) do
-    val
   end
 
   defp pp_fields(fields) do

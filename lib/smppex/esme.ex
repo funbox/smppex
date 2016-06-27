@@ -41,7 +41,7 @@ defmodule SMPPEX.ESME do
   @type state :: term
   @type request :: term
 
-  @callback init(args :: term) :: {:ok, state} | {:close, reason :: term}
+  @callback init(args :: term) :: {:ok, state} | {:stop, reason :: term}
 
   @callback handle_pdu(Pdu.t, state) :: state
 

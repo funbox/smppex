@@ -41,7 +41,7 @@ defmodule SMPPEX.MC do
   @type socket :: port | :ssl.sslsocket
   @type transport :: module
 
-  @callback init(socket, transport, args :: term) :: {:ok, state} | {:close, reason :: term}
+  @callback init(socket, transport, args :: term) :: {:ok, state} | {:stop, reason :: term}
 
   @callback handle_pdu(Pdu.t, state) :: state
 

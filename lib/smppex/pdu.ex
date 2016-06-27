@@ -51,19 +51,19 @@ defmodule SMPPEX.Pdu do
   @spec command_id(t) :: integer
 
   def command_id(pdu) do
-    pdu.command_id
+    pdu.command_id |> to_int
   end
 
   @spec command_status(t) :: integer
 
   def command_status(pdu) do
-    pdu.command_status
+    pdu.command_status |> to_int
   end
 
   @spec sequence_number(t) :: integer
 
   def sequence_number(pdu) do
-    pdu.sequence_number
+    pdu.sequence_number |> to_int
   end
 
   @spec mandatory_field(t, atom) :: any
@@ -151,5 +151,7 @@ defmodule SMPPEX.Pdu do
     end
   end
 
+  defp to_int(val) when is_integer(val), do: val
+  defp to_int(_), do: 0
 
 end
