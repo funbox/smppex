@@ -5,6 +5,7 @@ defmodule SMPPEX.MCTest do
   alias :timer, as: Timer
   alias :ranch, as: Ranch
 
+  alias SMPPEX.Protocol.CommandNames
   alias Support.MC, as: SupportMC
   alias SMPPEX.MC
   alias SMPPEX.ESME.Sync, as: ESME
@@ -12,13 +13,13 @@ defmodule SMPPEX.MCTest do
   alias SMPPEX.Pdu.Factory
 
   setup do
-    {pid, mc} = SupportMC.start_link([
+    {pid, mc_server} = SupportMC.start_link([
       enquire_link_limit: 1000,
       enquire_link_resp_limit: 1000,
       inactivity_limit: 10000,
       response_limit: 2000
     ])
-    port = Ranch.get_port(mc)
+    port = Ranch.get_port(mc_server)
 
     Timer.sleep(50)
     {:ok, esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
@@ -78,7 +79,7 @@ defmodule SMPPEX.MCTest do
     assert [{:init}, _, _, {:handle_pdu, received_in_pdu}] = ctx[:callbacks].()
     assert Pdu.sequence_number(received_in_pdu) == 3
 
-    out_pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0)
+    out_pdu = Factory.bind_transmitter_resp(0)
     MC.reply(ctx[:mc], received_in_pdu, out_pdu)
 
     Timer.sleep(50)
@@ -141,7 +142,7 @@ defmodule SMPPEX.MCTest do
   end
 
   test "handle_pdu", ctx do
-    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    pdu = Factory.bind_transmitter("system_id", "password")
 
     SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
     Timer.sleep(50)
@@ -151,13 +152,28 @@ defmodule SMPPEX.MCTest do
     assert Pdu.mandatory_field(received_pdu, :password) == "password"
   end
 
+  test "handle_pdu (several)", ctx do
+    pdu1 = Factory.bind_transmitter("system_id", "password")
+    pdu2 = Factory.submit_sm({"from", 1, 2}, {"to", 1, 2}, "message")
+
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu1)
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu2)
+    Timer.sleep(50)
+
+    assert [{:init}, {:handle_pdu, received_pdu1}, {:handle_pdu, received_pdu2}] = ctx[:callbacks].()
+    assert Pdu.mandatory_field(received_pdu1, :system_id) == "system_id"
+    assert Pdu.mandatory_field(received_pdu1, :password) == "password"
+    assert Pdu.mandatory_field(received_pdu2, :source_addr) == "from"
+    assert Pdu.mandatory_field(received_pdu2, :destination_addr) == "to"
+  end
+
   test "handle_resp", ctx do
-    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    pdu = Factory.bind_transmitter("system_id", "password")
     MC.send_pdu(ctx[:mc], pdu)
     Timer.sleep(50)
 
     [{:pdu, bind}] = ESME.pdus(ctx[:esme])
-    reply_pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid")
+    reply_pdu = Factory.bind_transmitter_resp(0, "sid")
     SMPPEX.ESME.reply(ctx[:esme], bind, reply_pdu)
     Timer.sleep(50)
 
@@ -170,11 +186,11 @@ defmodule SMPPEX.MCTest do
   end
 
   test "handle_resp with unknown resp", ctx do
-    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+    pdu = Factory.bind_transmitter("system_id", "password")
     MC.send_pdu(ctx[:mc], pdu)
     Timer.sleep(50)
 
-    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
+    reply_pdu = %Pdu{ Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
     SMPPEX.ESME.with_session(ctx[:esme], fn(s) -> SMPPEX.Session.send_pdu(s, reply_pdu) end)
     Timer.sleep(50)
 
@@ -185,13 +201,13 @@ defmodule SMPPEX.MCTest do
   end
 
   test "handle_resp_timeout", ctx do
-    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    pdu = Factory.bind_transmitter("system_id1", "pass1")
     MC.send_pdu(ctx[:mc], pdu)
     time = Erlang.system_time(:milli_seconds)
     Timer.sleep(50)
 
     Kernel.send(ctx[:mc], {:tick, time + 2050})
-    reply_pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    reply_pdu = %Pdu{ Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     SMPPEX.ESME.with_session(ctx[:esme], fn(s) -> SMPPEX.Session.send_pdu(s, reply_pdu) end)
 
     Timer.sleep(50)
@@ -202,6 +218,102 @@ defmodule SMPPEX.MCTest do
     ] = ctx[:callbacks].()
 
     assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"
+  end
+
+  test "handle_send_pdu_result", ctx do
+    pdu = Factory.bind_transmitter("system_id1", "too_long_password")
+    MC.send_pdu(ctx[:mc], pdu)
+    Timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_send_pdu_result, _, {:error, _}}
+    ] = ctx[:callbacks].()
+  end
+
+  test "enquire_link by timeout", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
+
+    Kernel.send(ctx[:mc], {:tick, time + 1050})
+    Timer.sleep(50)
+
+    assert [{:pdu, enquire_link}] = ESME.pdus(ctx[:esme])
+    assert Pdu.command_id(enquire_link) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "stop by bind timeout" do
+    {pid, mc_server} = SupportMC.start_link([
+      session_init_limit: 30,
+      timer_resolution: 5
+    ])
+    port = Ranch.get_port(mc_server)
+
+    Timer.sleep(50)
+    {:ok, esme} = ESME.start_link("127.0.0.1", port)
+
+    Timer.sleep(50)
+    mc = SupportMC.mc(pid)
+    refute Process.alive?(mc)
+  end
+
+  test "enquire_link cancel by peer action", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
+
+    Kernel.send(ctx[:mc], {:tick, time + 950})
+    Timer.sleep(50)
+
+    action_pdu = SMPPEX.Pdu.Factory.enquire_link
+    SMPPEX.ESME.send_pdu(ctx[:esme], action_pdu)
+    Timer.sleep(50)
+
+    Kernel.send(ctx[:mc], {:tick, time + 1050})
+    Timer.sleep(50)
+
+    assert [{:pdu, _bind_pdu}] = ESME.pdus(ctx[:esme])
+  end
+
+  test "enquire_link timeout cancel by peer action", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
+
+    Kernel.send(ctx[:mc], {:tick, time + 1050})
+    Timer.sleep(50)
+
+    action_pdu = SMPPEX.Pdu.Factory.enquire_link
+    SMPPEX.ESME.send_pdu(ctx[:esme], action_pdu)
+    Timer.sleep(50)
+
+    Kernel.send(ctx[:mc], {:tick, time + 2100})
+    Timer.sleep(50)
+
+    assert [{:pdu, _bind_pdu}, {:pdu, _enquire_link_pdu}] = ESME.pdus(ctx[:esme])
+    assert Process.alive?(ctx[:mc])
+  end
+
+  test "stop by enquire_link timeout", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
+    time = Erlang.system_time(:milli_seconds)
+    Timer.sleep(50)
+    Kernel.send(ctx[:mc], {:tick, time + 1050})
+    Kernel.send(ctx[:mc], {:tick, time + 2050})
+    Timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_pdu, _},
+      {:handle_send_pdu_result, _, _}, # Enquire link
+      {:handle_stop}
+    ] = ctx[:callbacks].()
+    refute Process.alive?(ctx[:mc])
   end
 
 end
