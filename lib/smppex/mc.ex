@@ -102,6 +102,8 @@ defmodule SMPPEX.MC do
   @default_transport :ranch_tcp
   @default_acceptor_count 50
 
+  @spec start({module, term}, Keyword.t) :: {:ok, Ranch.ref} | {:error, reason :: term}
+
   def start({_module, _args} = mod_with_args, opts \\ []) do
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
@@ -120,37 +122,56 @@ defmodule SMPPEX.MC do
     end
   end
 
+  @spec stop(Ranch.ref) :: :ok
+
   def stop(mc_server) do
     Ranch.stop_listener(mc_server)
   end
+
+  @spec send_pdu(pid, Pdu.t) :: :ok
 
   def send_pdu(mc, pdu) do
     GenServer.cast(mc, {:send_pdu, pdu})
   end
 
+  @spec reply(pid, Pdu.t, Pdu.t) :: :ok
+
   def reply(mc, pdu, reply_pdu) do
     GenServer.cast(mc, {:reply, pdu, reply_pdu})
   end
+
+  @spec stop_session(pid) :: :ok
 
   def stop_session(mc) do
     GenServer.cast(mc, :stop)
   end
 
+  @spec handle_pdu(pid, Pdu.t) :: :ok
+
   def handle_pdu(mc, pdu) do
     GenServer.call(mc, {:handle_pdu, pdu})
   end
+
+  @spec handle_stop(pid) :: :ok
 
   def handle_stop(mc) do
     GenServer.call(mc, :handle_stop)
   end
 
+  @type send_pdu_result :: :ok | {:error, term}
+  @spec handle_send_pdu_result(pid, Pdu.t, send_pdu_result) :: :ok
+
   def handle_send_pdu_result(mc, pdu, send_pdu_result) do
     GenServer.call(mc, {:handle_send_pdu_result, pdu, send_pdu_result})
   end
 
+  @spec call(pid, term, timeout) :: term
+
   def call(mc, request, timeout \\ @default_call_timeout) do
     GenServer.call(mc, {:call, request}, timeout)
   end
+
+  @spec cast(pid, term) :: :ok
 
   def cast(mc, request) do
     GenServer.cast(mc, {:cast, request})
