@@ -252,7 +252,7 @@ defmodule SMPPEX.MCTest do
     port = Ranch.get_port(mc_server)
 
     Timer.sleep(50)
-    {:ok, esme} = ESME.start_link("127.0.0.1", port)
+    {:ok, _} = ESME.start_link("127.0.0.1", port)
 
     Timer.sleep(50)
     mc = SupportMC.mc(pid)
