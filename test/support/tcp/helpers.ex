@@ -1,9 +1,12 @@
 defmodule Support.TCP.Helpers do
 
+  alias :gen_tcp, as: GenTCP
+  alias :inet, as: INET
+
   def find_free_port do
-    {:ok, socket} = :gen_tcp.listen(0, [])
-    {:ok, port} = :inet.port(socket)
-    :ok = :gen_tcp.close(socket)
+    {:ok, socket} = GenTCP.listen(0, [])
+    {:ok, port} = INET.port(socket)
+    :ok = GenTCP.close(socket)
     port # assume no one will immediately take this port
   end
 

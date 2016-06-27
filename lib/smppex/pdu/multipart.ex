@@ -1,5 +1,7 @@
 defmodule SMPPEX.Pdu.Multipart do
 
+  alias :proplists, as: Proplists
+
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.UDH
 
@@ -53,10 +55,10 @@ defmodule SMPPEX.Pdu.Multipart do
 
   def extract_from_ies(ies) do
     cond do
-      :proplists.is_defined(@concateneated_8bit_ref_ie_id, ies) ->
-        @concateneated_8bit_ref_ie_id |> :proplists.get_value(ies) |> parse_8bit
-      :proplists.is_defined(@concateneated_16bit_ref_ie_id, ies) ->
-        @concateneated_16bit_ref_ie_id |> :proplists.get_value(ies) |> parse_16bit
+      Proplists.is_defined(@concateneated_8bit_ref_ie_id, ies) ->
+        @concateneated_8bit_ref_ie_id |> Proplists.get_value(ies) |> parse_8bit
+      Proplists.is_defined(@concateneated_16bit_ref_ie_id, ies) ->
+        @concateneated_16bit_ref_ie_id |> Proplists.get_value(ies) |> parse_16bit
       true -> {:ok, :single}
     end
   end

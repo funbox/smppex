@@ -1,5 +1,7 @@
 defmodule Support.ClientPool do
 
+  alias :gen_tcp, as: GenTCP
+
   alias Support.SMPPSession
   alias SMPPEX.ClientPool
 
@@ -27,7 +29,7 @@ defmodule Support.ClientPool do
 
   def connect(pid, host, port) do
     client_pool = Agent.get(pid, fn(data) -> data.client_pool end)
-    {:ok, socket} = :gen_tcp.connect(host, port, [:binary, {:packet, 0}])
+    {:ok, socket} = GenTCP.connect(host, port, [:binary, {:packet, 0}])
     ClientPool.start_session(client_pool, socket)
   end
 

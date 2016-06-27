@@ -1,4 +1,7 @@
 defmodule Support.TCP.Server do
+
+  alias :gen_tcp, as: GenTCP
+
   defstruct [
     :server_pid,
     :received_data_pid,
@@ -37,9 +40,9 @@ defmodule Support.TCP.Server do
   end
 
   defp listen(port, received_data_pid) do
-    {:ok, listen_sock} = :gen_tcp.listen(port, [:binary, {:active, true}])
-    {:ok, sock} = :gen_tcp.accept(listen_sock)
-    :ok = :gen_tcp.close(listen_sock)
+    {:ok, listen_sock} = GenTCP.listen(port, [:binary, {:active, true}])
+    {:ok, sock} = GenTCP.accept(listen_sock)
+    :ok = GenTCP.close(listen_sock)
     loop(received_data_pid, sock)
   end
 
@@ -50,18 +53,18 @@ defmodule Support.TCP.Server do
         loop(received_data_pid, sock)
       {:tcp_closed, ^sock} = message ->
         Agent.update(received_data_pid, fn(received_data) -> %{received_data | messages: [message | received_data.messages]} end)
-        :gen_tcp.close(sock)
+        GenTCP.close(sock)
       {:tcp_error, ^sock, _reason} = message ->
         Agent.update(received_data_pid, fn(received_data) -> %{received_data | messages: [message | received_data.messages]} end)
-        :gen_tcp.close(sock)
+        GenTCP.close(sock)
       {:tcp_send, data} ->
-        :gen_tcp.send(sock, data)
+        GenTCP.send(sock, data)
         loop(received_data_pid, sock)
       :tcp_close ->
-        :gen_tcp.close(sock)
+        GenTCP.close(sock)
     after
       1_000 ->
-        :gen_tcp.close(sock)
+        GenTCP.close(sock)
     end
   end
 

@@ -2,6 +2,8 @@ defmodule SMPPEX.Session do
 
   @behaviour :ranch_protocol
 
+  alias :gen_server, as: ErlangGenServer
+
   use GenServer
   require Logger
 
@@ -43,7 +45,7 @@ defmodule SMPPEX.Session do
         }
         wait_for_data(state)
         SMPPHandler.after_init(session)
-        :gen_server.enter_loop(__MODULE__, [], state)
+        ErlangGenServer.enter_loop(__MODULE__, [], state)
       other ->
         :ok = ProcLib.init_ack({:error, other})
     end
