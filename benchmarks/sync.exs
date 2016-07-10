@@ -46,7 +46,7 @@ defmodule Benchmarks.Sync do
     {:ok, _} = MC.start(port)
     Timer.sleep(50)
 
-    Logger.info("Starting ESME")
+    Logger.info("Starting synchronous ESME")
     {:ok, esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
     {:ok, _} = SMPPEX.ESME.Sync.request(esme, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
 
