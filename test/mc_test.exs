@@ -17,7 +17,8 @@ defmodule SMPPEX.MCTest do
       enquire_link_limit: 1000,
       enquire_link_resp_limit: 1000,
       inactivity_limit: 10000,
-      response_limit: 2000
+      response_limit: 2000,
+      timer_resolution: 100000,
     ])
     port = Ranch.get_port(mc_server)
 
@@ -275,7 +276,7 @@ defmodule SMPPEX.MCTest do
     Kernel.send(ctx[:mc], {:tick, time + 1050})
     Timer.sleep(50)
 
-    assert [{:pdu, _bind_pdu}] = ESME.pdus(ctx[:esme])
+    assert [] = ESME.pdus(ctx[:esme])
   end
 
   test "enquire_link timeout cancel by peer action", ctx do
