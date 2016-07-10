@@ -24,6 +24,7 @@ defmodule SMPPEX.MCTest do
 
     Timer.sleep(50)
     {:ok, esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
+    session_init_time = Erlang.system_time(:milli_seconds)
 
     Timer.sleep(50)
     {:ok,
@@ -31,7 +32,8 @@ defmodule SMPPEX.MCTest do
       esme: esme,
       st_backup: pid,
       callbacks: fn() -> SupportMC.callbacks_received(pid) end,
-      mc: SupportMC.mc(pid)
+      mc: SupportMC.mc(pid),
+      session_init_time: session_init_time,
     }
   end
 
@@ -204,7 +206,7 @@ defmodule SMPPEX.MCTest do
   test "handle_resp_timeout", ctx do
     pdu = Factory.bind_transmitter("system_id1", "pass1")
     MC.send_pdu(ctx[:mc], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = ctx[:session_init_time]
     Timer.sleep(50)
 
     Kernel.send(ctx[:mc], {:tick, time + 2050})
@@ -235,7 +237,7 @@ defmodule SMPPEX.MCTest do
   test "enquire_link by timeout", ctx do
     pdu = Factory.bind_transmitter("system_id1", "pass1")
     SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = ctx[:session_init_time]
     Timer.sleep(50)
 
     Kernel.send(ctx[:mc], {:tick, time + 1050})
@@ -263,7 +265,7 @@ defmodule SMPPEX.MCTest do
   test "enquire_link cancel by peer action", ctx do
     pdu = Factory.bind_transmitter("system_id1", "pass1")
     SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = ctx[:session_init_time]
     Timer.sleep(50)
 
     Kernel.send(ctx[:mc], {:tick, time + 950})
@@ -282,7 +284,7 @@ defmodule SMPPEX.MCTest do
   test "enquire_link timeout cancel by peer action", ctx do
     pdu = Factory.bind_transmitter("system_id1", "pass1")
     SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = ctx[:session_init_time]
     Timer.sleep(50)
 
     Kernel.send(ctx[:mc], {:tick, time + 1050})
@@ -302,7 +304,7 @@ defmodule SMPPEX.MCTest do
   test "stop by enquire_link timeout", ctx do
     pdu = Factory.bind_transmitter("system_id1", "pass1")
     SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = ctx[:session_init_time]
     Timer.sleep(50)
     Kernel.send(ctx[:mc], {:tick, time + 1050})
     Kernel.send(ctx[:mc], {:tick, time + 2050})
@@ -320,7 +322,7 @@ defmodule SMPPEX.MCTest do
   test "stop by inactivity timeout", ctx do
     pdu = Factory.bind_transmitter("system_id1", "pass1")
     SMPPEX.ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = ctx[:session_init_time]
     Timer.sleep(50)
     Kernel.send(ctx[:mc], {:tick, time + 10050})
     Timer.sleep(50)
