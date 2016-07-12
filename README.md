@@ -6,7 +6,7 @@ SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.or
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+The package can be installed as:
 
   1. Add `smppex` to your list of dependencies in `mix.exs`:
 
