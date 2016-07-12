@@ -1,14 +1,30 @@
 [![Build Status](https://travis-ci.org/savonarola/smppex.svg?branch=master)](https://travis-ci.org/savonarola/smppex)
 
-Smppex
-======
+# Smppex
 
 SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.org)
 
-Under heavy construction.
+## Installation
 
-Running benchmarks
-------------------
+If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+
+  1. Add `smppex` to your list of dependencies in `mix.exs`:
+
+    ```elixir
+    def deps do
+      [{:smppex, "~> 0.1.0"}]
+    end
+    ```
+
+  2. Ensure `smppex` is started before your application:
+
+    ```elixir
+    def application do
+      [applications: [:smppex]]
+    end
+    ```
+
+## Running benchmarks
 
 In asynchronous mode with specified window:
 
