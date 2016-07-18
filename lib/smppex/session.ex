@@ -91,7 +91,9 @@ defmodule SMPPEX.Session do
     case SMPP.build(pdu) do
       {:ok, binary} ->
         state.transport.send(state.socket, binary)
-      error -> error
+      error ->
+        Logger.info("Error #{inspect error}")
+        error
     end
   end
 
@@ -158,5 +160,3 @@ defmodule SMPPEX.Session do
   end
 
 end
-
-
