@@ -2,8 +2,7 @@ defmodule SMPPEX.Pdu.Factory do
 
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
-
-  @message_state_delivered 2
+  alias SMPPEX.Pdu.MessageState
 
   @spec bind_transmitter(String.t, String.t, map) :: Pdu.t
 
@@ -139,7 +138,32 @@ defmodule SMPPEX.Pdu.Factory do
 
   @spec delivery_report(String.t, {String.t, non_neg_integer, non_neg_integer}, {String.t, non_neg_integer, non_neg_integer}, String.t, non_neg_integer) :: Pdu.t
 
-  def delivery_report(message_id, {source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message \\ "", message_state \\ @message_state_delivered) do
+  def delivery_report(
+    message_id,
+    source,
+    dest,
+    message \\ "",
+    message_state \\ :DELIVERED
+  )
+
+  def delivery_report(
+    message_id,
+    {_source_addr, _source_addr_ton, _source_addr_npi} = source,
+    {_dest_addr, _dest_addr_ton, _dest_addr_npi} = dest,
+    message,
+    message_state
+  ) when is_atom(message_state) do
+    message_state_code = MessageState.code_by_name(message_state)
+    delivery_report(message_id, source, dest, message, message_state_code)
+  end
+
+  def delivery_report(
+    message_id,
+    {source_addr, source_addr_ton, source_addr_npi},
+    {dest_addr, dest_addr_ton, dest_addr_npi},
+    message,
+    message_state
+  ) when is_integer(message_state) do
     {:ok, command_id} = CommandNames.id_by_name(:deliver_sm)
     Pdu.new(
       command_id,
