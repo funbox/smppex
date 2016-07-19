@@ -87,7 +87,9 @@ defmodule SMPPEX.Pdu.Factory do
     Pdu.new({command_id, command_status, 0})
   end
 
-  @spec submit_sm({String.t, non_neg_integer, non_neg_integer}, {String.t, non_neg_integer, non_neg_integer}, String.t, non_neg_integer) :: Pdu.t
+  @type addr :: {String.t, non_neg_integer, non_neg_integer}
+
+  @spec submit_sm(addr, addr, String.t, non_neg_integer) :: Pdu.t
 
   def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message, registered_delivery \\ 0) do
     {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
@@ -118,7 +120,7 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
-  @spec deliver_sm({String.t, non_neg_integer, non_neg_integer}, {String.t, non_neg_integer, non_neg_integer}, String.t) :: Pdu.t
+  @spec deliver_sm(addr, addr, String.t) :: Pdu.t
 
   def deliver_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message) do
     {:ok, command_id} = CommandNames.id_by_name(:deliver_sm)
@@ -136,7 +138,9 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
-  @spec delivery_report(String.t, {String.t, non_neg_integer, non_neg_integer}, {String.t, non_neg_integer, non_neg_integer}, String.t, non_neg_integer) :: Pdu.t
+  @type message_state :: non_neg_integer | atom
+
+  @spec delivery_report(String.t, addr, addr, String.t, message_state) :: Pdu.t
 
   def delivery_report(
     message_id,
