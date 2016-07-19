@@ -15,7 +15,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   defp build([{name, value} | rest ], built) when is_atom(name) do
     case id_by_name(name) do
       {:ok, id} -> build([{id, value} | rest ], built)
-      :unkown -> {:error, "Can't find id for name #{inspect name}"}
+      :unknown -> {:error, "Can't find id for name #{inspect name}"}
     end
   end
 

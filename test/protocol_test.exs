@@ -140,4 +140,26 @@ defmodule SMPPEX.ProtocolTest do
 
     assert {:ok, data} == build(pdu)
   end
+
+  test "build failure (invalid optional field name)" do
+
+    header = {0x00000002, 0, 1}
+    mandatory_fields = %{
+      system_id: "test_mo3",
+      password: "Y7lHzvFj",
+      system_type: "comm",
+      interface_version: 123,
+      addr_ton: 1,
+      addr_npi: 2,
+      address_range: "range",
+    }
+    optional_fields = %{
+      invalid_field: "value"
+    }
+    pdu = Pdu.new(header, mandatory_fields, optional_fields)
+
+    assert {:error, _} = build(pdu)
+
+  end
+
 end
