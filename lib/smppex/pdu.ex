@@ -151,6 +151,24 @@ defmodule SMPPEX.Pdu do
     end
   end
 
+  @spec source(t) :: {term, term, term}
+
+  def source(pdu) do
+    fields_as_tuple(pdu, [:source_addr, :source_addr_ton, :source_addr_npi])
+  end
+
+  @spec dest(t) :: {term, term, term}
+
+  def dest(pdu) do
+    fields_as_tuple(pdu, [:destination_addr, :dest_addr_ton, :dest_addr_npi])
+  end
+
+  defp fields_as_tuple(pdu, fields) do
+    fields
+    |> Enum.map(fn field_name -> Pdu.field(pdu, field_name) end)
+    |> List.to_tuple
+  end
+
   defp to_int(val) when is_integer(val), do: val
   defp to_int(_), do: 0
 

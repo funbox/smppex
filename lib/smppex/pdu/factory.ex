@@ -187,6 +187,14 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
+  @spec delivery_report_for_submit_sm(String.t, Pdu.t, String.t, message_state) :: Pdu.t
+
+  def delivery_report_for_submit_sm(message_id, submit_sm, message \\ "", message_state \\ :DELIVERED) do
+    source = Pdu.source(submit_sm)
+    dest = Pdu.dest(submit_sm)
+    delivery_report(message_id, dest, source, message, message_state)
+  end
+
   @spec deliver_sm_resp(non_neg_integer) :: Pdu.t
 
   def deliver_sm_resp(command_status \\ 0) do
