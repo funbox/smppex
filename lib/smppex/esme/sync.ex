@@ -117,7 +117,7 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
-  def do_push_to_waiting(pdu_info, st) do
+  defp do_push_to_waiting(pdu_info, st) do
     pdus = [pdu_info | st.additional_pdus]
     case st.state == :wait_for_pdus do
       true ->
