@@ -13,7 +13,7 @@ defmodule SMPPEX.Pdu.Oserl do
   end
 
   def from({command_id, command_status, sequence_number, field_list}) do
-    {mandatory, optional} = list_to_fields(field_list)
+    {mandatory, optional} = list_to_fields(field_list, %{}, %{})
     Pdu.new(
       {command_id, command_status, sequence_number},
       mandatory,
@@ -25,8 +25,6 @@ defmodule SMPPEX.Pdu.Oserl do
     (pdu |> Pdu.mandatory_fields |> Map.to_list) ++
       (pdu |> Pdu.optional_fields |> Map.to_list |> ids_to_names)
   end
-
-  defp list_to_fields(list, mandatory \\ %{}, optional \\ %{})
 
   defp list_to_fields([], mandatory, optional), do: {mandatory, optional}
   defp list_to_fields([{name, value} | list], mandatory, optional) do
