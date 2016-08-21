@@ -1,4 +1,6 @@
 defmodule SMPPEX.PduStorage do
+  @moduledoc false
+
   use GenServer
 
   alias :ets, as: ETS

@@ -1,4 +1,5 @@
 defmodule SMPPEX.SMPPTimers do
+  @moduledoc false
 
   alias SMPPEX.SMPPTimers
 

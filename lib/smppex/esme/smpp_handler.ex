@@ -1,4 +1,5 @@
 defmodule SMPPEX.ESME.SMPPHandler do
+  @moduledoc false
 
   alias SMPPEX.ESME.SMPPHandler
 

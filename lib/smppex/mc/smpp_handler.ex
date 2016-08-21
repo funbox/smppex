@@ -1,4 +1,5 @@
 defmodule SMPPEX.MC.SMPPHandler do
+  @moduledoc false
 
   alias SMPPEX.MC.SMPPHandler
 

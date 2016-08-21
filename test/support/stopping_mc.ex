@@ -1,4 +1,5 @@
 defmodule Support.StoppingMC do
+  @moduledoc false
 
   alias :timer, as: Timer
 

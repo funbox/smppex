@@ -1,4 +1,5 @@
 defmodule SMPPEX.ClientPool do
+  @moduledoc false
 
   alias :erlang, as: Erlang
   alias :ranch, as: Ranch

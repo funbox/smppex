@@ -1,4 +1,5 @@
 defmodule Support.MC do
+  @moduledoc false
 
   use SMPPEX.MC
 

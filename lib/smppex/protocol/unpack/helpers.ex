@@ -1,4 +1,5 @@
 defmodule SMPPEX.Protocol.Unpack.Helpers do
+  @moduledoc false
 
   @spec hex?(binary) :: boolean
 

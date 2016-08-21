@@ -1,4 +1,5 @@
 defmodule SMPPEX.Protocol do
+  @moduledoc false
 
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Protocol.MandatoryFieldsSpecs

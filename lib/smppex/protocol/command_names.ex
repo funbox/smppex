@@ -1,4 +1,6 @@
 defmodule SMPPEX.Protocol.CommandNames do
+  @moduledoc false
+
   command_ids = [
     {:generic_nack, 0x80000000},
     {:bind_receiver, 0x00000001},

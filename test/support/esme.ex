@@ -1,4 +1,5 @@
 defmodule Support.ESME do
+  @moduledoc false
 
   use SMPPEX.ESME
 

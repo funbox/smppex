@@ -1,4 +1,5 @@
 defmodule Support.TCP.Helpers do
+  @moduledoc false
 
   alias :gen_tcp, as: GenTCP
   alias :inet, as: INET

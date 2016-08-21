@@ -1,4 +1,6 @@
 defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
+  @moduledoc false
+
   import SMPPEX.Protocol.Pack
   import SMPPEX.Protocol.TlvFormat
 

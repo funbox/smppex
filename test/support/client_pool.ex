@@ -1,4 +1,5 @@
 defmodule Support.ClientPool do
+  @moduledoc false
 
   alias :gen_tcp, as: GenTCP
 

@@ -1,5 +1,5 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
-
+  @moduledoc false
 
   @type integer_size :: 1 | 2 | 4
   @type field_value_spec :: {:c_octet_string, {:max, pos_integer}} | {:c_octet_string, {:fixed, pos_integer}} | {:integer, integer_size} | {:octet_string, non_neg_integer} | {:octet_string, atom} | {:times, atom, fields_spec}

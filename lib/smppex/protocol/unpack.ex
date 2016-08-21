@@ -1,4 +1,5 @@
 defmodule SMPPEX.Protocol.Unpack do
+  @moduledoc false
 
   alias SMPPEX.Protocol.Unpack.Helpers
 

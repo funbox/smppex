@@ -1,4 +1,6 @@
 defmodule Support.SMPPSession do
+  @moduledoc false
+
   defstruct [
     :pid,
     :spied_data_pid

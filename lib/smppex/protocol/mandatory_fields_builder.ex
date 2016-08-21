@@ -1,4 +1,6 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
+  @moduledoc false
+
   import SMPPEX.Protocol.Pack
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
 

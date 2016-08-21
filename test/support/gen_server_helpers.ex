@@ -1,4 +1,5 @@
 defmodule Support.GenServerHelpers do
+  @moduledoc false
 
   alias :gen_server, as: ErlangGenServer
 

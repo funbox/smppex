@@ -1,4 +1,5 @@
 defmodule Support.TCP.Server do
+  @moduledoc false
 
   alias :gen_tcp, as: GenTCP
   alias Support.TCP.Server

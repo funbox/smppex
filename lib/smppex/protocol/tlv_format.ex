@@ -1,4 +1,5 @@
 defmodule SMPPEX.Protocol.TlvFormat do
+  @moduledoc false
 
   @type integer_size :: 1 | 2 | 4
   @type tlv_value_spec :: {:integer, integer_size} | {:c_octet_string, {:max, pos_integer}} | {:octet_string, non_neg_integer} | {:octet_string, {non_neg_integer, non_neg_integer}}
