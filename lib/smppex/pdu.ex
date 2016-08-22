@@ -40,13 +40,14 @@ defmodule SMPPEX.Pdu do
 
   ## Examples
 
-      iex(1)> SMPPEX.Pdu.new(1) |> Map.put(:ref, nil)
+      iex(1)> SMPPEX.Pdu.new(1)
       %SMPPEX.Pdu{command_id: 1, command_status: 0, mandatory: %{}, optional: %{},
-      ref: nil, sequence_number: 0}
-      iex(2)> SMPPEX.Pdu.new({1, 0, 123}, %{system_id: "sid", password: "pass"}, %{}) |> Map.put(:ref, nil)
+      ref: #Reference<0.0.3.215>, sequence_number: 0}
+      iex(2)> SMPPEX.Pdu.new({1, 0, 123}, %{system_id: "sid", password: "pass"}, %{})
       %SMPPEX.Pdu{command_id: 1, command_status: 0,
-      mandatory: %{password: "pass", system_id: "sid"}, optional: %{}, ref: nil,
-      sequence_number: 123}
+      mandatory: %{password: "pass", system_id: "sid"}, optional: %{},
+      ref: #Reference<0.0.3.219>, sequence_number: 123}
+
 
   """
   def new(header, m_fields \\ %{}, opt_fields \\ %{}) do
