@@ -50,14 +50,14 @@ defmodule SMPPEX.Pdu do
 
 
   """
-  def new(header, m_fields \\ %{}, opt_fields \\ %{}) do
+  def new(header, mandatory_fields \\ %{}, optional_fields \\ %{}) do
     case header do
       c_id when is_integer(c_id) ->
         %Pdu{
           command_id: c_id,
           ref: make_ref,
-          mandatory: m_fields,
-          optional: opt_fields
+          mandatory: mandatory_fields,
+          optional: optional_fields
         }
       {c_id, c_status, s_number} ->
         %Pdu{
@@ -65,8 +65,8 @@ defmodule SMPPEX.Pdu do
           command_status: c_status,
           sequence_number: s_number,
           ref: make_ref,
-          mandatory: m_fields,
-          optional: opt_fields
+          mandatory: mandatory_fields,
+          optional: optional_fields
         }
     end
   end
@@ -95,7 +95,7 @@ defmodule SMPPEX.Pdu do
     end
   end
 
-  @spec command_id(t) :: integer
+  @spec command_id(t) :: non_neg_integer
 
   @doc """
   Returns Pdu's `command_id`.
@@ -112,7 +112,7 @@ defmodule SMPPEX.Pdu do
     pdu.command_id |> to_int
   end
 
-  @spec command_status(t) :: integer
+  @spec command_status(t) :: non_neg_integer
 
   @doc """
   Returns Pdu's `command_status`.
@@ -129,7 +129,7 @@ defmodule SMPPEX.Pdu do
     pdu.command_status |> to_int
   end
 
-  @spec sequence_number(t) :: integer
+  @spec sequence_number(t) :: non_neg_integer
 
   @doc """
   Returns Pdu's `sequence_number`.
@@ -146,7 +146,7 @@ defmodule SMPPEX.Pdu do
     pdu.sequence_number |> to_int
   end
 
-  @spec mandatory_field(t, atom) :: any
+  @spec mandatory_field(t, atom) :: term
 
   @doc """
   Get Pdu mandatory field. If Pdu does not have the field, `nil` is returned.
