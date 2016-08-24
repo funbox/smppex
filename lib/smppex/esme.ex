@@ -1,4 +1,31 @@
 defmodule SMPPEX.ESME do
+  @moduledoc """
+  Module for implementing custom SMPP ESME entities.
+
+  `SMPPEX.ESME` represents a `GenServer` process which spawns and interacts with `SMPPEX.Session`
+  `ranch_protocol`. The session is spawned under control of `ranch` supervision tree.
+  The session makes all requests to the ESME process *syncronously* (via `GenServer.call`),
+  while the ESME process makes only *asyncronous*(via `GenServer.cast`) requests to the session.
+
+  This is made intentionally since this allows:
+  * to avoid any kind of deadlocks while the session and the ESME process interact actively;
+  * to control incoming SMPP message rate to avoid overflooding;
+  * not to lose any control over connection because of the asyncronous nature of TCP implementation in OTP.
+
+  To implement an ESME entitiy, one should implement several callbacks (`SMPPEX.ESME` behaviour).
+  The most proper way to do it is to `use` `SMPPEX.ESME`:
+
+  ```
+  defmodule MyESME do
+    use SMPPEX.ESME
+
+    # ...Callback implementation
+
+  end
+  ```
+
+  In this case all callbacks have reasonable defaults.
+  """
 
   alias :erlang, as: Erlang
 
@@ -41,22 +68,91 @@ defmodule SMPPEX.ESME do
   @type state :: term
   @type request :: term
 
+  @doc """
+  Invoked when the ESME is started after connection to SMSC successfully established.
+
+  `args` argument is taken directly from `start_link` call, which does not return until `init` finishes.
+  The return value should be either `{:ok, state}`, then ESME will successfully start and returned state will
+  be later passed to the other callbacks, or `{:stop, reason}`, then ESME `GenServer` will stop
+  with the returned reason.
+
+  """
+
   @callback init(args :: term) :: {:ok, state} | {:stop, reason :: term}
 
-  @callback handle_pdu(Pdu.t, state) :: state
 
-  @callback handle_resp(Pdu.t, Pdu.t, state) :: state
+  @doc """
+  Invoked when the ESME receives an incoming PDU (which is not a response PDU).
 
-  @callback handle_resp_timeout(Pdu.t, state) :: state
+  The returned value is used as the new state.
+  """
 
-  @callback handle_send_pdu_result(Pdu.t, SMPPEX.SMPPHandler.send_pdu_result, state) :: state
+  @callback handle_pdu(pdu :: Pdu.t, state) :: state
 
+  @doc """
+  Invoked when the ESME receives a response to a previously sent PDU.
+
+  `pdu` argument contains the received response PDU, `original_pdu` contains
+  the previously sent pdu for which the handled response is received.
+
+  The returned value is used as the new state.
+  """
+  @callback handle_resp(pdu :: Pdu.t, original_pdu :: Pdu.t, state) :: state
+
+  @doc """
+  Invoked when the ESME does not receive a response to a previously sent PDU
+  for the specified timeout.
+
+  `pdu` argument contains the PDU for which no response was received. If the response
+  will be received later it will be dropped (with an `info` log message).
+
+  The returned value is used as the new state.
+  """
+  @callback handle_resp_timeout(pdu :: Pdu.t, state) :: state
+
+  @doc """
+  Invoked when the SMPP session successfully sent PDU to transport or failed to do this.
+
+  `pdu` argument contains the PDU for which send status is reported. `send_pdu_result` can be
+  either `:ok` or `{:error, reason}`.
+
+  The returned value is used as the new state.
+  """
+  @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result, state) :: state
+
+  @doc """
+  Invoked when the SMPP session is about to stop.
+
+  The returned value is ignored.
+  """
   @callback handle_stop(state) :: any
 
-  @callback handle_call(request, GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
+  @doc """
+  Invoked for handling `SMPPEX.ESME.call/3` calls.
 
+  The callback is called syncronously for handling.
+
+  The returned values have the same meaning as in `GenServer` `handle_call` callback
+  (but note that only two kinds of responses are possible). In case of delaying a reply (`{:noreply, state}` callback result)
+  it can be later send using `GenServer.reply(from, reply)`
+
+  """
+  @callback handle_call(request, from :: GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
+
+  @doc """
+  Invoked for handling `SMPPEX.ESME.cast/2` calls.
+
+  The callback is called asyncronously.
+
+  The returned value is used as the new state.
+  """
   @callback handle_cast(request, state) :: state
 
+  @doc """
+  Invoked for handling generic messages sent to the ESME process.
+
+  The returned value is used as the new state.
+  """
   @callback handle_info(request, state) :: state
 
   defmacro __using__(_) do
