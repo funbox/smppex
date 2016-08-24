@@ -1,4 +1,31 @@
 defmodule SMPPEX.ESME do
+  @moduledoc """
+  Module for implementing custom SMPP ESME entities.
+
+  `SMPPEX.ESME` represents a `GenServer` process which spawns and interacts with `SMPPEX.Session`
+  `ranch_protocol`. The session is spawned under control of `ranch` supervision tree.
+  The session makes all requests to the ESME process *syncronously* (via `GenServer.call`),
+  while the ESME process makes only *asyncronous*(via `GenServer.cast`) requests to the session.
+
+  This is made intentionally since this allows:
+  * to avoid any kind of deadlocks while the session and the ESME process interact actively;
+  * to control incoming SMPP message rate to avoid overflooding;
+  * not to lose any control over connection because of the asyncronous nature of TCP implementation in OTP.
+
+  To implement an ESME entitiy, one should implement several callbacks (`SMPPEX.ESME` behaviour).
+  The most proper way to do it is to `use` `SMPPEX.ESME`:
+
+  ```
+  defmodule MyESME do
+    use SMPPEX.ESME
+
+    # ...Callback implementation
+
+  end
+  ```
+
+  In this case all callbacks have reasonable defaults.
+  """
 
   alias :erlang, as: Erlang
 
