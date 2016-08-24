@@ -43,17 +43,17 @@ defmodule SMPPEX.ESME do
 
   @callback init(args :: term) :: {:ok, state} | {:stop, reason :: term}
 
-  @callback handle_pdu(Pdu.t, state) :: state
+  @callback handle_pdu(pdu :: Pdu.t, state) :: state
 
-  @callback handle_resp(Pdu.t, Pdu.t, state) :: state
+  @callback handle_resp(pdu :: Pdu.t, original_pdu :: Pdu.t, state) :: state
 
-  @callback handle_resp_timeout(Pdu.t, state) :: state
+  @callback handle_resp_timeout(pdu :: Pdu.t, state) :: state
 
-  @callback handle_send_pdu_result(Pdu.t, SMPPEX.SMPPHandler.send_pdu_result, state) :: state
+  @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result, state) :: state
 
   @callback handle_stop(state) :: any
 
-  @callback handle_call(request, GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
+  @callback handle_call(request, from :: GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
 
   @callback handle_cast(request, state) :: state
 
