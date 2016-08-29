@@ -128,7 +128,7 @@ defmodule SMPPEX.ESME do
   @callback handle_stop(state) :: any
 
   @doc """
-  Invoked for handling `SMPPEX.ESME.call/3` calls.
+  Invoked for handling `call/3` calls.
 
   The callback is called syncronously for handling.
 
@@ -140,7 +140,7 @@ defmodule SMPPEX.ESME do
   @callback handle_call(request, from :: GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
 
   @doc """
-  Invoked for handling `SMPPEX.ESME.cast/2` calls.
+  Invoked for handling `cast/2` calls.
 
   The callback is called asyncronously.
 
