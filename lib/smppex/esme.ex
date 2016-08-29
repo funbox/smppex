@@ -159,24 +159,33 @@ defmodule SMPPEX.ESME do
     quote location: :keep do
       @behaviour SMPPEX.ESME
 
+      @doc false
       def init(args) do
         {:ok, args}
       end
 
+      @doc false
       def handle_pdu(_pdu, state), do: state
 
+      @doc false
       def handle_resp(_pdu, _original_pdu, state), do: state
 
+      @doc false
       def handle_resp_timeout(_pdu, state), do: state
 
+      @doc false
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
+      @doc false
       def handle_stop(_state), do: nil
 
+      @doc false
       def handle_call(_request, _from, state), do: {:reply, :ok, state}
 
+      @doc false
       def handle_cast(_request, state), do: state
 
+      @doc false
       def handle_info(_request, state), do: state
 
       defoverridable [
