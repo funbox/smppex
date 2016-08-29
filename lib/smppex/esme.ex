@@ -195,8 +195,41 @@ defmodule SMPPEX.ESME do
 
   # Public interface
 
-  @spec start_link(term, non_neg_integer, {module, term}, Keyword.t) :: GenServer.on_start
+  @spec start_link(host :: term, port :: non_neg_integer, {module, args :: term}, opts :: Keyword.t) :: GenServer.on_start
 
+  @doc """
+  Starts ESME entitiy.
+
+  The function does not return until ESME successfully connects to the specified
+  `host` and `port` and initializes or fails.
+
+  `module` is the callback module which should implement `SMPPEX.ESME` behaviour.
+  `args` is the argument passed to the `init` callback.
+  `opts` is a keyword list of different options:
+  * `:transport` is Ranch transport used for TCP connection: either `ranch_tcp` (the default) or
+  `ranch_ssl`;
+  * `:gen_server_opts` is a list of options passed directly to the underlying `GenServer.start_link` call,
+  the default is `[]`;
+  * `:timeout` is timeout for the whole connect and initialization process. The default is #{@default_timeout} ms;
+  * `:esme_opts` is a keyword list of ESME options:
+      - `:timer_resolution` is interval of internal `ticks` on which time related events happen, like checking timeouts
+      for pdus, checking SMPP timers, etc. The default is #{@default_timer_resolution} ms;
+      - `:enquire_link_limit` is value for enquire_link SMPP timer, i.e. the interval of SMPP session inactivity after which
+      enquire_link PDU is send to "ping" the connetion. The default value is #{@default_enquire_link_limit} ms;
+      - `:enquire_link_resp_limit` is the maximum time for which ESME waits for enquire_link PDU response. If the
+      response is not received within this interval of time and no activity from the peer occurs, the session is then considered
+      dead and the ESME stops. The default value is #{@default_enquire_link_resp_limit} ms;
+      - `:inactivity_limit` is the maximum time for which the peer is allowed not to send PDUs (which are not response PDUs).
+      If no such PDUs are received within this interval of time, ESME stops. The default is #{@default_inactivity_limit} ms;
+      - `:response_limit` is the maximum time to wait for a response for a previously sent PDU. If the response is
+      not received within this interval, `handle_resp_timeout` callback is triggered for the original pdu. If the response
+      is received later, it is discarded. The default value is #{@default_response_limit} ms.
+  If `:esme_opts` list of options is ommited, all options take their default values.
+
+  The whole `opts` argument may also be ommited in order to start ESME with the defaults.
+
+  The returned value is either `{:ok, pid}` or `{:error, reason}`.
+  """
   def start_link(host, port, {module, args}, opts \\ []) do
     transport = Keyword.get(opts, :transport, @default_transport)
     gen_server_opts = Keyword.get(opts, :gen_server_opts, [])
@@ -209,32 +242,85 @@ defmodule SMPPEX.ESME do
     )
   end
 
-  @spec send_pdu(pid, Pdu.t) :: :ok
+  @spec send_pdu(esme :: pid, pdu :: Pdu.t) :: :ok
 
+  @doc """
+  Sends outcoming PDU from the ESME.
+
+  The whole command is sent to the ESME asyncronously. The further lifecycle of the PDU
+  can be traced through callbacks.
+  """
   def send_pdu(esme, pdu) do
     GenServer.cast(esme, {:send_pdu, pdu})
   end
 
-  @spec reply(pid, Pdu.t, Pdu.t) :: :ok
+  @spec reply(esme :: pid, pdu :: Pdu.t, reply_pdu :: Pdu.t) :: :ok
 
+  @doc """
+  Sends reply to previously received PDU from the ESME.
+
+  The whole command is sent to the ESME asyncronously. The further lifecycle of the response PDU
+  can be traced through callbacks.
+  """
   def reply(esme, pdu, reply_pdu) do
     GenServer.cast(esme, {:reply, pdu, reply_pdu})
   end
 
-  @spec stop(pid) :: :ok
+  @spec stop(esme :: pid) :: :ok
 
+  @doc """
+  Stops ESME asyncronously.
+
+  The very moment of the SMPP session termination can be traced via `handle_stop` callback.
+  """
   def stop(esme) do
     GenServer.cast(esme, :stop)
   end
 
+  @spec call(esme ::pid, arg :: term, timeout) :: term
+
+  @doc """
+  Makes a syncronous call to ESME.
+
+  The call is handled by `handle_call/3` ESME callback.
+  """
+  def call(esme, request, timeout \\ @default_call_timeout) do
+    GenServer.call(esme, {:call, request}, timeout)
+  end
+
+  @spec cast(pid, term) :: :ok
+
+  @doc """
+  Makes an asyncronous call to ESME.
+
+  The call is handled by `handle_cast/2` ESME callback.
+  """
+  def cast(esme, request) do
+    GenServer.cast(esme, {:cast, request})
+  end
+
+  @spec with_session(esme :: pid, (smpp_session :: pid -> any)) :: :ok
+
+  @doc """
+  Asyncronously executes the passed lambda passing SMPP session to it directly.
+
+  This function can be used for uncommon cases like sending PDUs bypassing timers or
+  sequence_number assignment.
+  """
+  def with_session(esme, fun) do
+    GenServer.cast(esme, {:with_session, fun})
+  end
+
   @spec handle_pdu(pid, Pdu.t) :: :ok
 
+  @doc false
   def handle_pdu(esme, pdu) do
     GenServer.call(esme, {:handle_pdu, pdu})
   end
 
   @spec handle_stop(pid) :: :ok
 
+  @doc false
   def handle_stop(esme) do
     GenServer.call(esme, :handle_stop)
   end
@@ -242,30 +328,14 @@ defmodule SMPPEX.ESME do
   @type send_pdu_result :: :ok | {:error, term}
   @spec handle_send_pdu_result(pid, Pdu.t, send_pdu_result) :: :ok
 
+  @doc false
   def handle_send_pdu_result(esme, pdu, send_pdu_result) do
     GenServer.call(esme, {:handle_send_pdu_result, pdu, send_pdu_result})
   end
 
-  @spec call(pid, term, timeout) :: term
-
-  def call(esme, request, timeout \\ @default_call_timeout) do
-    GenServer.call(esme, {:call, request}, timeout)
-  end
-
-  @spec cast(pid, term) :: :ok
-
-  def cast(esme, request) do
-    GenServer.cast(esme, {:cast, request})
-  end
-
-  @spec with_session(pid, (pid -> any)) :: :ok
-
-  def with_session(esme, fun) do
-    GenServer.cast(esme, {:with_session, fun})
-  end
-
   # GenServer callbacks
 
+  @doc false
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
     esme = self
     handler = fn(ref, _socket, _transport, session) ->
@@ -280,6 +350,7 @@ defmodule SMPPEX.ESME do
     end
   end
 
+  @doc false
   def handle_call({:handle_pdu, pdu}, _from, st) do
     case Pdu.resp?(pdu) do
       true -> do_handle_resp(pdu, st)
@@ -306,6 +377,7 @@ defmodule SMPPEX.ESME do
     end
   end
 
+  @doc false
   def handle_cast({:send_pdu, pdu}, st) do
     new_st = do_send_pdu(pdu, st)
     {:noreply, new_st}
@@ -332,6 +404,7 @@ defmodule SMPPEX.ESME do
     {:noreply, new_st}
   end
 
+  @doc false
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
     new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self, :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
