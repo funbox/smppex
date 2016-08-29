@@ -311,7 +311,7 @@ defmodule SMPPEX.ESME do
   @spec with_session(esme :: pid, (smpp_session :: pid -> any)) :: :ok
 
   @doc """
-  Asyncronously executes the passed lambda passing SMPP session to it directly.
+  Asyncronously executes the passed lambda passing SMPP session(`SMPPEX.Session`) to it directly.
 
   This function can be used for uncommon cases like sending PDUs bypassing timers or
   sequence_number assignment.
