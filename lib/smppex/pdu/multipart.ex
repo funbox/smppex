@@ -1,4 +1,7 @@
 defmodule SMPPEX.Pdu.Multipart do
+  @moduledoc """
+  Auxiliary module for operating with multipart information packed as UDH in message body.
+  """
 
   alias :proplists, as: Proplists
 
@@ -20,13 +23,42 @@ defmodule SMPPEX.Pdu.Multipart do
   @error_invalid_max "Invalid limits for splitting message"
   @error_invalid_message "Invalid message"
 
-  @type actual_part_info :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @type actual_part_info :: {ref_num :: non_neg_integer, count :: non_neg_integer, seq_num :: non_neg_integer}
   @type part_info :: :single | actual_part_info
-  @type extract_result :: {:ok, part_info, binary} | {:error, any}
+  @type extract_result :: {:ok, part_info, binary} | {:error, term}
   @type extract_source :: Pdu.t | binary
 
   @spec extract(extract_source) :: extract_result
 
+  @doc """
+  Extracts multipart information from PDU or directly from binary message.
+
+  Return one of the following:
+  * `{:ok, :single, message}` if the `message` does not contain any multipart information and represents a
+  single message;
+  * `{:ok, {ref_num, count, seq_num}, message}` if the original message contains multipart information in
+  UDH fields. The outcoming `message` is cleared from UDH bytes.
+  * `{:error, reason}`
+
+  ## Example
+
+      iex> data = <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>
+      iex> SMPPEX.Pdu.Multipart.extract(data)
+      {:ok, {3,2,1}, "message"}
+
+      iex> data = <<0x06, 0x08, 0x04, 0x00, 0x03, 0x02, 0x01, "message">>
+      iex> SMPPEX.Pdu.Multipart.extract(data)
+      {:ok, {3,2,1}, "message"}
+
+      iex> pdu = Pdu.new({1,0,1}, %{esm_class: 0b01000000, short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>})
+      iex> SMPPEX.Pdu.Multipart.extract(pdu)
+      {:ok, {3,2,1}, "message"}
+
+      iex> pdu = Pdu.new({1,0,1}, %{short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>})
+      iex> SMPPEX.Pdu.Multipart.extract(pdu)
+      {:error, "#{@error_not_a_multipart_message}"}
+
+  """
   def extract(message) when is_binary(message) do
     case UDH.extract(message) do
       {:ok, ies, message} ->
@@ -53,6 +85,37 @@ defmodule SMPPEX.Pdu.Multipart do
 
   @spec extract_from_ies(list(UDH.ie)) :: {:ok, part_info} | {:error, any}
 
+  @doc """
+  Extracts multipart information from already parsed list of UDH IEs.
+
+  Return one of the following:
+  * `{:ok, :single}` if IEs do not contain any multipart message related ones;
+  * `{:ok, {ref_num, count, seq_num}}` if there are multipart message related IEs (the first is taken);
+  * `{:error, reason}` in case of errors.
+
+  ## Example
+
+      iex> ies = [{0, <<0x03, 0x02, 0x01>>}]
+      iex> SMPPEX.Pdu.Multipart.extract_from_ies(ies)
+      {:ok, {3, 2, 1}}
+
+      iex> ies = [{0, <<0x03, 0x02, 0x01>>}, {8, <<0x00, 0x04, 0x02, 0x01>>}]
+      iex> SMPPEX.Pdu.Multipart.extract_from_ies(ies)
+      {:ok, {3, 2, 1}}
+
+      iex> ies = [{8, <<0x00, 0x03, 0x02, 0x01>>}]
+      iex> SMPPEX.Pdu.Multipart.extract_from_ies(ies)
+      {:ok, {3, 2, 1}}
+
+      iex> ies = [{8, <<0x00, 0x03, 0x02>>}]
+      iex> SMPPEX.Pdu.Multipart.extract_from_ies(ies)
+      {:error, "#{@error_invalid_16bit_ie}"}
+
+      iex> ies = []
+      iex> SMPPEX.Pdu.Multipart.extract_from_ies(ies)
+      {:ok, :single}
+
+  """
   def extract_from_ies(ies) do
     cond do
       Proplists.is_defined(@concateneated_8bit_ref_ie_id, ies) ->
@@ -73,7 +136,7 @@ defmodule SMPPEX.Pdu.Multipart do
   end
   defp parse_16bit(_), do: {:error, @error_invalid_16bit_ie}
 
-  @spec multipart_ie(actual_part_info) :: {:error, any} | {:ok, UDH.ie}
+  @spec multipart_ie(actual_part_info) :: {:error, term} | {:ok, UDH.ie}
 
   def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65535, do: {:error, @error_invalid_ref_num}
   def multipart_ie({_ref_num, count, _seq_num}) when count < 1 or count > 255, do: {:error, @error_invalid_count}
@@ -89,7 +152,7 @@ defmodule SMPPEX.Pdu.Multipart do
     end}
   end
 
-  @spec prepend_message_with_part_info(actual_part_info, binary) :: {:error, any} | {:ok, binary}
+  @spec prepend_message_with_part_info(actual_part_info, binary) :: {:error, term} | {:ok, binary}
 
   def prepend_message_with_part_info(part_info, message) do
     case multipart_ie(part_info) do
@@ -98,7 +161,7 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
-  @type split_result :: {:ok, :unsplit} | {:ok, :split, [binary]} | {:error, any}
+  @type split_result :: {:ok, :unsplit} | {:ok, :split, [binary]} | {:error, term}
 
   @spec split_message(integer, binary, integer) :: split_result
 

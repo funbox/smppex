@@ -1,38 +1,10 @@
 defmodule SMPPEX.Pdu.MultipartTest do
-  use ExUnit.Case
   alias SMPPEX.Pdu.Multipart
   alias SMPPEX.Pdu
 
-  test "extract" do
-    data = <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>
-    assert {:ok, {3,2,1}, "message"} == Multipart.extract(data)
+  use ExUnit.Case
 
-    data = <<0x06, 0x08, 0x04, 0x00, 0x03, 0x02, 0x01, "message">>
-    assert {:ok, {3,2,1}, "message"} == Multipart.extract(data)
-
-    pdu = Pdu.new({1,0,1}, %{esm_class: 0b01000000, short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>}, %{})
-    assert {:ok, {3,2,1}, "message"} == Multipart.extract(pdu)
-
-    pdu = Pdu.new({1,0,1}, %{short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>}, %{})
-    assert {:error, _} = Multipart.extract(pdu)
-  end
-
-  test "extract_from_ies" do
-    ies = [{0, <<0x03, 0x02, 0x01>>}]
-    assert {:ok, {3, 2, 1}} == Multipart.extract_from_ies(ies)
-
-    ies = [{0, <<0x03, 0x02, 0x01>>}, {8, <<0x00, 0x04, 0x02, 0x01>>}]
-    assert {:ok, {3, 2, 1}} == Multipart.extract_from_ies(ies)
-
-    ies = [{8, <<0x00, 0x03, 0x02, 0x01>>}]
-    assert {:ok, {3, 2, 1}} == Multipart.extract_from_ies(ies)
-
-    ies = [{8, <<0x00, 0x03, 0x02>>}]
-    assert {:error, _} = Multipart.extract_from_ies(ies)
-
-    ies = []
-    assert {:ok, :single} = Multipart.extract_from_ies(ies)
-  end
+  doctest Multipart
 
   test "multipart_ie" do
     assert {:error, _} = Multipart.multipart_ie({-1, 1, 1})
