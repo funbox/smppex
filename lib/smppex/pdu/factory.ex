@@ -1,4 +1,7 @@
 defmodule SMPPEX.Pdu.Factory do
+  @moduledoc """
+  Auxiliary module for conveniet generation of the most common PDUs.
+  """
 
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
