@@ -75,8 +75,47 @@ defmodule SMPPEX.Pdu.Errors do
   @type error_name :: atom
 
   @spec code_by_name(error_name) :: error_code
+
+  @doc """
+  Converts atom representing SMPP error to its integer value.
+
+  ## Example:
+
+      iex(1)> SMPPEX.Pdu.Errors.code_by_name(:ROK)
+      0
+
+  """
+  def code_by_name(name)
+
   @spec format(error_code) :: String.t
+
+  @doc """
+  Converts integer SMPP error code to string error identifier.
+
+  ## Example
+
+      iex(1)> SMPPEX.Pdu.Errors.format(0)
+      "ROK"
+      iex(2)> SMPPEX.Pdu.Errors.format(12345)
+      "12345"
+
+  """
+  def format(code)
+
   @spec description(error_code) :: String.t
+
+  @doc """
+  Converts integer SMPP error code to text error description.
+
+  ## Example
+
+      iex(1)> SMPPEX.Pdu.Errors.description(0)
+      "No Error"
+      iex(2)> SMPPEX.Pdu.Errors.description(12345)
+      "12345"
+
+  """
+  def description(error_code)
 
   Enum.each errors, fn({name, code, desc}) ->
     def code_by_name(unquote(name)), do: unquote(code)

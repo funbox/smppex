@@ -6,7 +6,8 @@ defmodule SMPPEX.MC do
   and handles them. The TCP server is represented by a Ranch listener started
   by `start/2` call. On new connection the listener spawns `SMPPEX.Session` process
   coupled with `SMPPEX.MC` `GenServer` handler. The session interacts with the socket
-  while the MC handler keeps state and does actual PDU handling.
+  while the MC handler keeps state and does actual PDU handling. One also interacts with
+  MC handler to send PDUs, PDU replies, etc.
 
   The session makes all requests to the MC handler process *syncronously* (via `GenServer.call`),
   while the MC handler process makes only *asyncronous*(via `GenServer.cast`) requests to the session.
