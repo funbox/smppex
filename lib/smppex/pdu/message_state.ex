@@ -1,4 +1,7 @@
 defmodule SMPPEX.Pdu.MessageState do
+  @moduledoc """
+  Auxiliary module for operating with `deliver_sm` message states.
+  """
 
   statuses = [
     {:ENROUTE, 1},
@@ -15,7 +18,32 @@ defmodule SMPPEX.Pdu.MessageState do
   @type state_name :: atom
 
   @spec code_by_name(state_name) :: state
+
+  @doc """
+  Converts atom representing message state to integer value.
+
+  ## Example
+
+      iex(1)> SMPPEX.Pdu.MessageState.code_by_name(:DELIVERED)
+      2
+
+  """
+  def code_by_name(state_name)
+
   @spec format(state) :: String.t
+
+  @doc """
+  Converts integer message state value to string representation.
+
+  ## Example
+
+      iex(1)> SMPPEX.Pdu.MessageState.format(2)
+      "DELIVERED"
+      iex(2)> SMPPEX.Pdu.MessageState.format(12345)
+      "12345"
+
+  """
+  def format(state)
 
   Enum.each statuses, fn({name, code}) ->
     def code_by_name(unquote(name)), do: unquote(code)
