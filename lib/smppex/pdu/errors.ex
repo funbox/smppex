@@ -1,4 +1,7 @@
 defmodule SMPPEX.Pdu.Errors do
+  @moduledoc """
+  Auxiliary module for operating with SMPP errors.
+  """
 
   errors = [
     {:ROK,                 0x0000, "No Error"},
