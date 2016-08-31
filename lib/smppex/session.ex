@@ -1,4 +1,5 @@
 defmodule SMPPEX.Session do
+  @moduledoc false
 
   @behaviour :ranch_protocol
 

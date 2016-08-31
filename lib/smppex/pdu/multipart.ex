@@ -1,6 +1,6 @@
 defmodule SMPPEX.Pdu.Multipart do
   @moduledoc """
-  Auxiliary module for operating with multipart information packed as UDH in message body.
+  Module for operating with multipart information packed as UDH in message body.
   """
 
   alias :proplists, as: Proplists

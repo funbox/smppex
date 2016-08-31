@@ -1,6 +1,6 @@
 defmodule SMPPEX.Pdu.MessageState do
   @moduledoc """
-  Auxiliary module for operating with `deliver_sm` message states.
+  Module for operating with `deliver_sm` message states.
   """
 
   statuses = [

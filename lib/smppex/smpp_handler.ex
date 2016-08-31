@@ -1,4 +1,5 @@
 defprotocol SMPPEX.SMPPHandler do
+  @moduledoc false
 
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.Pdu, as: Pdu

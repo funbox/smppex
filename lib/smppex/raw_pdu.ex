@@ -1,4 +1,5 @@
 defmodule SMPPEX.RawPdu do
+  @moduledoc false
 
   alias SMPPEX.RawPdu
 
