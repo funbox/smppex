@@ -4,6 +4,12 @@
 
 SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.org)
 
+See [Examples](https://hexdocs.pm/smppex/SMPPEX.html)
+
+## Documentation
+
+API documentation is available at http://hexdocs.pm/smppex
+
 ## Installation
 
 The package can be installed as:
@@ -24,3 +30,6 @@ The package can be installed as:
     end
     ```
 
+## LICENSE
+
+This software is licensed under [MIT License](LICENSE).
