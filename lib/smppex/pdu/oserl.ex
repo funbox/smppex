@@ -1,8 +1,22 @@
 defmodule SMPPEX.Pdu.Oserl do
+  @moduledoc """
+  Module for converting SMPPEX Pdu structs to format used by [Oserl](https://github.com/iamaleksey/oserl) library.
+
+  """
 
   alias SMPPEX.Pdu
+  alias SMPPEX.Pdu.Oserl, as: OserlPdu
   alias SMPPEX.Protocol.TlvFormat
 
+  @type t :: {command_id :: non_neg_integer, command_status :: non_neg_integer, sequence_number :: non_neg_integer, [{field_name :: atom, field_value :: term}]}
+
+  @spec to(pdu :: Pdu.t) :: OserlPdu.t
+
+  @doc """
+  Converts SMPPEX Pdu to Oserl format.
+
+  Unknown optional values are ignored, since Oserl stores them by symbolic names.
+  """
   def to(pdu) do
     {
       Pdu.command_id(pdu),
@@ -12,7 +26,12 @@ defmodule SMPPEX.Pdu.Oserl do
     }
   end
 
-  def from({command_id, command_status, sequence_number, field_list}) do
+  @spec from(oserl_pdu :: OserlPdu.t) :: Pdu.t
+
+  @doc """
+  Converts PDU from Oserl format to SMPPEX Pdu.
+  """
+  def from({command_id, command_status, sequence_number, field_list} = _oserl_pdu) do
     {mandatory, optional} = list_to_fields(field_list, %{}, %{})
     Pdu.new(
       {command_id, command_status, sequence_number},
