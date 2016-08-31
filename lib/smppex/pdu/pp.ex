@@ -1,4 +1,7 @@
 defmodule SMPPEX.Pdu.PP do
+  @moduledoc """
+  Module for colored pretty printing Pdu structs.
+  """
 
   alias SMPPEX.Pdu
   alias SMPPEX.Protocol.TlvFormat
@@ -9,7 +12,39 @@ defmodule SMPPEX.Pdu.PP do
   @indent "  "
   @field_inspect_limit 999999
 
-  @spec format(Pdu.t, String.t, String.t) :: iolist
+  @spec format(pdu :: Pdu.t, indent :: String.t, pad :: String.t) :: iolist
+
+  @doc """
+  Forms an iolist containing colored Pdu dump.
+
+  `indent` is the string prepended to each line of the dump ("#{@indent}" by default).
+  `pad` is the string prepended to nested lines of the dump together with `indent`.
+  The default is "#{@pad}".
+
+  ## Example
+
+      iex> pdu = SMPPEX.Pdu.Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello")
+
+  Then `pdu |> SMPPEX.Pdu.PP.format |> IO.puts` will print:
+
+  ```
+  pdu: submit_sm
+    command_id: 4
+    command_status: 0 (ok)
+    sequence_number: 0
+  mandatory fields:
+    dest_addr_npi: 1
+    dest_addr_ton: 1
+    destination_addr: "to"
+    registered_delivery: 0
+    short_message: "hello"
+    source_addr: "from"
+    source_addr_npi: 1
+    source_addr_ton: 1
+  optional fields: []
+  ```
+
+  """
 
   def format(pdu, indent \\ @indent, pad \\ @pad) do
     [ "\n", pdu |> pdu_lines |> Enum.map(fn([section_head | section_lines]) ->
