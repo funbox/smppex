@@ -138,6 +138,21 @@ defmodule SMPPEX.Pdu.Multipart do
 
   @spec multipart_ie(actual_part_info) :: {:error, term} | {:ok, UDH.ie}
 
+  @doc """
+  Generates IE encoding multipart information.
+
+  ## Example
+
+      iex> SMPPEX.Pdu.Multipart.multipart_ie({3,2,1})
+      {:ok, {0, <<0x03, 0x02, 0x01>>}}
+
+      iex> SMPPEX.Pdu.Multipart.multipart_ie({256,2,1})
+      {:ok, {8, <<0x01, 0x00, 0x02, 0x01>>}}
+
+      iex> SMPPEX.Pdu.Multipart.multipart_ie({1, 1, 256})
+      {:error, "#{@error_invalid_seq_num}"}
+
+  """
   def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65535, do: {:error, @error_invalid_ref_num}
   def multipart_ie({_ref_num, count, _seq_num}) when count < 1 or count > 255, do: {:error, @error_invalid_count}
   def multipart_ie({_ref_num, _count, seq_num}) when seq_num < 1 or seq_num > 255, do: {:error, @error_invalid_seq_num}
@@ -154,6 +169,18 @@ defmodule SMPPEX.Pdu.Multipart do
 
   @spec prepend_message_with_part_info(actual_part_info, binary) :: {:error, term} | {:ok, binary}
 
+  @doc """
+  Prepends message with multipart info encoded as UDH.
+
+  ## Example
+
+      iex> SMPPEX.Pdu.Multipart.prepend_message_with_part_info({3,2,1}, "message")
+      {:ok, <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>}
+
+      iex> SMPPEX.Pdu.Multipart.prepend_message_with_part_info({256,2,1}, "message")
+      {:ok, <<0x06, 0x08, 0x04, 0x01, 0x00, 0x02, 0x01, "message">>}
+
+  """
   def prepend_message_with_part_info(part_info, message) do
     case multipart_ie(part_info) do
       {:ok, ie} -> UDH.add([ie], message)
@@ -163,7 +190,35 @@ defmodule SMPPEX.Pdu.Multipart do
 
   @type split_result :: {:ok, :unsplit} | {:ok, :split, [binary]} | {:error, term}
 
-  @spec split_message(integer, binary, integer) :: split_result
+  @spec split_message(ref_num :: integer, message :: binary, max_len :: integer) :: split_result
+
+  @doc """
+  Splits message into parts prepending each part with multipart information UDH
+  so that the resulting size of each part does not exceed `max_len` bytes.
+
+  The result is one of the following:
+  * `{:ok, :unsplit}` if the message already fits into `max_len` bytes;
+  * `{:ok, :split, parts}` if the message was succesfully split into `parts`;
+  * `{:error, reason}` in case of errors.
+
+  ## Example
+
+      iex> SMPPEX.Pdu.Multipart.split_message(123, "abc", 3)
+      {:ok, :unsplit}
+
+      iex> SMPPEX.Pdu.Multipart.split_message(123, "abcdefg", 6)
+      {:error, "#{@error_invalid_max}"}
+
+      iex> SMPPEX.Pdu.Multipart.split_message(123, "abcdefghi", 8)
+      {:ok, :split, [
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x01, "ab">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x02, "cd">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x03, "ef">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x04, "gh">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x05, "i">>
+      ]}
+
+  """
 
   def split_message(_ref_num, message, _max_len) when not is_binary(message), do: {:error, @error_invalid_message}
   def split_message(ref_num, _message, _max_len) when ref_num < 0, do: {:error, @error_invalid_ref_num}
@@ -179,16 +234,36 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
-  @spec split_message(integer, binary, integer, integer) :: split_result
-  def split_message(_ref_num, message, _max_unsplit, _max_split) when not is_binary(message), do: {:error, @error_invalid_message}
-  def split_message(ref_num, _message, _max_unsplit, _max_split) when ref_num < 0, do: {:error, @error_invalid_ref_num}
-  def split_message(ref_num, _message, _max_unsplit, _max_split) when ref_num > 65535, do: {:error, @error_invalid_ref_num}
-  def split_message(_ref_num, _message, max_unsplit, _max_split) when max_unsplit < 0, do: {:error, @error_invalid_max}
-  def split_message(_ref_num, _message, _max_unsplit, max_split) when max_split < 0, do: {:error, @error_invalid_max}
+  @spec split_message(ref_num :: integer, message :: binary, max_len :: integer, max_split :: integer) :: split_result
 
-  def split_message(ref_num, message, max_unsplit, max_split) do
+  @doc """
+  Splits message into parts not exceeding `max_split` bytes and prepending each part with multipart information UDH.
+  The message is not split if its size does not exceed `max_len` bytes.
+
+  The results format is the same as in `split_message/3`.
+
+  ## Example
+
+      iex> SMPPEX.Pdu.Multipart.split_message(123, "abcdefghi", 0, 2)
+      {:ok, :split, [
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x01, "ab">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x02, "cd">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x03, "ef">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x04, "gh">>,
+        <<0x05, 0x00, 0x03, 0x7b, 0x05, 0x05, "i">>
+      ]}
+
+  """
+
+  def split_message(_ref_num, message, _max_len, _max_split) when not is_binary(message), do: {:error, @error_invalid_message}
+  def split_message(ref_num, _message, _max_len, _max_split) when ref_num < 0, do: {:error, @error_invalid_ref_num}
+  def split_message(ref_num, _message, _max_len, _max_split) when ref_num > 65535, do: {:error, @error_invalid_ref_num}
+  def split_message(_ref_num, _message, max_len, _max_split) when max_len < 0, do: {:error, @error_invalid_max}
+  def split_message(_ref_num, _message, _max_len, max_split) when max_split < 0, do: {:error, @error_invalid_max}
+
+  def split_message(ref_num, message, max_len, max_split) do
     message_size = byte_size(message)
-    if message_size <= max_unsplit do
+    if message_size <= max_len do
       {:ok, :unsplit}
     else
       if max_split > 0 do
