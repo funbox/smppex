@@ -1,4 +1,7 @@
 defmodule SMPPEX.Pdu.UDH do
+  @moduledoc """
+  Module for parsing encoded IEs from UDHs.
+  """
 
   alias SMPPEX.Pdu
   use Bitwise
@@ -13,8 +16,22 @@ defmodule SMPPEX.Pdu.UDH do
   @error_invalid_message_data "Invalid Message data"
   @error_udh_data_too_long "UDH is too long"
 
-  @spec has_udh?(Pdu.t) :: boolean
+  @spec has_udh?(pdu :: Pdu.t) :: boolean
 
+  @doc """
+  Checks if message in PDU has UDH (by inspecting `esm_class` field).
+
+  ## Example
+
+      iex> pdu = SMPPEX.Pdu.new({1,0,1}, %{esm_class: 0}, %{})
+      iex> SMPPEX.Pdu.UDH.has_udh?(pdu)
+      false
+
+      iex> pdu = SMPPEX.Pdu.new({1,0,1}, %{esm_class: 0b01000000}, %{})
+      iex> SMPPEX.Pdu.UDH.has_udh?(pdu)
+      true
+
+  """
   def has_udh?(pdu) do
     case Pdu.field(pdu, :esm_class) do
       nil -> false
@@ -27,8 +44,39 @@ defmodule SMPPEX.Pdu.UDH do
   end
 
   @type ie :: {byte, binary}
-  @spec extract(binary) :: {:error, any} | {:ok, list(ie), binary}
+  @spec extract(message :: binary) :: {:error, term} | {:ok, list(ie), binary}
 
+  @doc """
+  Extracts list of IEs from UDH.
+
+  Returns one of the following
+  * `{:ok, ies, message}` where `ies` is a list of IE tuples `{id, value}` and `message`
+  is the original message without UDH;
+  * `{:error, reason}` in case of errors.
+
+  ## Example
+
+      iex> data = <<5, 0, 3, 197, 3, 3, "message">>
+      iex> SMPPEX.Pdu.UDH.extract(data)
+      {:ok, [{0, <<197, 3, 3>>}], "message"}
+
+      iex> data = <<0x0B, 0x05, 0x04, 0x06, 0x2d, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x01, "message">>
+      iex> SMPPEX.Pdu.UDH.extract(data)
+      {:ok, [{0x05, <<0x06, 0x2d, 0x00, 0x00>>}, {0x00, <<0x01, 0x02, 0x01>> }], "message"}
+
+      iex> data = <<0x10, "short">>
+      iex> SMPPEX.Pdu.UDH.extract(data)
+      {:error, "#{@error_invalid_udh_length}"}
+
+      iex> data = <<0x06, 0x00, 0x03, 0x01, 0x02, 0x01, "message">>
+      iex> SMPPEX.Pdu.UDH.extract(data)
+      {:error, "#{@error_invalid_udh_data}"}
+
+      iex> data = <<5, 0, 4, 197, 3, 3, "message">>
+      iex> SMPPEX.Pdu.UDH.extract(data)
+      {:error, "#{@error_invalid_udh_ie_length}"}
+
+  """
   def extract(data) do
     case data do
       << udh_length :: integer-unsigned-size(8), rest :: binary >> ->
@@ -60,6 +108,35 @@ defmodule SMPPEX.Pdu.UDH do
 
   @spec add(list(ie), binary) :: {:ok, binary} | {:error, any}
 
+  @doc """
+  Encodes IEs and prepends message with the encoded value.
+
+  The result is one of the following:
+  * `{:ok, message}` where message is the original message prefixed with UDH;
+  * `{:error, reason}` in case of errors.
+
+  ## Example
+
+      iex> ies = [{0x05, <<0x06, 0x2d, 0x00, 0x00>>}, {0x00, <<0x01, 0x02, 0x01>> }]
+      iex> SMPPEX.Pdu.UDH.add(ies, "message")
+      {:ok, <<0x0B, 0x05, 0x04, 0x06, 0x2d, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x01, "message">>}
+
+      iex> ies = [{0, 123}]
+      iex> SMPPEX.Pdu.UDH.add(ies, "message")
+      {:error, "#{@error_invalid_udh_ie_data}"}
+
+      iex> ies = [{345, "ie"}]
+      iex> SMPPEX.Pdu.UDH.add(ies, "message")
+      {:error, "#{@error_invalid_udh_ie_id}"}
+
+      iex> ies = [{-1, "ie"}]
+      iex> SMPPEX.Pdu.UDH.add(ies, "message")
+      {:error, "#{@error_invalid_udh_ie_id}"}
+
+      iex> ies = [{0, <<1 :: integer-size(2040)>>}]
+      iex> SMPPEX.Pdu.UDH.add(ies, "message")
+      {:error, "#{@error_udh_data_too_long}"}
+  """
   def add(ies, message) do
     case pack_ies(ies, []) do
       {:ok, data} -> concat_ie_data_and_message(data, message)
