@@ -11,7 +11,13 @@ defmodule Smppex.Mixfile do
       deps: deps,
       description: description,
       elixirc_paths: ["lib", "test/support"],
-      test_coverage: [tool: Coverex.Task],
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        "coveralls": :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ],
       package: package,
       dialyzer: [
         plt_file: ".local.plt",
@@ -28,7 +34,7 @@ defmodule Smppex.Mixfile do
 
   defp deps do
     [
-      {:coverex, "~> 1.4.1", only: :test},
+      {:excoveralls, "~> 0.5", only: :test},
       {:dialyxir, git: "https://github.com/jeremyjh/dialyxir.git", only: :dev},
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
