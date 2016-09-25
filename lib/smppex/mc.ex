@@ -105,7 +105,7 @@ defmodule SMPPEX.MC do
 
   The returned value is used as the new state.
   """
-  @callback handle_resp(pdu :: Pdu.t, pdu :: Pdu.t, state) :: state
+  @callback handle_resp(pdu :: Pdu.t, original_pdu :: Pdu.t, state) :: state
 
   @doc """
   Invoked when the MC handler does not receive a response to a previously sent PDU
