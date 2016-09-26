@@ -88,7 +88,7 @@ defmodule SMPPEX.MCTest do
     MC.reply(ctx[:mc], received_in_pdu, out_pdu)
 
     Timer.sleep(50)
-    assert [{:resp, reply, _}] = ESME.wait_for_pdus(ctx[:esme])
+    assert [{:ok, _}, {:ok, _}, {:ok, _}, {:resp, reply, _}] = ESME.wait_for_pdus(ctx[:esme])
 
     assert Pdu.sequence_number(reply) == 3
   end
@@ -245,7 +245,7 @@ defmodule SMPPEX.MCTest do
     Kernel.send(ctx[:mc], {:tick, time + 1050})
     Timer.sleep(50)
 
-    assert [{:pdu, enquire_link}] = ESME.pdus(ctx[:esme])
+    assert [{:ok, _}, {:pdu, enquire_link}] = ESME.pdus(ctx[:esme])
     assert Pdu.command_id(enquire_link) |> CommandNames.name_by_id == {:ok, :enquire_link}
   end
 
@@ -282,7 +282,7 @@ defmodule SMPPEX.MCTest do
     Kernel.send(ctx[:mc], {:tick, time + 1050})
     Timer.sleep(50)
 
-    assert [] = ESME.pdus(ctx[:esme])
+    assert [{:ok, _}, {:ok, _}] = ESME.pdus(ctx[:esme])
   end
 
   test "enquire_link timeout cancel by peer action", ctx do
@@ -301,7 +301,7 @@ defmodule SMPPEX.MCTest do
     Kernel.send(ctx[:mc], {:tick, time + 2100})
     Timer.sleep(50)
 
-    assert [{:pdu, _bind_pdu}, {:pdu, _enquire_link_pdu}] = ESME.pdus(ctx[:esme])
+    assert [{:ok, _}, {:pdu, _bind_pdu}, {:ok, _}, {:pdu, _enquire_link_pdu}] = ESME.pdus(ctx[:esme])
     assert Process.alive?(ctx[:mc])
   end
 
@@ -340,4 +340,3 @@ defmodule SMPPEX.MCTest do
   end
 
 end
-

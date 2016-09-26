@@ -67,7 +67,8 @@ defmodule SMPPEX.ESME.Sync do
   * `{:resp, resp_pdu, original_pdu}` where `resp_pdu` is an incoming reply for a
   previously sent `original_pdu`;
   * `{:timeout, pdu}` for `pdu`'s which have not received a response within ESME timeout;
-  * `{:error, pdu, reason}` for outcoming PDUs which were not successfully sent due to `reason`.
+  * `{:error, pdu, reason}` for outcoming PDUs which were not successfully sent due to `reason`;
+  * `{:ok, pdu}` for outcoming PDUs which were successfully sent.
 
   `:timeout` returned value indicates that the ESME didn't receive any PDUs within `timeout`.
   `:stop` value indicates that the ESME stopped while waiting for incoming PDUs.
@@ -162,7 +163,7 @@ defmodule SMPPEX.ESME.Sync do
   @doc false
   def handle_send_pdu_result(pdu, result, st) do
     case result do
-      :ok -> st
+      :ok -> do_push_to_waiting({:ok, pdu}, st)
       {:error, error} ->
         case Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp do
           true ->
