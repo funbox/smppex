@@ -3,10 +3,9 @@ defmodule SMPPEX.Pdu.PP do
   Module for colored pretty printing Pdu structs.
   """
 
+  alias IO.ANSI, as: C
   alias SMPPEX.Pdu
   alias SMPPEX.Protocol.TlvFormat
-
-  use Dye
 
   @pad ""
   @indent "  "
@@ -99,17 +98,17 @@ defmodule SMPPEX.Pdu.PP do
 
   defp pp_command_status(status) do
     case status do
-      0 -> ~s/0 (ok)/DGd
-      _ -> ~s/#{status} (error)/DRd
+      0 -> [C.green, C.bright, "0 (ok)", C.reset]
+      _ -> [C.red, C.bright, "#{status} (error)", C.reset]
     end
   end
 
   defp pp_field_name(field_name) do
-    ~s/#{field_name}/gd
+    [C.green, field_name, C.reset]
   end
 
   defp pp_val(str) do
-    ~s/#{str}/yd
+    [C.yellow, str, C.reset]
   end
 
   defp pp_fields(fields) do
@@ -120,8 +119,7 @@ defmodule SMPPEX.Pdu.PP do
 
   defp pp_command_name(pdu) do
     name = pdu |> Pdu.command_name |> to_string
-    ~s/#{name}/DCd
+    [C.cyan, C.bright, name, C.reset]
   end
 
 end
-
