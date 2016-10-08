@@ -54,7 +54,7 @@ defmodule Smppex.Mixfile do
       name: :smppex,
       files: ["lib", "mix.exs", "README*", "LICENSE"],
       maintainers: ["Ilya Averyanov"],
-      licenses: ["Apache 2.0"],
+      licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/savonarola/smppex"
       }
