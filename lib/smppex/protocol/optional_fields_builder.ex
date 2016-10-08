@@ -14,14 +14,14 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
 
   defp build([], built), do: {:ok, built}
 
-  defp build([{name, value} | rest ], built) when is_atom(name) do
+  defp build([{name, value} | rest], built) when is_atom(name) do
     case id_by_name(name) do
-      {:ok, id} -> build([{id, value} | rest ], built)
+      {:ok, id} -> build([{id, value} | rest], built)
       :unknown -> {:error, "Can't find id for name #{inspect name}"}
     end
   end
 
-  defp build([{id, value} | rest ], built) do
+  defp build([{id, value} | rest], built) do
     case build_tlv(id, value) do
       {:ok, bin} -> build(rest, [bin | built])
       {:error, error} -> {:error, {"Error building optional fields", error}}

@@ -70,7 +70,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   end
 
   defp read_cases(_bin, [], _parsed_fields), do: {:error, "No cases left"}
-  defp read_cases(bin, [current_case | rest_cases ], parsed_fields) do
+  defp read_cases(bin, [current_case | rest_cases], parsed_fields) do
     {field, value, specs} = current_case
     if expand(field, parsed_fields) == value do
       parse(bin, specs, parsed_fields)
@@ -83,4 +83,3 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   defp expand(n, parsed_fields) when is_atom(n), do: parsed_fields[n]
 
 end
-

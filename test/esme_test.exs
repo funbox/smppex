@@ -20,7 +20,7 @@ defmodule SMPPEX.ESMETest do
       enquire_link_resp_limit: 1000,
       inactivity_limit: 10000,
       response_limit: 2000,
-      timer_resolution: 100000,
+      timer_resolution: 100000
     ])
 
     {:ok, esme: esme, callback_backup: callback_backup, server: server}
@@ -403,4 +403,3 @@ defmodule SMPPEX.ESMETest do
   end
 
 end
-

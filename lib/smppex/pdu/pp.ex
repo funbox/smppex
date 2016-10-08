@@ -46,9 +46,9 @@ defmodule SMPPEX.Pdu.PP do
   """
 
   def format(pdu, indent \\ @indent, pad \\ @pad) do
-    [ "\n", pdu |> pdu_lines |> Enum.map(fn([section_head | section_lines]) ->
-      [ pad, section_head, "\n", section_lines |> Enum.map(fn(line) ->
-        [ pad, indent, line, "\n"]
+    ["\n", pdu |> pdu_lines |> Enum.map(fn([section_head | section_lines]) ->
+      [pad, section_head, "\n", section_lines |> Enum.map(fn(line) ->
+        [pad, indent, line, "\n"]
       end) ]
     end) ]
   end
@@ -64,9 +64,9 @@ defmodule SMPPEX.Pdu.PP do
   defp header(pdu) do
     [
       name(pdu),
-      [ pp_field_name("command_id"), ": ", pdu |> Pdu.command_id |> inspect |> pp_val ],
-      [ pp_field_name("command_status"), ": ", pdu |> Pdu.command_status |> pp_command_status ],
-      [ pp_field_name("sequence_number"), ": ", pdu |> Pdu.sequence_number |> inspect |> pp_val ]
+      [pp_field_name("command_id"), ": ", pdu |> Pdu.command_id |> inspect |> pp_val],
+      [pp_field_name("command_status"), ": ", pdu |> Pdu.command_status |> pp_command_status],
+      [pp_field_name("sequence_number"), ": ", pdu |> Pdu.sequence_number |> inspect |> pp_val]
     ]
   end
 
@@ -75,12 +75,12 @@ defmodule SMPPEX.Pdu.PP do
   end
 
   defp mandatory_fields(pdu) do
-    [ [ "mandatory fields:", pdu |> Pdu.mandatory_fields |> pp_empty_list ] ] ++
+    [["mandatory fields:", pdu |> Pdu.mandatory_fields |> pp_empty_list]] ++
       (pdu |> Pdu.mandatory_fields |> Map.to_list |> pp_fields)
   end
 
   defp optional_fields(pdu) do
-    [ [ "optional fields:", pdu |> Pdu.optional_fields |> pp_empty_list ] ] ++
+    [["optional fields:", pdu |> Pdu.optional_fields |> pp_empty_list]] ++
       (pdu |> Pdu.optional_fields |> Map.to_list |> name_known_tlvs |> pp_fields)
   end
 
