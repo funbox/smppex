@@ -195,7 +195,7 @@ defmodule SMPPEX.MCTest do
     MC.send_pdu(ctx[:mc], pdu)
     Timer.sleep(50)
 
-    reply_pdu = %Pdu{ Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
+    reply_pdu = %Pdu{Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
     SMPPEX.ESME.with_session(ctx[:esme], fn(s) -> SMPPEX.Session.send_pdu(s, reply_pdu) end)
     Timer.sleep(50)
 
@@ -212,7 +212,7 @@ defmodule SMPPEX.MCTest do
     Timer.sleep(50)
 
     Kernel.send(ctx[:mc], {:tick, time + 2050})
-    reply_pdu = %Pdu{ Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    reply_pdu = %Pdu{Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     SMPPEX.ESME.with_session(ctx[:esme], fn(s) -> SMPPEX.Session.send_pdu(s, reply_pdu) end)
 
     Timer.sleep(50)

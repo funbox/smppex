@@ -61,11 +61,10 @@ defmodule SMPPEX.PduStorage do
   end
 
   def handle_call({:fetch_expired, expire_time}, _from, st) do
-    expired = ETS.select(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2'] }])
+    expired = ETS.select(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2']}])
     expired_count = length(expired)
-    ^expired_count = ETS.select_delete(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [true] }])
+    ^expired_count = ETS.select_delete(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [true]}])
     {:reply, expired, st}
   end
 
 end
-

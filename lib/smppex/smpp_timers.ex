@@ -34,19 +34,19 @@ defmodule SMPPEX.SMPPTimers do
   @spec handle_bind(t, non_neg_integer) :: t
 
   def handle_bind(timers, time) do
-    handle_peer_transaction(%SMPPTimers{ timers | session_init_state: :bound}, time)
+    handle_peer_transaction(%SMPPTimers{timers | session_init_state: :bound}, time)
   end
 
   @spec handle_peer_transaction(t, non_neg_integer) :: t
 
   def handle_peer_transaction(timers, time) do
-    handle_peer_action(%SMPPTimers{ timers | last_transaction_time: time}, time)
+    handle_peer_action(%SMPPTimers{timers | last_transaction_time: time}, time)
   end
 
   @spec handle_peer_action(t, non_neg_integer) :: t
 
   def handle_peer_action(timers, time) do
-    %SMPPTimers{ timers |
+    %SMPPTimers{timers |
       last_peer_action_time: time,
       enquire_link_state: :active,
     }
@@ -86,7 +86,7 @@ defmodule SMPPEX.SMPPTimers do
 
   defp check_active_enquire_link(timers, time) do
     case time - timers.last_peer_action_time > timers.enquire_link_limit do
-      true -> {:enquire_link, %SMPPTimers{ timers | enquire_link_state: :waiting_resp }}
+      true -> {:enquire_link, %SMPPTimers{timers | enquire_link_state: :waiting_resp}}
       false -> {:ok, timers}
     end
   end
@@ -99,4 +99,3 @@ defmodule SMPPEX.SMPPTimers do
   end
 
 end
-

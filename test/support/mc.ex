@@ -9,7 +9,7 @@ defmodule Support.MC do
 
   def start_link(mc_opts \\ []) do
     {:ok, st_backup} = Agent.start_link(fn() -> nil end)
-    {:ok, mc_server} = SMPPEX.MC.start({__MODULE__, %{callbacks: [], st_backup: st_backup, mc: nil} }, [mc_opts: mc_opts, transport_opts: [port: 0]])
+    {:ok, mc_server} = SMPPEX.MC.start({__MODULE__, %{callbacks: [], st_backup: st_backup, mc: nil}}, [mc_opts: mc_opts, transport_opts: [port: 0]])
     {st_backup, mc_server}
   end
 
@@ -72,10 +72,9 @@ defmodule Support.MC do
   end
 
   defp register_callback(st, callback_info) do
-    new_st = %{ st | callbacks: [callback_info | st.callbacks], mc: self}
+    new_st = %{st | callbacks: [callback_info | st.callbacks], mc: self}
     Agent.update(st.st_backup, fn(_) -> new_st end)
     new_st
   end
 
 end
-

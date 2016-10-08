@@ -8,8 +8,8 @@ defmodule SMPPEX.Pdu.OserlTest do
   test "to" do
     pdu = Pdu.new(
       {1, 2, 3},
-      %{ short_message: "message" },
-      %{ 0x0424 => "message payload" }
+      %{short_message: "message"},
+      %{0x0424 => "message payload"}
     )
 
     assert {1, 2, 3, fields} = Oserl.to(pdu)

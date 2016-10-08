@@ -7,7 +7,7 @@ defmodule Support.ESME do
 
   def start_link(host, port, esme_opts \\ []) do
     {:ok, callback_backup} = Agent.start_link(fn() -> nil end)
-    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, %{callbacks: [], callback_backup: callback_backup} }, [{:esme_opts, esme_opts}])
+    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, %{callbacks: [], callback_backup: callback_backup}}, [{:esme_opts, esme_opts}])
     {callback_backup, esme}
   end
 
@@ -74,7 +74,7 @@ defmodule Support.ESME do
   end
 
   defp register_callback(st, callback_info) do
-    new_st = %{ st | callbacks: [callback_info | st.callbacks] }
+    new_st = %{st | callbacks: [callback_info | st.callbacks]}
     Agent.update(st.callback_backup, fn(_) ->
       new_st.callbacks
     end)
@@ -82,4 +82,3 @@ defmodule Support.ESME do
   end
 
 end
-

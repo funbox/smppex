@@ -6,8 +6,8 @@ defmodule SMPPEX.PduStorageTest do
 
   test "store" do
     {:ok, storage} = PduStorage.start_link
-    pdu1 = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1") | sequence_number: 123 }
-    pdu2 = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass2") | sequence_number: 123 }
+    pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1") | sequence_number: 123}
+    pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass2") | sequence_number: 123}
 
     assert true == PduStorage.store(storage, pdu1, 321)
     assert false == PduStorage.store(storage, pdu2, 321)
@@ -19,7 +19,7 @@ defmodule SMPPEX.PduStorageTest do
 
   test "fetch" do
     {:ok, storage} = PduStorage.start_link
-    pdu = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id", "pass") | sequence_number: 123 }
+    pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "pass") | sequence_number: 123}
 
     assert true == PduStorage.store(storage, pdu, 321)
 
@@ -29,8 +29,8 @@ defmodule SMPPEX.PduStorageTest do
 
   test "expire" do
     {:ok, storage} = PduStorage.start_link
-    pdu1 = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass") | sequence_number: 123 }
-    pdu2 = %Pdu{ SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass") | sequence_number: 124 }
+    pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass") | sequence_number: 123}
+    pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass") | sequence_number: 124}
 
     assert true == PduStorage.store(storage, pdu1, 1000)
     assert true == PduStorage.store(storage, pdu2, 2000)
@@ -40,4 +40,3 @@ defmodule SMPPEX.PduStorageTest do
     assert [pdu2] == PduStorage.fetch(storage, 124)
   end
 end
-

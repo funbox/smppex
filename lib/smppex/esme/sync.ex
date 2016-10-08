@@ -108,7 +108,7 @@ defmodule SMPPEX.ESME.Sync do
   @doc false
   def handle_call({:request, pdu}, from, st) do
     ESME.send_pdu(self, pdu)
-    new_st = %{ st | from: from, pdu: pdu, state: :wait_for_resp }
+    new_st = %{st | from: from, pdu: pdu, state: :wait_for_resp}
     {:noreply, new_st}
   end
 
@@ -120,7 +120,7 @@ defmodule SMPPEX.ESME.Sync do
     case st.additional_pdus do
       [_ | _] -> do_get_pdus(st)
       [] ->
-        new_st = %{ st | from: from, state: :wait_for_pdus }
+        new_st = %{st | from: from, state: :wait_for_pdus}
         {:noreply, new_st}
     end
   end
@@ -180,17 +180,17 @@ defmodule SMPPEX.ESME.Sync do
     case st.state == :wait_for_pdus do
       true ->
         GenServer.reply(st.from, pdus)
-        %{ do_set_free(st) | additional_pdus: [] }
+        %{do_set_free(st) | additional_pdus: []}
       false ->
-        %{ st | additional_pdus: pdus }
+        %{st | additional_pdus: pdus}
     end
   end
 
-  defp do_set_free(st), do: %{ st | from: nil, pdu: nil, state: :free }
+  defp do_set_free(st), do: %{st | from: nil, pdu: nil, state: :free}
 
   defp do_get_pdus(st) do
     pdus = Enum.reverse(st.additional_pdus)
-    new_st = %{ st | additional_pdus: [] }
+    new_st = %{st | additional_pdus: []}
     {:reply, pdus, new_st}
   end
 

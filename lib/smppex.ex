@@ -115,7 +115,7 @@ defmodule SMPPEX do
     def handle_resp(pdu, _original_pdu, st) do
       case pdu |> SMPPEX.Pdu.command_id |> SMPPEX.Protocol.CommandNames.name_by_id do
         {:ok, :submit_sm_resp} ->
-          new_st = %{ st | count_waiting_resp: st.count_waiting_resp - 1 }
+          new_st = %{st | count_waiting_resp: st.count_waiting_resp - 1}
           send_pdus(new_st)
         {:ok, :bind_transmitter_resp} ->
           send_pdus(st)
@@ -141,7 +141,7 @@ defmodule SMPPEX do
         st.count_to_send > 0 ->
           count_to_send = min(st.window - st.count_waiting_resp, st.count_to_send)
           :ok = do_send(self, count_to_send)
-          %{ st | count_waiting_resp: st.window, count_to_send: st.count_to_send - count_to_send }
+          %{st | count_waiting_resp: st.window, count_to_send: st.count_to_send - count_to_send}
         st.count_waiting_resp > 0 ->
           st
         true ->

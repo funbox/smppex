@@ -421,10 +421,10 @@ defmodule SMPPEX.MC do
   def handle_call({:call, request}, from, st) do
     case st.module.handle_call(request, from, st.module_state) do
       {:reply, reply, new_module_state} ->
-        new_st = %MC{ st | module_state: new_module_state }
+        new_st = %MC{st | module_state: new_module_state}
         {:reply, reply, new_st}
       {:noreply, new_module_state} ->
-        new_st = %MC{ st | module_state: new_module_state }
+        new_st = %MC{st | module_state: new_module_state}
         {:noreply, new_st}
     end
   end
@@ -446,7 +446,7 @@ defmodule SMPPEX.MC do
 
   def handle_cast({:cast, request}, st) do
     new_module_state = st.module.handle_cast(request, st.module_state)
-    new_st = %MC{ st | module_state: new_module_state }
+    new_st = %MC{st | module_state: new_module_state}
     {:noreply, new_st}
   end
 
@@ -454,7 +454,7 @@ defmodule SMPPEX.MC do
     new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self, :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
     Kernel.send self, {:tick, Erlang.system_time(:milli_seconds)}
-    {:noreply, %MC{ st | tick_timer_ref: new_tick_timer_ref }}
+    {:noreply, %MC{st | tick_timer_ref: new_tick_timer_ref}}
   end
 
   def handle_info({:tick, time}, st) do
@@ -463,7 +463,7 @@ defmodule SMPPEX.MC do
 
   def handle_info(request, st) do
     new_module_state = st.module.handle_info(request, st.module_state)
-    new_st = %MC{ st | module_state: new_module_state }
+    new_st = %MC{st | module_state: new_module_state}
     {:noreply, new_st}
   end
 
@@ -482,7 +482,7 @@ defmodule SMPPEX.MC do
   defp do_handle_pdu(pdu, st) do
     new_module_state = st.module.handle_pdu(pdu, st.module_state)
     new_timers = SMPPTimers.handle_peer_transaction(st.timers, st.time)
-    new_st = %MC{ st | module_state: new_module_state, timers: new_timers }
+    new_st = %MC{st | module_state: new_module_state, timers: new_timers}
     if Pdu.bind?(pdu) do
       do_handle_bind(new_st)
     else
@@ -493,7 +493,7 @@ defmodule SMPPEX.MC do
   defp do_handle_resp(pdu, st) do
     sequence_number = Pdu.sequence_number(pdu)
     new_timers = SMPPTimers.handle_peer_action(st.timers, st.time)
-    new_st = %MC{ st | timers: new_timers }
+    new_st = %MC{st | timers: new_timers}
     case PduStorage.fetch(st.pdus, sequence_number) do
       [] ->
         Logger.info("mc #{inspect self}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
@@ -505,13 +505,13 @@ defmodule SMPPEX.MC do
 
   defp do_handle_resp_for_pdu(pdu, original_pdu, st) do
     new_module_state = st.module.handle_resp(pdu, original_pdu, st.module_state)
-    new_st = %MC{ st | module_state: new_module_state }
+    new_st = %MC{st | module_state: new_module_state}
     {:reply, :ok, new_st}
   end
 
   defp do_handle_bind(st) do
     new_timers = SMPPTimers.handle_bind(st.timers, st.time)
-    new_st = %MC{ st | timers: new_timers }
+    new_st = %MC{st | timers: new_timers}
     {:reply, :ok, new_st}
   end
 
@@ -522,7 +522,7 @@ defmodule SMPPEX.MC do
 
   defp do_handle_send_pdu_result(pdu, send_pdu_result, st) do
     new_module_state = st.module.handle_send_pdu_result(pdu, send_pdu_result, st.module_state)
-    new_st = %MC{ st | module_state: new_module_state }
+    new_st = %MC{st | module_state: new_module_state}
     {:reply, :ok, new_st}
   end
 
@@ -535,21 +535,21 @@ defmodule SMPPEX.MC do
   defp do_handle_expired_pdus([], st), do: st
   defp do_handle_expired_pdus([pdu | pdus], st) do
     new_module_state = st.module.handle_resp_timeout(pdu, st.module_state)
-    new_st = %MC{ st | module_state: new_module_state }
+    new_st = %MC{st | module_state: new_module_state}
     do_handle_expired_pdus(pdus, new_st)
   end
 
   defp do_handle_timers(time, st) do
     case SMPPTimers.handle_tick(st.timers, time) do
       {:ok, new_timers} ->
-        new_st = %MC{ st | timers: new_timers, time: time }
+        new_st = %MC{st | timers: new_timers, time: time}
         {:noreply, new_st}
       {:stop, reason} ->
         Logger.info("mc #{inspect self}, being stopped by timers(#{reason})")
         Session.stop(st.smpp_session)
         {:noreply, st}
       {:enquire_link, new_timers} ->
-        new_st = %MC{ st | timers: new_timers, time: time }
+        new_st = %MC{st | timers: new_timers, time: time}
         do_send_enquire_link(new_st)
     end
   end
@@ -562,18 +562,17 @@ defmodule SMPPEX.MC do
 
   defp do_send_pdu(pdu, st) do
     sequence_number = st.sequence_number + 1
-    new_pdu = %Pdu{ pdu | sequence_number: sequence_number}
+    new_pdu = %Pdu{pdu | sequence_number: sequence_number}
     true = PduStorage.store(st.pdus, new_pdu, st.time + st.response_limit)
     Session.send_pdu(st.smpp_session, new_pdu)
-    new_st = %MC{ st | sequence_number: sequence_number}
+    new_st = %MC{st | sequence_number: sequence_number}
     new_st
   end
 
   defp do_reply(pdu, reply_pdu, st) do
-    new_reply_pdu = %Pdu{ reply_pdu | sequence_number: pdu.sequence_number }
+    new_reply_pdu = %Pdu{reply_pdu | sequence_number: pdu.sequence_number}
     Session.send_pdu(st.smpp_session, new_reply_pdu)
     st
   end
 
 end
-

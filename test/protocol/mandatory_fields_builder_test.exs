@@ -71,7 +71,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
     ]
 
     data = <<03, ?a, 00, 01, ?b, 00, 02, ?c, 00, 03>>
-    fields = %{ array: [
+    fields = %{array: [
       %{a: "a", b: 1},
       %{a: "b", b: 2},
       %{a: "c", b: 3}
