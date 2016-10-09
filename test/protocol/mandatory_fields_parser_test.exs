@@ -96,14 +96,16 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<?a, 00, 01, ?b, 00, 02, ?c, 00, 03, 01, 02, 03>>
-    assert {:ok, %{array: _}, <<01, 02, 03>>} = parse(data, spec)
-
-    {_, %{array: array}, _} = parse(data, spec)
-    assert array == [
+    array = [
       %{a: "a", b: 1},
       %{a: "b", b: 2},
       %{a: "c", b: 3}
     ]
+
+    parse_result = parse(data, spec)
+
+    assert {:ok, %{array: array}, <<01, 02, 03>>} == parse_result
+
   end
 
   test "n-times parse expanded" do
@@ -115,14 +117,16 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<?a, 00, 01, ?b, 00, 02, ?c, 00, 03, 01, 02, 03>>
-    assert {:ok, %{array: _}, <<01, 02, 03>>} = parse(data, spec, %{times: 3})
 
-    {_, %{array: array}, _} = parse(data, spec, %{times: 3})
-    assert array == [
+    array = [
       %{a: "a", b: 1},
       %{a: "b", b: 2},
       %{a: "c", b: 3}
     ]
+
+    parse_result = parse(data, spec, %{times: 3})
+
+    assert {:ok, %{array: array, times: 3}, <<01, 02, 03>>} == parse_result
   end
 
   test "case parse" do
@@ -151,4 +155,3 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
   end
 
 end
-
