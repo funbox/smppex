@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/savonarola/smppex.svg?branch=master)](https://travis-ci.org/savonarola/smppex)
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](http://hexdocs.pm/smppex)
 [![Version](https://img.shields.io/hexpm/v/smppex.svg)](https://hex.pm/packages/smppex)
+[![Coverage Status](https://coveralls.io/repos/github/savonarola/smppex/badge.svg?branch=master)](https://coveralls.io/github/savonarola/smppex?branch=master)
 
 # Smppex
 
