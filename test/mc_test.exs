@@ -1,7 +1,6 @@
 defmodule SMPPEX.MCTest do
   use ExUnit.Case
 
-  alias :erlang, as: Erlang
   alias :timer, as: Timer
   alias :ranch, as: Ranch
 
@@ -26,7 +25,7 @@ defmodule SMPPEX.MCTest do
 
     Timer.sleep(50)
     {:ok, esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
-    session_init_time = Erlang.system_time(:milli_seconds)
+    session_init_time = SMPPEX.Time.monotonic
 
     Timer.sleep(50)
     {:ok,

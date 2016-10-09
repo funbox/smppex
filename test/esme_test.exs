@@ -1,7 +1,6 @@
 defmodule SMPPEX.ESMETest do
   use ExUnit.Case
 
-  alias :erlang, as: Erlang
   alias :gen_tcp, as: GenTCP
   alias :timer, as: Timer
 
@@ -227,7 +226,7 @@ defmodule SMPPEX.ESMETest do
   test "handle_resp_timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
     Kernel.send(ctx[:esme], {:tick, time + 2050})
@@ -259,7 +258,7 @@ defmodule SMPPEX.ESMETest do
   test "enquire_link by timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -279,7 +278,7 @@ defmodule SMPPEX.ESMETest do
   test "enquire_link cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -304,7 +303,7 @@ defmodule SMPPEX.ESMETest do
   test "enquire_link timeout cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -338,7 +337,7 @@ defmodule SMPPEX.ESMETest do
   test "stop by enquire_link timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -363,7 +362,7 @@ defmodule SMPPEX.ESMETest do
   test "stop by inactivity timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
-    time = Erlang.system_time(:milli_seconds)
+    time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
