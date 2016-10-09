@@ -18,7 +18,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilderTest do
     res = build(%{0x01 => big_bin})
     assert {:error, _} = res
 
-    res = build(%{-0x01 => "test"})
+    res = build(Map.put(%{}, -0x01, "test"))
     assert {:error, _} = res
   end
 
