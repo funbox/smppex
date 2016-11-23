@@ -3,6 +3,7 @@ defmodule SMPPEX.ProtocolTest do
 
   import SMPPEX.Protocol
   alias SMPPEX.Pdu
+  alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.RawPdu
 
   test "parse: insufficient data" do
@@ -160,6 +161,29 @@ defmodule SMPPEX.ProtocolTest do
 
     assert {:error, _} = build(pdu)
 
+  end
+
+  test "build submit_sm with message_payload" do
+
+    {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
+    pdu = Pdu.new(
+      command_id,
+      %{
+        source_addr: "from",
+        source_addr_ton: 5,
+        source_addr_npi: 0,
+        destination_addr: "to",
+        dest_addr_ton: 1,
+        dest_addr_npi: 1,
+        short_message: "",
+        registered_delivery: 0
+      },
+      %{
+        message_payload: "message"
+      }
+    )
+
+    assert {:ok, _} = build(pdu)
   end
 
 end

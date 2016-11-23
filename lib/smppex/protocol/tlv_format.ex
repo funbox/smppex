@@ -38,7 +38,7 @@ defmodule SMPPEX.Protocol.TlvFormat do
     {:set_dpf, 0x0421, quote do: {:integer, 1}},
     {:ms_availability_status, 0x0422, quote do: {:integer, 1}},
     {:network_error_code, 0x0423, quote do: {:octet_string, 3}},
-    {:message_payload, 0x0424, quote do: :octet_string},
+    {:message_payload, 0x0424, quote do: {:octet_string, {0, 0xFFFF}}},
     {:delivery_failure_reason, 0x0425, quote do: {:integer, 1}},
     {:more_messages_to_send, 0x0426, quote do: {:integer, 1}},
     {:message_state, 0x0427, quote do: {:integer, 1}},
