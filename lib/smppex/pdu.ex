@@ -332,7 +332,7 @@ defmodule SMPPEX.Pdu do
 
   """
 
-  def resp?(pdu), do: Pdu.command_id(pdu) > 0x80000000
+  def resp?(pdu), do: command_id(pdu) > 0x80000000
 
   @spec success_resp?(t) :: boolean
 
@@ -351,7 +351,7 @@ defmodule SMPPEX.Pdu do
   """
 
   def success_resp?(pdu) do
-    resp?(pdu) and Pdu.command_status(pdu) == 0
+    resp?(pdu) and command_status(pdu) == 0
   end
 
   @spec bind?(t) :: boolean

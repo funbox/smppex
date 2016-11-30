@@ -55,4 +55,14 @@ defmodule SMPPEX.RawPdu do
     pdu.body
   end
 
+  @spec resp?(t) :: boolean
+
+  def resp?(pdu), do: command_id(pdu) > 0x80000000
+
+  @spec success_resp?(t) :: boolean
+
+  def success_resp?(pdu) do
+    resp?(pdu) and command_status(pdu) == 0
+  end
+
 end

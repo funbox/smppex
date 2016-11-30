@@ -10,13 +10,6 @@ defmodule SMPPEX.Protocol do
   alias SMPPEX.RawPdu
   alias SMPPEX.Pdu
 
-  @pdus_with_status_dependant_body %{
-     0x80000001 => true, # bind_transmitter_resp
-     0x80000002 => true, # bind_receiver_resp
-     0x80000009 => true, # bind_transceiver_resp
-     0x80000004 => true # submit_sm_resp
-  }
-
   @type error :: any
   @type pdu_parse_result :: {:pdu, Pdu.t} | {:unparsed_pdu, RawPdu.t, error}
   @type parse_result :: {:ok, nil, binary} | {:ok, pdu_parse_result, binary} | {:error, error}
@@ -45,13 +38,25 @@ defmodule SMPPEX.Protocol do
     header = parse_header(header)
     raw_pdu = RawPdu.new(header, body)
     case CommandNames.name_by_id(RawPdu.command_id(raw_pdu)) do
-      {:ok, name} -> parse_body(name, raw_pdu)
+      {:ok, name} -> parse_body_if_needed(name, raw_pdu)
       :unknown -> {:unparsed_pdu, raw_pdu, "Unknown command_id"}
     end
   end
 
   defp parse_header(<<command_id :: big-unsigned-integer-size(32), command_status :: big-unsigned-integer-size(32), sequence_number :: big-unsigned-integer-size(32)>>) do
     {command_id, command_status, sequence_number}
+  end
+
+  defp parse_body_if_needed(name, raw_pdu) do
+    case parse_body(name, raw_pdu) do
+      {:pdu, _} = pdu -> pdu
+      {:unparsed_pdu, _, _} = unparsed_pdu ->
+        if parse_body?(raw_pdu) do
+          unparsed_pdu
+        else
+          {:pdu, Pdu.new(RawPdu.header(raw_pdu), %{}, %{})}
+        end
+    end
   end
 
   defp parse_body(command_name, raw_pdu) do
@@ -66,20 +71,13 @@ defmodule SMPPEX.Protocol do
     end
   end
 
-  defp parse_mandatory?(raw_pdu) do
-    command_status = RawPdu.command_status(raw_pdu)
-    command_id = RawPdu.command_id(raw_pdu)
-    (command_status == 0) or (not Map.has_key?(@pdus_with_status_dependant_body, command_id))
+  defp parse_body?(raw_pdu) do
+    !RawPdu.resp?(raw_pdu) || RawPdu.success_resp?(raw_pdu)
   end
 
   defp parse_mandatory_fields(command_name, raw_pdu) do
-    case parse_mandatory?(raw_pdu) do
-      true ->
-        spec = MandatoryFieldsSpecs.spec_for(command_name)
-        raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
-      false ->
-        {:ok, %{}, RawPdu.body(raw_pdu) }
-    end
+    spec = MandatoryFieldsSpecs.spec_for(command_name)
+    raw_pdu |> RawPdu.body |> MandatoryFieldsParser.parse(spec)
   end
 
   @type build_result :: {:ok, binary} | {:error, error}
@@ -94,13 +92,17 @@ defmodule SMPPEX.Protocol do
   end
 
   defp build_body(pdu, header_bin, mandatory_specs) do
-    case build_mandatory_fields(pdu, mandatory_specs) do
-      {:ok, mandatory_bin} ->
-        case build_optional_fields(pdu) do
-          {:ok, optional_bin} -> {:ok, concat_pdu_binary_parts(header_bin, mandatory_bin, optional_bin)}
-          {:error, error} -> {:error, {"Error building optional field part", error}}
-        end
-      {:error, error} -> {:error, {"Error building mandatory field part", error}}
+    if build_body?(pdu) do
+      case build_mandatory_fields(pdu, mandatory_specs) do
+        {:ok, mandatory_bin} ->
+          case build_optional_fields(pdu) do
+            {:ok, optional_bin} -> {:ok, concat_pdu_binary_parts(header_bin, mandatory_bin, optional_bin)}
+            {:error, error} -> {:error, {"Error building optional field part", error}}
+          end
+        {:error, error} -> {:error, {"Error building mandatory field part", error}}
+      end
+    else
+      {:ok, concat_pdu_binary_parts(header_bin, "", "")}
     end
   end
 
@@ -118,17 +120,12 @@ defmodule SMPPEX.Protocol do
     end
   end
 
-  defp build_mandatory?(pdu) do
-    command_status = Pdu.command_status(pdu)
-    command_id = Pdu.command_id(pdu)
-    (command_status == 0) or (not Map.has_key?(@pdus_with_status_dependant_body, command_id))
+  defp build_body?(pdu) do
+    !Pdu.resp?(pdu) || Pdu.success_resp?(pdu)
   end
 
   defp build_mandatory_fields(pdu, specs) do
-    case build_mandatory?(pdu) do
-      true -> pdu |> Pdu.mandatory_fields |> MandatoryFieldsBuilder.build(specs)
-      false -> {:ok, <<>>}
-    end
+    pdu |> Pdu.mandatory_fields |> MandatoryFieldsBuilder.build(specs)
   end
 
   defp build_optional_fields(pdu) do
