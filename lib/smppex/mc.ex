@@ -262,7 +262,7 @@ defmodule SMPPEX.MC do
         {:error, _} = error -> error
       end
     end
-    ref = make_ref
+    ref = make_ref()
     case Ranch.start_listener(ref, acceptor_count, transport, transport_opts, Session, [handler: handler]) do
       {:error, _} = error -> error
       {:ok, _, _} -> {:ok, ref}
@@ -366,7 +366,7 @@ defmodule SMPPEX.MC do
     case module.init(socket, transport, args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(mc_opts, :timer_resolution, @default_timer_resolution)
-        timer_ref = Erlang.start_timer(timer_resolution, self, :emit_tick)
+        timer_ref = Erlang.start_timer(timer_resolution, self(), :emit_tick)
 
         enquire_link_limit = Keyword.get(mc_opts, :enquire_link_limit,  @default_enquire_link_limit)
         enquire_link_resp_limit = Keyword.get(mc_opts, :enquire_link_resp_limit,  @default_enquire_link_resp_limit)
@@ -451,9 +451,9 @@ defmodule SMPPEX.MC do
   end
 
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
-    new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self, :emit_tick)
+    new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
-    Kernel.send self, {:tick, SMPPEX.Time.monotonic}
+    Kernel.send self(), {:tick, SMPPEX.Time.monotonic}
     {:noreply, %MC{st | tick_timer_ref: new_tick_timer_ref}}
   end
 
@@ -496,7 +496,7 @@ defmodule SMPPEX.MC do
     new_st = %MC{st | timers: new_timers}
     case PduStorage.fetch(st.pdus, sequence_number) do
       [] ->
-        Logger.info("mc #{inspect self}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
+        Logger.info("mc #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
         {:reply, :ok, new_st}
       [original_pdu] ->
         do_handle_resp_for_pdu(pdu, original_pdu, new_st)
@@ -545,7 +545,7 @@ defmodule SMPPEX.MC do
         new_st = %MC{st | timers: new_timers, time: time}
         {:noreply, new_st}
       {:stop, reason} ->
-        Logger.info("mc #{inspect self}, being stopped by timers(#{reason})")
+        Logger.info("mc #{inspect self()}, being stopped by timers(#{reason})")
         Session.stop(st.smpp_session)
         {:noreply, st}
       {:enquire_link, new_timers} ->

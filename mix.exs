@@ -8,8 +8,8 @@ defmodule Smppex.Mixfile do
       elixir: "~> 1.0",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
-      deps: deps,
-      description: description,
+      deps: deps(),
+      description: description(),
       elixirc_paths: elixirc_paths(Mix.env),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -18,7 +18,7 @@ defmodule Smppex.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      package: package,
+      package: package(),
       dialyzer: [
         plt_file: ".local.plt",
         plt_add_deps: true,

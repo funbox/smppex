@@ -72,7 +72,7 @@ defmodule Support.MC do
   end
 
   defp register_callback(st, callback_info) do
-    new_st = %{st | callbacks: [callback_info | st.callbacks], mc: self}
+    new_st = %{st | callbacks: [callback_info | st.callbacks], mc: self()}
     Agent.update(st.st_backup, fn(_) -> new_st end)
     new_st
   end

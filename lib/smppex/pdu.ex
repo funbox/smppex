@@ -55,7 +55,7 @@ defmodule SMPPEX.Pdu do
       c_id when is_integer(c_id) ->
         %Pdu{
           command_id: c_id,
-          ref: make_ref,
+          ref: make_ref(),
           mandatory: mandatory_fields,
           optional: optional_fields
         }
@@ -64,7 +64,7 @@ defmodule SMPPEX.Pdu do
           command_id: c_id,
           command_status: c_status,
           sequence_number: s_number,
-          ref: make_ref,
+          ref: make_ref(),
           mandatory: mandatory_fields,
           optional: optional_fields
         }

@@ -108,7 +108,7 @@ defmodule SMPPEX do
     end
 
     def init([waiting_pid, count, window]) do
-      SMPPEX.ESME.send_pdu(self, SMPPEX.Pdu.Factory.bind_transmitter(@system_id, @password))
+      SMPPEX.ESME.send_pdu(self(), SMPPEX.Pdu.Factory.bind_transmitter(@system_id, @password))
       {:ok, %{waiting_pid: waiting_pid, count_to_send: count, count_waiting_resp: 0, window: window}}
     end
 
@@ -126,13 +126,13 @@ defmodule SMPPEX do
 
     def handle_resp_timeout(pdu, st) do
       Logger.error("PDU timeout: #{inspect pdu}, terminating")
-      SMPPEX.ESME.stop(self)
+      SMPPEX.ESME.stop(self())
       st
     end
 
     def handle_stop(st) do
       Logger.info("ESME stopped")
-      Kernel.send(st.waiting_pid, {self, :done})
+      Kernel.send(st.waiting_pid, {self(), :done})
       st
     end
 
@@ -140,13 +140,13 @@ defmodule SMPPEX do
       cond do
         st.count_to_send > 0 ->
           count_to_send = min(st.window - st.count_waiting_resp, st.count_to_send)
-          :ok = do_send(self, count_to_send)
+          :ok = do_send(self(), count_to_send)
           %{st | count_waiting_resp: st.window, count_to_send: st.count_to_send - count_to_send}
         st.count_waiting_resp > 0 ->
           st
         true ->
           Logger.info("All PDUs sent, all resps received, terminating")
-          SMPPEX.ESME.stop(self)
+          SMPPEX.ESME.stop(self())
           st
       end
     end
@@ -191,13 +191,13 @@ defmodule SMPPEX do
     def handle_pdu(pdu, last_id) do
       case pdu |> SMPPEX.Pdu.command_id |> SMPPEX.Protocol.CommandNames.name_by_id do
         {:ok, :submit_sm} ->
-          SMPPEX.MC.reply(self, pdu, SMPPEX.Pdu.Factory.submit_sm_resp(0, to_string(last_id)))
+          SMPPEX.MC.reply(self(), pdu, SMPPEX.Pdu.Factory.submit_sm_resp(0, to_string(last_id)))
           last_id + 1
         {:ok, :bind_transmitter} ->
-          SMPPEX.MC.reply(self, pdu, SMPPEX.Pdu.Factory.bind_transmitter_resp(0))
+          SMPPEX.MC.reply(self(), pdu, SMPPEX.Pdu.Factory.bind_transmitter_resp(0))
           last_id
         {:ok, :enquire_link} ->
-          SMPPEX.MC.reply(self, pdu, SMPPEX.Pdu.Factory.enquire_link_resp)
+          SMPPEX.MC.reply(self(), pdu, SMPPEX.Pdu.Factory.enquire_link_resp)
           last_id
         _ -> last_id
       end

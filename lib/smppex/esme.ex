@@ -346,7 +346,7 @@ defmodule SMPPEX.ESME do
 
   @doc false
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
-    esme = self
+    esme = self()
     handler = fn(ref, _socket, _transport, session) ->
       Kernel.send esme, {ref, session}
       {:ok, SMPPEX.ESME.SMPPHandler.new(esme)}
@@ -415,9 +415,9 @@ defmodule SMPPEX.ESME do
 
   @doc false
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
-    new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self, :emit_tick)
+    new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
-    Kernel.send self, {:tick, SMPPEX.Time.monotonic}
+    Kernel.send self(), {:tick, SMPPEX.Time.monotonic}
     {:noreply, %ESME{st | tick_timer_ref: new_tick_timer_ref}}
   end
 
@@ -453,7 +453,7 @@ defmodule SMPPEX.ESME do
     case module.init(args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(esme_opts, :timer_resolution, @default_timer_resolution)
-        timer_ref = Erlang.start_timer(timer_resolution, self, :emit_tick)
+        timer_ref = Erlang.start_timer(timer_resolution, self(), :emit_tick)
 
         enquire_link_limit = Keyword.get(esme_opts, :enquire_link_limit,  @default_enquire_link_limit)
         enquire_link_resp_limit = Keyword.get(esme_opts, :enquire_link_resp_limit,  @default_enquire_link_resp_limit)
@@ -503,7 +503,7 @@ defmodule SMPPEX.ESME do
     new_st = %ESME{st | timers: new_timers}
     case PduStorage.fetch(st.pdus, sequence_number) do
       [] ->
-        Logger.info("esme #{inspect self}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
+        Logger.info("esme #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
         {:reply, :ok, new_st}
       [original_pdu] ->
         do_handle_resp_for_pdu(pdu, original_pdu, new_st)
@@ -526,7 +526,7 @@ defmodule SMPPEX.ESME do
         new_st = %ESME{st | timers: new_timers}
         {:reply, :ok, new_st}
       false ->
-        Logger.info("esme #{inspect self}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
+        Logger.info("esme #{inspect self()}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
         Session.stop(st.smpp_session)
         {:reply, :ok, st}
     end
@@ -563,7 +563,7 @@ defmodule SMPPEX.ESME do
         new_st = %ESME{st | timers: new_timers, time: time}
         {:noreply, new_st}
       {:stop, reason} ->
-        Logger.info("esme #{inspect self}, being stopped by timers(#{reason})")
+        Logger.info("esme #{inspect self()}, being stopped by timers(#{reason})")
         Session.stop(st.smpp_session)
         {:noreply, st}
       {:enquire_link, new_timers} ->

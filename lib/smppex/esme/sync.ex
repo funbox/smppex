@@ -107,7 +107,7 @@ defmodule SMPPEX.ESME.Sync do
 
   @doc false
   def handle_call({:request, pdu}, from, st) do
-    ESME.send_pdu(self, pdu)
+    ESME.send_pdu(self(), pdu)
     new_st = %{st | from: from, pdu: pdu, state: :wait_for_resp}
     {:noreply, new_st}
   end

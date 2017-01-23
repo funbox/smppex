@@ -109,7 +109,7 @@ defmodule SMPPEX.ESMETest do
   end
 
   test "cast", ctx do
-    ref = make_ref
+    ref = make_ref()
     ESME.cast(ctx[:esme], ref)
     Timer.sleep(10)
 
@@ -117,7 +117,7 @@ defmodule SMPPEX.ESMETest do
   end
 
   test "call", ctx do
-    ref = make_ref
+    ref = make_ref()
     ESME.call(ctx[:esme], ref)
 
     assert [{:init}, {:handle_call, _, ^ref}] = SupportESME.callbacks_received(ctx[:esme])
@@ -128,7 +128,7 @@ defmodule SMPPEX.ESMETest do
   end
 
   test "info", ctx do
-    ref = make_ref
+    ref = make_ref()
     Kernel.send ctx[:esme], ref
     Timer.sleep(10)
 

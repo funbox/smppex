@@ -101,7 +101,7 @@ defmodule SMPPEX.MCTest do
   end
 
   test "cast", ctx do
-    ref = make_ref
+    ref = make_ref()
     MC.cast(ctx[:mc], ref)
     Timer.sleep(10)
 
@@ -109,7 +109,7 @@ defmodule SMPPEX.MCTest do
   end
 
   test "call", ctx do
-    ref = make_ref
+    ref = make_ref()
     MC.call(ctx[:mc], ref)
 
     assert [{:init}, {:handle_call, _, ^ref}] = ctx[:callbacks].()
@@ -120,7 +120,7 @@ defmodule SMPPEX.MCTest do
   end
 
   test "info", ctx do
-    ref = make_ref
+    ref = make_ref()
     Kernel.send ctx[:mc], ref
     Timer.sleep(10)
 

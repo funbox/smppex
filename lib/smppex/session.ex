@@ -42,9 +42,9 @@ defmodule SMPPEX.Session do
 
   def init(ref, socket, transport, opts) do
     session_factory = Proplists.get_value(:handler, opts)
-    case session_factory.(ref, socket, transport, self) do
+    case session_factory.(ref, socket, transport, self()) do
       {:ok, session} ->
-        :ok = ProcLib.init_ack({:ok, self})
+        :ok = ProcLib.init_ack({:ok, self()})
         :ok = Ranch.accept_ack(ref)
         state = %{
           ref: ref,
