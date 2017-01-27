@@ -44,10 +44,9 @@ defmodule SMPPEX.ESME do
     :smpp_session,
     :module,
     :module_state,
+    :pdu_storage,
     :timers,
-    :pdus,
     :response_limit,
-    :sequence_number,
     :time,
     :timer_resolution,
     :tick_timer_ref
@@ -64,6 +63,8 @@ defmodule SMPPEX.ESME do
   @default_call_timeout 5000
 
   @default_transport :ranch_tcp
+
+  @default_pool_size 2
 
   @type state :: term
   @type request :: term
@@ -244,9 +245,17 @@ defmodule SMPPEX.ESME do
     gen_server_opts = Keyword.get(opts, :gen_server_opts, [])
     timeout = Keyword.get(opts, :timeout, @default_timeout)
     esme_opts = Keyword.get(opts, :esme_opts, [])
+
     GenServer.start_link(
       __MODULE__,
-      [convert_host(host), port, {module, args}, transport, timeout, esme_opts],
+      [
+        convert_host(host),
+        port,
+        {module, args},
+        transport,
+        timeout,
+        esme_opts
+      ],
       gen_server_opts
     )
   end
@@ -346,13 +355,15 @@ defmodule SMPPEX.ESME do
 
   @doc false
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
+
     esme = self()
     handler = fn(ref, _socket, _transport, session) ->
       Kernel.send esme, {ref, session}
       {:ok, SMPPEX.ESME.SMPPHandler.new(esme)}
     end
 
-    case start_session(handler, host, port, transport, timeout) do
+    pool_size = Keyword.get(esme_opts, :pool_size, @default_pool_size)
+    case start_session(handler, host, port, transport, timeout, pool_size) do
       {:ok, pool, session} ->
         init_esme(mod_with_args, pool, session, esme_opts)
       {:error, reason} -> {:stop, reason}
@@ -432,11 +443,10 @@ defmodule SMPPEX.ESME do
   end
 
   # Private functions
-
-  defp start_session(handler, host, port, transport, timeout) do
+  defp start_session(handler, host, port, transport, timeout, pool_size) do
     case transport.connect(host, port, [:binary, {:packet, 0}, {:active, :once}], timeout) do
       {:ok, socket} ->
-        pool = ClientPool.start(handler, 2, transport, timeout)
+        pool = ClientPool.start(handler, pool_size, transport, timeout)
         ClientPool.start_session(pool, socket)
         ref = ClientPool.ref(pool)
         receive do
@@ -450,6 +460,7 @@ defmodule SMPPEX.ESME do
   end
 
   defp init_esme({module, args}, pool, session, esme_opts) do
+
     case module.init(args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(esme_opts, :timer_resolution, @default_timer_resolution)
@@ -469,7 +480,13 @@ defmodule SMPPEX.ESME do
           inactivity_limit
         )
 
-        {:ok, pdu_storage} = PduStorage.start_link
+
+        pdu_storage_pid = case Keyword.get(esme_opts, :pdu_storage_pid, nil) do
+          nil ->
+              {:ok, pid} = PduStorage.start_link()
+              pid
+          pid -> pid
+        end
         response_limit = Keyword.get(esme_opts, :response_limit, @default_response_limit)
 
         {:ok, %ESME{
@@ -477,10 +494,9 @@ defmodule SMPPEX.ESME do
           smpp_session: session,
           module: module,
           module_state: state,
+          pdu_storage: pdu_storage_pid,
           timers: timers,
-          pdus: pdu_storage,
           response_limit: response_limit,
-          sequence_number: 0,
           time: time,
           timer_resolution: timer_resolution,
           tick_timer_ref: timer_ref
@@ -501,10 +517,13 @@ defmodule SMPPEX.ESME do
     sequence_number = Pdu.sequence_number(pdu)
     new_timers = SMPPTimers.handle_peer_action(st.timers, st.time)
     new_st = %ESME{st | timers: new_timers}
-    case PduStorage.fetch(st.pdus, sequence_number) do
+
+    case PduStorage.fetch(st.pdu_storage, sequence_number) do
       [] ->
-        Logger.info("esme #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
-        {:reply, :ok, new_st}
+        # don't drop response pdu for sequence numbers which not recognized
+        # with_session maybe in use
+        # just return back a nil for original_pdu, and let the client handle it, with some pattern matching
+        do_handle_resp_for_pdu(pdu, nil, new_st)
       [original_pdu] ->
         do_handle_resp_for_pdu(pdu, original_pdu, new_st)
     end
@@ -545,7 +564,7 @@ defmodule SMPPEX.ESME do
   end
 
   defp do_handle_tick(time, st) do
-    expired_pdus = PduStorage.fetch_expired(st.pdus, time)
+    expired_pdus = PduStorage.fetch_expired(st.pdu_storage, time)
     new_st = do_handle_expired_pdus(expired_pdus, st)
     do_handle_timers(time, new_st)
   end
@@ -579,12 +598,16 @@ defmodule SMPPEX.ESME do
   end
 
   defp do_send_pdu(pdu, st) do
-    sequence_number = st.sequence_number + 1
-    new_pdu = %Pdu{pdu | sequence_number: sequence_number}
-    true = PduStorage.store(st.pdus, new_pdu, st.time + st.response_limit)
-    Session.send_pdu(st.smpp_session, new_pdu)
-    new_st = %ESME{st | sequence_number: sequence_number}
-    new_st
+
+    pdu = case pdu.sequence_number do
+      0 -> %Pdu{pdu | sequence_number: PduStorage.reserve_sequence_number(st.pdu_storage)}
+      _ -> pdu
+    end
+
+    true = PduStorage.store(st.pdu_storage, pdu, st.time + st.response_limit)
+    Session.send_pdu(st.smpp_session, pdu)
+
+    st
   end
 
   defp do_reply(pdu, reply_pdu, st) do
@@ -595,5 +618,6 @@ defmodule SMPPEX.ESME do
 
   defp convert_host(host) when is_binary(host), do: to_char_list(host)
   defp convert_host(host), do: host
+
 
 end

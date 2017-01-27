@@ -12,6 +12,7 @@ defmodule SMPPEX.MCTest do
   alias SMPPEX.Pdu.Factory
 
   setup do
+
     {pid, mc_server} = SupportMC.start_link([
       mc_opts: [
         enquire_link_limit: 1000,
@@ -70,26 +71,6 @@ defmodule SMPPEX.MCTest do
     assert [{:pdu, in_pdu1}, {:pdu, in_pdu2}] = ESME.wait_for_pdus(ctx[:esme])
     assert Pdu.sequence_number(in_pdu1) == 1
     assert Pdu.sequence_number(in_pdu2) == 2
-  end
-
-  test "reply, reply sequence_number", ctx do
-    in_pdu = Factory.bind_transmitter("system_id", "password")
-
-    SMPPEX.ESME.send_pdu(ctx[:esme], in_pdu)
-    SMPPEX.ESME.send_pdu(ctx[:esme], in_pdu)
-    SMPPEX.ESME.send_pdu(ctx[:esme], in_pdu)
-
-    Timer.sleep(50)
-    assert [{:init}, _, _, {:handle_pdu, received_in_pdu}] = ctx[:callbacks].()
-    assert Pdu.sequence_number(received_in_pdu) == 3
-
-    out_pdu = Factory.bind_transmitter_resp(0)
-    MC.reply(ctx[:mc], received_in_pdu, out_pdu)
-
-    Timer.sleep(50)
-    assert [{:ok, _}, {:ok, _}, {:ok, _}, {:resp, reply, _}] = ESME.wait_for_pdus(ctx[:esme])
-
-    assert Pdu.sequence_number(reply) == 3
   end
 
   test "stop_session", ctx do
