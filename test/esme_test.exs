@@ -220,7 +220,9 @@ defmodule SMPPEX.ESMETest do
     assert [
       {:init},
       {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, _, nil}
     ] = SupportESME.callbacks_received(ctx[:esme])
+
   end
 
   test "handle_resp_timeout", ctx do
@@ -239,6 +241,7 @@ defmodule SMPPEX.ESMETest do
       {:init},
       {:handle_send_pdu_result, _, :ok},
       {:handle_resp_timeout, timeout_pdu},
+      {:handle_resp, _, nil}
     ] = SupportESME.callbacks_received(ctx[:esme])
 
     assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"

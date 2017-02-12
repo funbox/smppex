@@ -51,24 +51,23 @@ defmodule SMPPEX.MC do
     :smpp_session,
     :module,
     :module_state,
+    :pdu_storage,
     :timers,
-    :pdus,
     :response_limit,
-    :sequence_number,
     :time,
     :timer_resolution,
     :tick_timer_ref
   ]
 
-  @default_enquire_link_limit 30000
-  @default_enquire_link_resp_limit 30000
-  @default_session_init_limit 10000
-  @default_inactivity_limit :infinity
-  @default_response_limit 60000
+  @default_enquire_link_limit         30000
+  @default_enquire_link_resp_limit    30000
+  @default_session_init_limit         10000
+  @default_inactivity_limit           :infinity
+  @default_response_limit             60000
 
-  @default_timer_resolution 100
+  @default_timer_resolution           100
 
-  @default_call_timeout 5000
+  @default_call_timeout               5000
 
   @type state :: term
   @type request :: term
@@ -252,10 +251,12 @@ defmodule SMPPEX.MC do
   to stop the whole MC listener and all sessions received by it.
   """
   def start({_module, _args} = mod_with_args, opts \\ []) do
+
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
     transport_opts = Keyword.get(opts, :transport_opts, [{:port, 0}])
     mc_opts = Keyword.get(opts, :mc_opts, [])
+
     handler = fn(ref, socket, transport, session) ->
       case start_mc(mod_with_args, ref, socket, transport, session, mc_opts) do
         {:ok,  mc} -> {:ok, SMPPEX.MC.SMPPHandler.new(mc)}
@@ -383,17 +384,22 @@ defmodule SMPPEX.MC do
           inactivity_limit
         )
 
-        {:ok, pdu_storage} = PduStorage.start_link
+        pdu_storage_pid = case Keyword.get(mc_opts, :pdu_storage_pid, nil) do
+          nil ->
+            {:ok, pid} = PduStorage.start_link()
+            pid
+          pid -> pid
+        end
+
         response_limit = Keyword.get(mc_opts, :response_limit, @default_response_limit)
 
         {:ok, %MC{
           smpp_session: session,
           module: module,
           module_state: state,
+          pdu_storage: pdu_storage_pid,
           timers: timers,
-          pdus: pdu_storage,
           response_limit: response_limit,
-          sequence_number: 0,
           time: time,
           timer_resolution: timer_resolution,
           tick_timer_ref: timer_ref
@@ -494,7 +500,7 @@ defmodule SMPPEX.MC do
     sequence_number = Pdu.sequence_number(pdu)
     new_timers = SMPPTimers.handle_peer_action(st.timers, st.time)
     new_st = %MC{st | timers: new_timers}
-    case PduStorage.fetch(st.pdus, sequence_number) do
+    case PduStorage.fetch(st.pdu_storage, sequence_number) do
       [] ->
         Logger.info("mc #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
         {:reply, :ok, new_st}
@@ -527,7 +533,7 @@ defmodule SMPPEX.MC do
   end
 
   defp do_handle_tick(time, st) do
-    expired_pdus = PduStorage.fetch_expired(st.pdus, time)
+    expired_pdus = PduStorage.fetch_expired(st.pdu_storage, time)
     new_st = do_handle_expired_pdus(expired_pdus, st)
     do_handle_timers(time, new_st)
   end
@@ -561,12 +567,16 @@ defmodule SMPPEX.MC do
   end
 
   defp do_send_pdu(pdu, st) do
-    sequence_number = st.sequence_number + 1
-    new_pdu = %Pdu{pdu | sequence_number: sequence_number}
-    true = PduStorage.store(st.pdus, new_pdu, st.time + st.response_limit)
-    Session.send_pdu(st.smpp_session, new_pdu)
-    new_st = %MC{st | sequence_number: sequence_number}
-    new_st
+
+    pdu = case pdu.sequence_number do
+      0 -> %Pdu{pdu | sequence_number: PduStorage.reserve_sequence_number(st.pdu_storage)}
+      _ -> pdu
+    end
+
+    true = PduStorage.store(st.pdu_storage, pdu, st.time + st.response_limit)
+    Session.send_pdu(st.smpp_session, pdu)
+
+    st
   end
 
   defp do_reply(pdu, reply_pdu, st) do
