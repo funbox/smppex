@@ -38,7 +38,7 @@ defmodule Smppex.Mixfile do
       {:dialyxir, git: "https://github.com/jeremyjh/dialyxir.git", only: :dev},
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
-      {:ranch, "~> 1.2"}
+      {:ranch, "~> 1.2.0"}
     ]
   end
 
