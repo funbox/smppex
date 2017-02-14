@@ -46,7 +46,7 @@ defmodule SMPPEX.Pdu.PP do
   """
 
   def format(pdu, indent \\ @indent, pad \\ @pad) do
-    ["\n", pdu |> pdu_lines |> Enum.map(fn([section_head | section_lines]) ->
+    ["\n", C.reset, pdu |> pdu_lines |> Enum.map(fn([section_head | section_lines]) ->
       [pad, section_head, "\n", section_lines |> Enum.map(fn(line) ->
         [pad, indent, line, "\n"]
       end) ]
