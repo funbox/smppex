@@ -4,7 +4,7 @@ defmodule Smppex.Mixfile do
   def project do
     [
       app: :smppex,
-      version: "0.1.12",
+      version: "0.2.0",
       elixir: "~> 1.0",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
@@ -35,10 +35,10 @@ defmodule Smppex.Mixfile do
   defp deps do
     [
       {:excoveralls, "~> 0.5", only: :test},
-      {:dialyxir, git: "https://github.com/jeremyjh/dialyxir.git", only: :dev},
+      {:dialyxir, "~> 0.4.4", only: :dev},
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
-      {:ranch, "~> 1.2.0"}
+      {:ranch, "~> 1.3"}
     ]
   end
 
