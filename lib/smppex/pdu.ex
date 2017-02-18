@@ -146,6 +146,21 @@ defmodule SMPPEX.Pdu do
     pdu.sequence_number |> to_int
   end
 
+  @doc """
+  Returns Pdu's unique reference `ref`.
+
+  ## Examples
+
+      iex(1)> pdu = SMPPEX.Pdu.new({1, 4, 123})
+      iex(2)> is_reference SMPPEX.Pdu.ref(pdu)
+      true
+
+  """
+
+  def ref(pdu) do
+    pdu.ref
+  end
+
   @spec mandatory_field(t, atom) :: term
 
   @doc """
