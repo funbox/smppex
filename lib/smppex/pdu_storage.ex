@@ -51,9 +51,8 @@ defmodule SMPPEX.PduStorage do
   end
 
   def handle_call({:fetch, sequence_number}, _from, st) do
-    case ETS.lookup(st.by_sequence_number, sequence_number) do
+    case ETS.take(st.by_sequence_number, sequence_number) do
       [{^sequence_number, {_expire_time, pdu}}] ->
-        true = ETS.delete(st.by_sequence_number, sequence_number)
         {:reply, [pdu], st}
       [] ->
         {:reply, [], st}
