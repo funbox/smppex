@@ -2,6 +2,7 @@
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](http://hexdocs.pm/smppex)
 [![Version](https://img.shields.io/hexpm/v/smppex.svg)](https://hex.pm/packages/smppex)
 [![Coverage Status](https://coveralls.io/repos/github/savonarola/smppex/badge.svg?branch=master)](https://coveralls.io/github/savonarola/smppex?branch=master)
+[![Inline docs](http://inch-ci.org/github/savonarola/smppex.svg?branch=master)](http://inch-ci.org/github/savonarola/smppex)
 
 # Smppex
 
