@@ -90,9 +90,12 @@ defmodule SMPPEX.Pdu.Factory do
     Pdu.new({command_id, command_status, 0})
   end
 
-  @spec submit_sm(Pdu.addr, Pdu.addr, String.t, non_neg_integer) :: Pdu.t
+  @type message :: String.t | { data_coding :: non_neg_integer, String.t }
+  @spec submit_sm(Pdu.addr, Pdu.addr, String.t, message) :: Pdu.t
 
-  def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message, registered_delivery \\ 0) do
+  def submit_sm(source, dest, message, registered_delivery \\ 0)
+
+  def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, {data_coding, message}, registered_delivery) do
     {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
     Pdu.new(
       command_id,
@@ -104,9 +107,14 @@ defmodule SMPPEX.Pdu.Factory do
         dest_addr_ton: dest_addr_ton,
         dest_addr_npi: dest_addr_npi,
         short_message: message,
+        data_coding: data_coding,
         registered_delivery: registered_delivery
       }
     )
+  end
+
+  def submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message, registered_delivery) when is_binary(message)  do
+    submit_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, {0, message}, registered_delivery)
   end
 
   @spec submit_sm_resp(non_neg_integer, String.t) :: Pdu.t
@@ -121,9 +129,9 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
-  @spec deliver_sm(Pdu.addr, Pdu.addr, String.t) :: Pdu.t
+  @spec deliver_sm(Pdu.addr, Pdu.addr, message) :: Pdu.t
 
-  def deliver_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message) do
+  def deliver_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, {data_coding, message}) do
     {:ok, command_id} = CommandNames.id_by_name(:deliver_sm)
     Pdu.new(
       command_id,
@@ -134,9 +142,14 @@ defmodule SMPPEX.Pdu.Factory do
         destination_addr: dest_addr,
         dest_addr_ton: dest_addr_ton,
         dest_addr_npi: dest_addr_npi,
-        short_message: message
+        short_message: message,
+        data_coding: data_coding
       }
     )
+  end
+
+  def deliver_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, message) when is_binary(message) do
+    deliver_sm({source_addr, source_addr_ton, source_addr_npi}, {dest_addr, dest_addr_ton, dest_addr_npi}, {0, message})
   end
 
   @type message_state :: non_neg_integer | atom
