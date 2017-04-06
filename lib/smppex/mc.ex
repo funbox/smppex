@@ -517,6 +517,7 @@ defmodule SMPPEX.MC do
 
   defp do_handle_stop(st) do
     _ = st.module.handle_stop(st.module_state)
+    :ok = PduStorage.stop(st.pdus)
     {:stop, :normal, :ok, st}
   end
 

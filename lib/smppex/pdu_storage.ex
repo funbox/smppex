@@ -38,6 +38,12 @@ defmodule SMPPEX.PduStorage do
     GenServer.call(storage, {:fetch_expired, expire_time})
   end
 
+  @spec stop(pid) :: :ok
+
+  def stop(storage) do
+    GenServer.call(storage, :stop)
+  end
+
   def init([]) do
     {:ok, %PduStorage{
       by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set])
@@ -66,4 +72,7 @@ defmodule SMPPEX.PduStorage do
     {:reply, expired, st}
   end
 
+  def handle_call(:stop, _from, st) do
+    {:stop, :normal, :ok, st}
+  end
 end

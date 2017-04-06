@@ -39,4 +39,10 @@ defmodule SMPPEX.PduStorageTest do
     assert [] == PduStorage.fetch(storage, 123)
     assert [pdu2] == PduStorage.fetch(storage, 124)
   end
+
+  test "stop" do
+    {:ok, storage} = PduStorage.start_link
+    assert :ok == PduStorage.stop(storage)
+    refute Process.alive?(storage)
+  end
 end
