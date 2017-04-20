@@ -131,9 +131,21 @@ defmodule SMPPEX.MC do
   @doc """
   Invoked when the SMPP session is about to stop.
 
-  The returned value is ignored.
+  `lost_pdus` contains sent PDUs which have not received resps (and will never
+   receive since the session terminates).
+
+  `reason` contains one of the following:
+  * `:custom` -- session manually stopped by call to `MC.stop_session`;
+  * `{:parse_error, error}` -- error in parsing incoming SMPP packet occured;
+  * `:socket_closed` -- peer closed socket;
+  * `{:socket_error, error}` -- socket error occured;
+  * `{:timers, reason}` -- session closed by timers.
+
+  The return value is `{stop_reason, new_state}`. The session GenServer will stop
+  with `stop_reason`.
+
   """
-  @callback handle_stop(state) :: any
+  @callback handle_stop(reason :: term, lost_pdus :: [Pdu.t], state) :: {exit_reason :: term, state}
 
   @doc """
   Invoked for handling `call/3` calls.
@@ -185,7 +197,10 @@ defmodule SMPPEX.MC do
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
       @doc false
-      def handle_stop(_state), do: nil
+      def handle_stop(reason, lost_pdu, state) do
+        Logger.info("mc_conn #{inspect self()} is stopping, reason: #{reason}, lost_pdus: #{lost_pdus}")
+        {:normal, state}
+      end
 
       @doc false
       def handle_call(_request, _from, state), do: {:reply, :ok, state}
@@ -202,7 +217,7 @@ defmodule SMPPEX.MC do
         handle_resp: 3,
         handle_resp_timeout: 2,
         handle_send_pdu_result: 3,
-        handle_stop: 1,
+        handle_stop: 3,
         handle_call: 3,
         handle_cast: 2,
         handle_info: 2
@@ -345,11 +360,11 @@ defmodule SMPPEX.MC do
     GenServer.call(mc, {:handle_pdu, pdu})
   end
 
-  @spec handle_stop(pid) :: :ok
+  @spec handle_stop(pid, reason :: term) :: :ok
 
   @doc false
-  def handle_stop(mc) do
-    GenServer.call(mc, :handle_stop)
+  def handle_stop(mc, reason) do
+    GenServer.call(mc, {:handle_stop, reason})
   end
 
   @type send_pdu_result :: :ok | {:error, term}
@@ -410,8 +425,8 @@ defmodule SMPPEX.MC do
     end
   end
 
-  def handle_call(:handle_stop, _from, st) do
-    do_handle_stop(st)
+  def handle_call({:handle_stop, reason}, _from, st) do
+    do_handle_stop(reason, st)
   end
 
   def handle_call({:handle_send_pdu_result, pdu, send_pdu_result}, _from, st) do
@@ -440,7 +455,7 @@ defmodule SMPPEX.MC do
   end
 
   def handle_cast(:stop, st) do
-    Session.stop(st.smpp_session)
+    Session.stop(st.smpp_session, :custom)
     {:noreply, st}
   end
 
@@ -515,10 +530,11 @@ defmodule SMPPEX.MC do
     {:reply, :ok, new_st}
   end
 
-  defp do_handle_stop(st) do
-    _ = st.module.handle_stop(st.module_state)
+  defp do_handle_stop(reason, st) do
+    lost_pdus = PduStorage.fetch_all(st.pdus)
     :ok = PduStorage.stop(st.pdus)
-    {:stop, :normal, :ok, st}
+    {exit_reason, new_module_state} = st.module.handle_stop(reason, lost_pdus, st.module_state)
+    {:stop, exit_reason, :ok, %MC{st | module_state: new_module_state}}
   end
 
   defp do_handle_send_pdu_result(pdu, send_pdu_result, st) do
@@ -547,7 +563,7 @@ defmodule SMPPEX.MC do
         {:noreply, new_st}
       {:stop, reason} ->
         Logger.info("mc #{inspect self()}, being stopped by timers(#{reason})")
-        Session.stop(st.smpp_session)
+        Session.stop(st.smpp_session, {:timers, reason})
         {:noreply, st}
       {:enquire_link, new_timers} ->
         new_st = %MC{st | timers: new_timers, time: time}

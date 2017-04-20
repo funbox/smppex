@@ -32,6 +32,12 @@ defmodule SMPPEX.PduStorage do
     GenServer.call(storage, {:fetch, sequence_number})
   end
 
+  @spec fetch_all(pid) :: [Pdu.t]
+
+  def fetch_all(storage) do
+    GenServer.call(storage, :fetch_all)
+  end
+
   @spec fetch_expired(pid, non_neg_integer) :: [Pdu.t]
 
   def fetch_expired(storage, expire_time) do
@@ -63,6 +69,11 @@ defmodule SMPPEX.PduStorage do
       [] ->
         {:reply, [], st}
     end
+  end
+
+  def handle_call(:fetch_all, _from, st) do
+    pdus = for {_sn, {_ex, pdu}} <- ETS.tab2list(st.by_sequence_number), do: pdu
+    {:reply, pdus, st}
   end
 
   def handle_call({:fetch_expired, expire_time}, _from, st) do
