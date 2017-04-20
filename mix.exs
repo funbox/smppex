@@ -8,6 +8,7 @@ defmodule Smppex.Mixfile do
       elixir: "~> 1.0",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
+      source_url: "https://github.com/savonarola/smppex",
       deps: deps(),
       description: description(),
       elixirc_paths: elixirc_paths(Mix.env),
