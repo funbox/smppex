@@ -191,7 +191,7 @@ defmodule SMPPEX.ESME do
 
       @doc false
       def handle_stop(reason, lost_pdus, state) do
-        Logger.info("esme #{inspect self()} is stopping, reason: #{reason}, lost_pdus: #{lost_pdus}")
+        Logger.info("esme #{inspect self()} is stopping, reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
         {:normal, state}
       end
 
@@ -582,7 +582,7 @@ defmodule SMPPEX.ESME do
         {:noreply, new_st}
       {:stop, reason} ->
         Logger.info("esme #{inspect self()}, being stopped by timers(#{reason})")
-        Session.stop(st.smpp_session)
+        Session.stop(st.smpp_session, {:timers, reason})
         {:noreply, st}
       {:enquire_link, new_timers} ->
         new_st = %ESME{st | timers: new_timers, time: time}

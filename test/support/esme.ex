@@ -42,8 +42,9 @@ defmodule Support.ESME do
     register_callback(st, {:handle_send_pdu_result, pdu, result})
   end
 
-  def handle_stop(st) do
-    register_callback(st, {:handle_stop})
+  def handle_stop(reason, lost_pdus, st) do
+    register_callback(st, {:handle_stop, reason, lost_pdus})
+    {:normal, st}
   end
 
   def handle_call(:callbacks_received, _, st) do

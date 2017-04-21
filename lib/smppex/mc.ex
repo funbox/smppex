@@ -179,6 +179,8 @@ defmodule SMPPEX.MC do
     quote location: :keep do
       @behaviour SMPPEX.MC
 
+      require Logger
+
       @doc false
       def init(_socket, _transport, args) do
         {:ok, args}
@@ -197,8 +199,8 @@ defmodule SMPPEX.MC do
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
       @doc false
-      def handle_stop(reason, lost_pdu, state) do
-        Logger.info("mc_conn #{inspect self()} is stopping, reason: #{reason}, lost_pdus: #{lost_pdus}")
+      def handle_stop(reason, lost_pdus, state) do
+        Logger.info("mc_conn #{inspect self()} is stopping, reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
         {:normal, state}
       end
 

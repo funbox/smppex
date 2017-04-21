@@ -153,11 +153,12 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   @doc false
-  def handle_stop(st) do
+  def handle_stop(_reason, _los_pdus, st) do
     case st.from do
       nil -> :nop
       from -> GenServer.reply(from, :stop)
     end
+    {:normal, st}
   end
 
   @doc false

@@ -104,7 +104,7 @@ defmodule SMPPEX.ESMETest do
     ESME.stop(ctx[:esme])
     Timer.sleep(50)
 
-    assert [{:init}, {:handle_stop}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
+    assert [{:init}, {:handle_stop, :custom, []}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
 
@@ -354,7 +354,7 @@ defmodule SMPPEX.ESMETest do
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
       {:handle_send_pdu_result, _, :ok}, # enquire_link sent
-      {:handle_stop}
+      {:handle_stop, {:timers, :enquire_link_timer}, _}
     ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
@@ -377,7 +377,7 @@ defmodule SMPPEX.ESMETest do
       {:init},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
-      {:handle_stop}
+      {:handle_stop, {:timers, :inactivity_timer}, []}
     ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
@@ -396,7 +396,7 @@ defmodule SMPPEX.ESMETest do
       {:init},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
-      {:handle_stop}
+      {:handle_stop, :bind_failed, []}
     ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end

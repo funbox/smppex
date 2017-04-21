@@ -96,7 +96,7 @@ defmodule SMPPEX.MCTest do
     MC.stop_session(ctx[:mc])
     Timer.sleep(50)
 
-    assert [{:init}, {:handle_stop}] = ctx[:callbacks].()
+    assert [{:init}, {:handle_stop, [], :custom}] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
   end
 
@@ -317,7 +317,7 @@ defmodule SMPPEX.MCTest do
       {:init},
       {:handle_pdu, _},
       {:handle_send_pdu_result, _, _}, # Enquire link
-      {:handle_stop}
+      {:handle_stop, _, {:timers, :enquire_link_timer}}
     ] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
   end
@@ -333,7 +333,7 @@ defmodule SMPPEX.MCTest do
     assert [
       {:init},
       {:handle_pdu, _}, # bind_transmitter sent
-      {:handle_stop}
+      {:handle_stop, [], {:timers, :inactivity_timer}}
     ] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
   end
