@@ -412,5 +412,16 @@ defmodule SMPPEX.ESMETest do
     refute Process.alive?(ctx[:esme])
   end
 
+  test "legacy handle_stop" do
+    server = Server.start_link
+    Timer.sleep(50)
+
+    {callback_backup, legacy_esme} = Support.LegacyESME.start_link({127,0,0,1}, Server.port(server), [])
+    ESME.stop(legacy_esme)
+    Timer.sleep(50)
+
+    assert [:handle_stop] = SupportESME.callbacks_received_backuped(callback_backup)
+  end
+
 
 end

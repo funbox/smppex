@@ -535,8 +535,27 @@ defmodule SMPPEX.MC do
   defp do_handle_stop(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
     :ok = PduStorage.stop(st.pdus)
-    {exit_reason, new_module_state} = st.module.handle_stop(reason, lost_pdus, st.module_state)
-    {:stop, exit_reason, :ok, %MC{st | module_state: new_module_state}}
+
+    # TODO: remove legacy implementation handling in future versions
+    module = st.module
+
+    result = try do
+      module.handle_stop(st.module_state)
+      :legacy_impl
+    rescue
+      e in UndefinedFunctionError -> {:new_impl, e}
+    end
+
+    case result do
+      :legacy_impl ->
+        Logger.warn("Implementing #{st.module}.handle_stop(st) is deprecated, implement #{st.module}.handle_stop(reason, lost_pdus, st) instead")
+        {:stop, :normal, :ok, st}
+      {:new_impl, %UndefinedFunctionError{arity: 1, function: :handle_stop, module: ^module}} ->
+        {exit_reason, new_module_state} = module.handle_stop(reason, lost_pdus, st.module_state)
+        {:stop, exit_reason, :ok, %MC{st | module_state: new_module_state}}
+      {:new_impl, other_exception} ->
+        raise other_exception
+    end
   end
 
   defp do_handle_send_pdu_result(pdu, send_pdu_result, st) do

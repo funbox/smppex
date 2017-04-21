@@ -349,4 +349,20 @@ defmodule SMPPEX.MCTest do
     refute Process.alive?(ctx[:esme])
   end
 
+  test "legacy handle_stop" do
+    {pid, mc_server} = Support.LegacyMC.start_link()
+    port = Ranch.get_port(mc_server)
+
+    Timer.sleep(50)
+
+    {:ok, _esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
+    Timer.sleep(50)
+
+    mc = Support.LegacyMC.mc(pid)
+    MC.stop_session(mc)
+    Timer.sleep(50)
+
+    assert [:init, :handle_stop] = Support.LegacyMC.callbacks_received(pid)
+  end
+
 end
