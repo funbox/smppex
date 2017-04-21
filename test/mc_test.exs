@@ -338,4 +338,15 @@ defmodule SMPPEX.MCTest do
     refute Process.alive?(ctx[:mc])
   end
 
+  test "lost_pdus", ctx do
+    pdu = SMPPEX.Pdu.Factory.enquire_link
+    MC.send_pdu(ctx[:mc], pdu)
+    Timer.sleep(50)
+    MC.stop_session(ctx[:mc])
+    Timer.sleep(50)
+
+    assert [{:init}, {:handle_send_pdu_result, _, _}, {:handle_stop, [%SMPPEX.Pdu{command_id: 21}], :custom}] = ctx[:callbacks].()
+    refute Process.alive?(ctx[:esme])
+  end
+
 end

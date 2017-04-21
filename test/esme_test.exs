@@ -401,4 +401,16 @@ defmodule SMPPEX.ESMETest do
     refute Process.alive?(ctx[:esme])
   end
 
+  test "lost_pdus", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(ctx[:esme], pdu)
+    Timer.sleep(50)
+    ESME.stop(ctx[:esme])
+    Timer.sleep(50)
+
+    assert [{:init}, {:handle_send_pdu_result, _, _}, {:handle_stop, :custom, [%SMPPEX.Pdu{command_id: 2}]}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
+    refute Process.alive?(ctx[:esme])
+  end
+
+
 end

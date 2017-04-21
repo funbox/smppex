@@ -40,6 +40,19 @@ defmodule SMPPEX.PduStorageTest do
     assert [pdu2] == PduStorage.fetch(storage, 124)
   end
 
+  test "fetch_all" do
+    {:ok, storage} = PduStorage.start_link
+    pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1") | sequence_number: 1}
+    pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass2") | sequence_number: 2}
+
+    PduStorage.store(storage, pdu1, 321)
+    PduStorage.store(storage, pdu2, 321)
+
+    pdus = PduStorage.fetch_all(storage)
+
+    assert pdus == [pdu1, pdu2]
+  end
+
   test "stop" do
     {:ok, storage} = PduStorage.start_link
     assert :ok == PduStorage.stop(storage)
