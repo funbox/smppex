@@ -91,7 +91,7 @@ defmodule SMPPEX.Pdu.Factory do
   end
 
   @type message :: String.t | { data_coding :: non_neg_integer, String.t }
-  @spec submit_sm(Pdu.addr, Pdu.addr, String.t, message) :: Pdu.t
+  @spec submit_sm(Pdu.addr, Pdu.addr, message, non_neg_integer) :: Pdu.t
 
   def submit_sm(source, dest, message, registered_delivery \\ 0)
 
