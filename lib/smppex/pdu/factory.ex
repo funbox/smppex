@@ -76,6 +76,20 @@ defmodule SMPPEX.Pdu.Factory do
     )
   end
 
+  @spec unbind :: Pdu.t
+
+  def unbind do
+    {:ok, command_id} = CommandNames.id_by_name(:unbind)
+    Pdu.new(command_id)
+  end
+
+  @spec unbind_resp(non_neg_integer) :: Pdu.t
+
+  def unbind_resp(command_status \\ 0) do
+    {:ok, command_id} = CommandNames.id_by_name(:unbind_resp)
+    Pdu.new({command_id, command_status, 0})
+  end
+
   @spec enquire_link :: Pdu.t
 
   def enquire_link do
