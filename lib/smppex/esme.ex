@@ -166,6 +166,17 @@ defmodule SMPPEX.ESME do
   """
   @callback handle_info(request, state) :: state
 
+  @doc """
+  Invoked when ESME was stopped abnormally and wasn't able to
+  handle sent PDUs without resps in `handle_stop`.
+
+  Since the ESME is already stopped, the callback does not receive state,
+  but the former pid of ESME, the reason of its termination and unconfirmed PDUs.
+
+  The returned value is ignored.
+  """
+  @callback handle_lost_pdus(esme :: pid, reason :: term, pdus :: [Pdu.t]) :: any
+
   defmacro __using__(_) do
     quote location: :keep do
       @behaviour SMPPEX.ESME
@@ -204,6 +215,11 @@ defmodule SMPPEX.ESME do
       @doc false
       def handle_info(_request, state), do: state
 
+      @doc false
+      def handle_lost_pdus(pid, reason, lost_pdus) do
+        Logger.info("mc_conn #{pid} stopped with reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
+      end
+
       defoverridable [
         init: 1,
         handle_pdu: 2,
@@ -213,7 +229,8 @@ defmodule SMPPEX.ESME do
         handle_stop: 3,
         handle_call: 3,
         handle_cast: 2,
-        handle_info: 2
+        handle_info: 2,
+        handle_lost_pdus: 3
       ]
     end
   end
@@ -485,7 +502,7 @@ defmodule SMPPEX.ESME do
           inactivity_limit
         )
 
-        {:ok, pdu_storage} = PduStorage.start_link
+        {:ok, pdu_storage} = PduStorage.start(&module.handle_lost_pdus/3)
         response_limit = Keyword.get(esme_opts, :response_limit, @default_response_limit)
 
         {:ok, %ESME{
@@ -550,7 +567,6 @@ defmodule SMPPEX.ESME do
 
   defp do_handle_stop(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
-    :ok = PduStorage.stop(st.pdus)
     ClientPool.stop(st.client_pool)
 
     # TODO: remove legacy implementation handling in future versions

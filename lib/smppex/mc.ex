@@ -175,6 +175,17 @@ defmodule SMPPEX.MC do
   """
   @callback handle_info(request, state) :: state
 
+  @doc """
+  Invoked when MC session was stopped abnormally and wasn't able to
+  handle sent PDUs without resps in `handle_stop`.
+
+  Since the MC session is already stopped, the callback does not receive state,
+  but the former pid of MC session, the reason of its termination and unconfirmed PDUs.
+
+  The returned value is ignored.
+  """
+  @callback handle_lost_pdus(mc_conn :: pid, reason :: term, pdus :: [Pdu.t]) :: any
+
   defmacro __using__(_) do
     quote location: :keep do
       @behaviour SMPPEX.MC
@@ -213,6 +224,11 @@ defmodule SMPPEX.MC do
       @doc false
       def handle_info(_request, state), do: state
 
+      @doc false
+      def handle_lost_pdus(pid, reason, lost_pdus) do
+        Logger.info("mc_conn #{pid} stopped with reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
+      end
+
       defoverridable [
         init: 3,
         handle_pdu: 2,
@@ -222,7 +238,8 @@ defmodule SMPPEX.MC do
         handle_stop: 3,
         handle_call: 3,
         handle_cast: 2,
-        handle_info: 2
+        handle_info: 2,
+        handle_lost_pdus: 3
       ]
     end
   end
@@ -400,7 +417,7 @@ defmodule SMPPEX.MC do
           inactivity_limit
         )
 
-        {:ok, pdu_storage} = PduStorage.start_link
+        {:ok, pdu_storage} = PduStorage.start(&module.handle_lost_pdus/3)
         response_limit = Keyword.get(mc_opts, :response_limit, @default_response_limit)
 
         {:ok, %MC{
@@ -534,7 +551,6 @@ defmodule SMPPEX.MC do
 
   defp do_handle_stop(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
-    :ok = PduStorage.stop(st.pdus)
 
     # TODO: remove legacy implementation handling in future versions
     module = st.module

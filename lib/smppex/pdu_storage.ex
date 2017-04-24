@@ -9,15 +9,18 @@ defmodule SMPPEX.PduStorage do
   alias SMPPEX.Pdu
 
   defstruct [
-    :by_sequence_number
+    :by_sequence_number,
+    :on_exit,
+    :monitor,
+    :pid
   ]
 
   @type t :: %PduStorage{}
 
-  @spec start_link :: GenServer.on_start
+  @spec start :: GenServer.on_start
 
-  def start_link do
-    GenServer.start_link(__MODULE__, [])
+  def start(on_exit \\ fn(_pid, _reason, _lost_pdus) -> :ok end) when is_function(on_exit, 3) do
+    GenServer.start_link(__MODULE__, [self(), on_exit])
   end
 
   @spec store(pid, Pdu.t, non_neg_integer) :: boolean
@@ -32,27 +35,25 @@ defmodule SMPPEX.PduStorage do
     GenServer.call(storage, {:fetch, sequence_number})
   end
 
-  @spec fetch_all(pid) :: [Pdu.t]
-
-  def fetch_all(storage) do
-    GenServer.call(storage, :fetch_all)
-  end
-
   @spec fetch_expired(pid, non_neg_integer) :: [Pdu.t]
 
   def fetch_expired(storage, expire_time) do
     GenServer.call(storage, {:fetch_expired, expire_time})
   end
 
-  @spec stop(pid) :: :ok
+  @spec fetch_all(pid) :: [Pdu.t]
 
-  def stop(storage) do
-    GenServer.call(storage, :stop)
+  def fetch_all(storage) do
+    GenServer.call(storage, :fetch_all)
   end
 
-  def init([]) do
+  def init([pid, on_exit]) do
+    monitor = Process.monitor(pid)
     {:ok, %PduStorage{
-      by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set])
+      by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set]),
+      on_exit: on_exit,
+      monitor: monitor,
+      pid: pid,
     }}
   end
 
@@ -71,11 +72,6 @@ defmodule SMPPEX.PduStorage do
     end
   end
 
-  def handle_call(:fetch_all, _from, st) do
-    pdus = for {_sn, {_ex, pdu}} <- ETS.tab2list(st.by_sequence_number), do: pdu
-    {:reply, pdus, st}
-  end
-
   def handle_call({:fetch_expired, expire_time}, _from, st) do
     expired = ETS.select(st.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2']}])
     expired_count = length(expired)
@@ -83,7 +79,23 @@ defmodule SMPPEX.PduStorage do
     {:reply, expired, st}
   end
 
-  def handle_call(:stop, _from, st) do
-    {:stop, :normal, :ok, st}
+  def handle_call(:fetch_all, _from, st) do
+    pdus = for {_sn, {_ex, pdu}} <- ETS.tab2list(st.by_sequence_number), do: pdu
+    ETS.delete_all_objects(st.by_sequence_number)
+    {:reply, pdus, st}
   end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, st) do
+    if st.monitor == ref do
+      lost_pdus = for {_sn, {_ex, pdu}} <- ETS.tab2list(st.by_sequence_number), do: pdu
+      case lost_pdus do
+        [_ | _] -> st.on_exit.(st.pid, reason, lost_pdus)
+        _ -> :ok
+      end
+      {:stop, :normal, st}
+    else
+      {:noreply, st}
+    end
+  end
+
 end
