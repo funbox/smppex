@@ -96,7 +96,7 @@ defmodule SMPPEX.MCTest do
     MC.stop_session(ctx[:mc])
     Timer.sleep(50)
 
-    assert [{:init}, {:handle_stop}] = ctx[:callbacks].()
+    assert [{:init}, {:handle_stop, [], :custom}] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
   end
 
@@ -317,7 +317,7 @@ defmodule SMPPEX.MCTest do
       {:init},
       {:handle_pdu, _},
       {:handle_send_pdu_result, _, _}, # Enquire link
-      {:handle_stop}
+      {:handle_stop, _, {:timers, :enquire_link_timer}}
     ] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
   end
@@ -333,9 +333,36 @@ defmodule SMPPEX.MCTest do
     assert [
       {:init},
       {:handle_pdu, _}, # bind_transmitter sent
-      {:handle_stop}
+      {:handle_stop, [], {:timers, :inactivity_timer}}
     ] = ctx[:callbacks].()
     refute Process.alive?(ctx[:mc])
+  end
+
+  test "lost_pdus", ctx do
+    pdu = SMPPEX.Pdu.Factory.enquire_link
+    MC.send_pdu(ctx[:mc], pdu)
+    Timer.sleep(50)
+    MC.stop_session(ctx[:mc])
+    Timer.sleep(50)
+
+    assert [{:init}, {:handle_send_pdu_result, _, _}, {:handle_stop, [%SMPPEX.Pdu{command_id: 21}], :custom}] = ctx[:callbacks].()
+    refute Process.alive?(ctx[:esme])
+  end
+
+  test "legacy handle_stop" do
+    {pid, mc_server} = Support.LegacyMC.start_link()
+    port = Ranch.get_port(mc_server)
+
+    Timer.sleep(50)
+
+    {:ok, _esme} = SMPPEX.ESME.Sync.start_link("127.0.0.1", port)
+    Timer.sleep(50)
+
+    mc = Support.LegacyMC.mc(pid)
+    MC.stop_session(mc)
+    Timer.sleep(50)
+
+    assert [:init, :handle_stop] = Support.LegacyMC.callbacks_received(pid)
   end
 
 end

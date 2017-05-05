@@ -44,8 +44,9 @@ defmodule Support.MC do
     register_callback(st, {:handle_send_pdu_result, pdu, result})
   end
 
-  def handle_stop(st) do
-    register_callback(st, {:handle_stop})
+  def handle_stop(reason, lost_pdus, st) do
+     register_callback(st, {:handle_stop, lost_pdus, reason})
+     {:normal, st}
   end
 
   def handle_call(:reply_delayed, from, st) do

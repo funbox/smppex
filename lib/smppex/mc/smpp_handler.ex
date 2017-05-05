@@ -21,32 +21,16 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.MC.SMPPHandler do
 
   require Logger
 
-  def after_init(_session) do
-  end
-
-  def handle_parse_error(session, error) do
-    Logger.info("mc_conn #{inspect session.mc_conn}, parse error: #{inspect error}, stopping")
-  end
-
-  def handle_pdu(session, {:unparsed_pdu, raw_pdu, error}) do
-    Logger.info("mc_conn #{inspect session.mc_conn}, unknown pdu: #{inspect raw_pdu}(#{inspect error}), stopping")
-    :stop
+  def handle_pdu(_session, {:unparsed_pdu, raw_pdu, error}) do
+    {:stop, {:parse_error, {:unparsed_pdu, raw_pdu, error}}}
   end
 
   def handle_pdu(session, {:pdu, pdu}) do
     :ok = MC.handle_pdu(session.mc_conn, pdu)
   end
 
-  def handle_socket_closed(session) do
-    Logger.info("mc_conn #{inspect session.mc_conn}, socket closed, stopping")
-  end
-
-  def handle_socket_error(session, reason) do
-    Logger.info("mc_conn #{inspect session.mc_conn}, socket error #{inspect reason}, stopping")
-  end
-
-  def handle_stop(session) do
-    :ok = MC.handle_stop(session.mc_conn)
+  def handle_stop(session, reason) do
+    :ok = MC.handle_stop(session.mc_conn, reason)
   end
 
   def handle_send_pdu_result(session, pdu, send_pdu_result) do
@@ -55,4 +39,3 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.MC.SMPPHandler do
   end
 
 end
-

@@ -104,7 +104,7 @@ defmodule SMPPEX.ESMETest do
     ESME.stop(ctx[:esme])
     Timer.sleep(50)
 
-    assert [{:init}, {:handle_stop}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
+    assert [{:init}, {:handle_stop, :custom, []}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
 
@@ -354,7 +354,7 @@ defmodule SMPPEX.ESMETest do
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
       {:handle_send_pdu_result, _, :ok}, # enquire_link sent
-      {:handle_stop}
+      {:handle_stop, {:timers, :enquire_link_timer}, _}
     ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
@@ -377,7 +377,7 @@ defmodule SMPPEX.ESMETest do
       {:init},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
-      {:handle_stop}
+      {:handle_stop, {:timers, :inactivity_timer}, []}
     ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
@@ -396,9 +396,32 @@ defmodule SMPPEX.ESMETest do
       {:init},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
-      {:handle_stop}
+      {:handle_stop, :bind_failed, []}
     ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
     refute Process.alive?(ctx[:esme])
   end
+
+  test "lost_pdus", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    ESME.send_pdu(ctx[:esme], pdu)
+    Timer.sleep(50)
+    ESME.stop(ctx[:esme])
+    Timer.sleep(50)
+
+    assert [{:init}, {:handle_send_pdu_result, _, _}, {:handle_stop, :custom, [%SMPPEX.Pdu{command_id: 2}]}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
+    refute Process.alive?(ctx[:esme])
+  end
+
+  test "legacy handle_stop" do
+    server = Server.start_link
+    Timer.sleep(50)
+
+    {callback_backup, legacy_esme} = Support.LegacyESME.start_link({127,0,0,1}, Server.port(server), [])
+    ESME.stop(legacy_esme)
+    Timer.sleep(50)
+
+    assert [:handle_stop] = SupportESME.callbacks_received_backuped(callback_backup)
+  end
+
 
 end

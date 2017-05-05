@@ -45,10 +45,6 @@ defimpl SMPPEX.SMPPHandler, for: Support.SMPPSession do
 
   alias Support.SMPPSession
 
-  def after_init(session) do
-    SMPPSession.save_callback(session, :after_init, [])
-  end
-
   def handle_parse_error(session, error) do
     SMPPSession.save_callback(session, :handle_parse_error, [error])
   end
@@ -65,16 +61,8 @@ defimpl SMPPEX.SMPPHandler, for: Support.SMPPSession do
     handle_pdu.(pdu_info)
   end
 
-  def handle_socket_closed(session) do
-    SMPPSession.save_callback(session, :handle_socket_closed, [])
-  end
-
-  def handle_socket_error(session, reason) do
-    SMPPSession.save_callback(session, :handle_socket_error, [reason])
-  end
-
-  def handle_stop(session) do
-    SMPPSession.save_callback(session, :handle_stop, [])
+  def handle_stop(session, reason) do
+    SMPPSession.save_callback(session, :handle_stop, [reason])
   end
 
   def handle_send_pdu_result(session, pdu, send_pdu_result) do
@@ -82,4 +70,3 @@ defimpl SMPPEX.SMPPHandler, for: Support.SMPPSession do
     session
   end
 end
-

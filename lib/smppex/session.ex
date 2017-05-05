@@ -27,17 +27,17 @@ defmodule SMPPEX.Session do
     GenServer.cast(pid, {:send_pdus, pdus})
   end
 
-  @spec stop(pid) :: :ok
+  @spec stop(pid, term) :: :ok
 
-  def stop(pid) do
-    GenServer.cast(pid, :stop)
+  def stop(pid, reason) do
+    GenServer.cast(pid, {:stop, reason})
   end
 
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
   # Ranch handles this return type, but Dialyzer is not happy with it
 
   def start_link(ref, socket, transport, opts) do
-	ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+	   ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
   end
 
   def init(ref, socket, transport, opts) do
@@ -54,7 +54,6 @@ defmodule SMPPEX.Session do
           buffer: <<>>
         }
         wait_for_data(state)
-        SMPPHandler.after_init(session)
         ErlangGenServer.enter_loop(__MODULE__, [], state)
       {:error, _} = error ->
         :ok = ProcLib.init_ack(error)
@@ -84,8 +83,8 @@ defmodule SMPPEX.Session do
     {:noreply, do_send_pdus(state, pdus)}
   end
 
-  def handle_cast(:stop, state) do
-    do_stop(state)
+  def handle_cast({:stop, reason}, state) do
+    do_stop(state, reason)
   end
 
   defp do_send_pdu(state, pdu) do
@@ -123,8 +122,7 @@ defmodule SMPPEX.Session do
   end
 
   defp handle_parse_error(state, error) do
-    SMPPHandler.handle_parse_error(state.session, error)
-    do_stop(state)
+    do_stop(state, {:parse_error, error})
   end
 
   defp handle_parse_result(state, parse_result, rest_data) do
@@ -136,27 +134,25 @@ defmodule SMPPEX.Session do
       {:ok, session, pdus} ->
         new_state = do_send_pdus(%{state | session: session}, pdus)
         parse_pdus(new_state, rest_data)
-      {:stop, session, pdus} ->
+      {:stop, session, pdus, reason} ->
         new_state = do_send_pdus(%{state | session: session}, pdus)
-        do_stop(new_state)
-      :stop ->
-        do_stop(state)
+        do_stop(new_state, reason)
+      {:stop, reason} ->
+        do_stop(state, reason)
     end
   end
 
   defp handle_socket_closed(state) do
-    SMPPHandler.handle_socket_closed(state.session)
-    do_stop(state)
+    do_stop(state, :socket_closed)
   end
 
   defp handle_socket_error(state, reason) do
-    SMPPHandler.handle_socket_error(state.session, reason)
-    do_stop(state)
+    do_stop(state, {:socket_error, reason})
   end
 
-  defp do_stop(state) do
+  defp do_stop(state, reason) do
     _ = state.transport.close(state.socket)
-    SMPPHandler.handle_stop(state.session)
+    SMPPHandler.handle_stop(state.session, reason)
     {:stop, :normal, state}
   end
 
