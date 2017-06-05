@@ -381,6 +381,7 @@ defmodule SMPPEX.ESME do
   def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
     esme = self()
     handler = fn(ref, _socket, _transport, session) ->
+      Process.link(esme)
       Kernel.send esme, {ref, session}
       {:ok, SMPPEX.ESME.SMPPHandler.new(esme)}
     end
@@ -567,6 +568,8 @@ defmodule SMPPEX.ESME do
 
   defp do_handle_stop(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
+
+    Process.unlink(st.smpp_session)
     ClientPool.stop(st.client_pool)
 
     # TODO: remove legacy implementation handling in future versions
