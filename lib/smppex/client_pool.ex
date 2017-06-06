@@ -1,7 +1,6 @@
 defmodule SMPPEX.ClientPool do
   @moduledoc false
 
-  alias :erlang, as: Erlang
   alias :ranch, as: Ranch
   alias :ranch_server, as: RanchServer
   alias :ranch_conns_sup, as: RanchConnsSup
@@ -28,8 +27,8 @@ defmodule SMPPEX.ClientPool do
   @spec stop(pool) :: :ok
 
   def stop({pid, ref, _transport}) do
-    Erlang.unlink(pid)
-    Erlang.exit(pid, :shutdown)
+    Process.unlink(pid)
+    Process.exit(pid, :shutdown)
     RanchServer.cleanup_listener_opts(ref)
   end
 
