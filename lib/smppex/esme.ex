@@ -164,7 +164,7 @@ defmodule SMPPEX.ESME do
 
   The returned value is used as the new state.
   """
-  @callback handle_info(request, state) :: state
+  @callback handle_info(request, state) :: state | {:stop, term}
 
   @doc """
   Invoked when ESME was stopped abnormally and wasn't able to
@@ -460,9 +460,14 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_info(request, st) do
-    new_module_state = st.module.handle_info(request, st.module_state)
-    new_st = %ESME{st | module_state: new_module_state}
-    {:noreply, new_st}
+    case st.module.handle_info(request, st.module_state) do
+      {:stop, reason} ->
+        {:stop, reason, :ok, new_st} = do_handle_stop(reason, st)
+        {:stop, reason, new_st}
+      new_module_state ->
+        new_st = %ESME{st | module_state: new_module_state}
+        {:noreply, new_st}
+    end
   end
 
   # Private functions
