@@ -184,7 +184,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
 
   def spec_for(:deliver_sm_resp) do
     [
-      {:message_id, {:c_octet_string, {:max, 1}}}
+      {:message_id, {:c_octet_string, {:max, 65}}}
     ]
   end
 
