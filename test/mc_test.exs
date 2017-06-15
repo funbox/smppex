@@ -13,13 +13,11 @@ defmodule SMPPEX.MCTest do
 
   setup do
     {pid, mc_server} = SupportMC.start_link([
-      mc_opts: [
-        enquire_link_limit: 1000,
-        enquire_link_resp_limit: 1000,
-        inactivity_limit: 10000,
-        response_limit: 2000,
-        timer_resolution: 100000
-      ]
+      enquire_link_limit: 1000,
+      enquire_link_resp_limit: 1000,
+      inactivity_limit: 10000,
+      response_limit: 2000,
+      timer_resolution: 100000
     ])
     port = Ranch.get_port(mc_server)
 
@@ -250,10 +248,8 @@ defmodule SMPPEX.MCTest do
 
   test "stop by bind timeout" do
     {pid, mc_server} = SupportMC.start_link([
-      mc_opts: [
-        session_init_limit: 30,
-        timer_resolution: 5
-      ]
+      session_init_limit: 30,
+      timer_resolution: 5
     ])
     port = Ranch.get_port(mc_server)
 
