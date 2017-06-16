@@ -431,5 +431,14 @@ defmodule SMPPEX.ESMETest do
     refute Process.alive?(ctx[:esme])
   end
 
+  test "smpp_session crash when trapping exits", ctx do
+    Process.flag(:trap_exit, true)
+    ESME.with_session(ctx[:esme], fn(pid) ->
+      Process.flag(:trap_exit, true)
+      Process.exit(pid, :kill)
+    end)
+    Timer.sleep(50)
+    refute Process.alive?(ctx[:esme])
+  end
 
 end

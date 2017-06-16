@@ -131,7 +131,8 @@ defmodule SMPPEX.ESME do
   * `{:parse_error, error}` -- error in parsing incoming SMPP packet occured;
   * `:socket_closed` -- peer closed socket;
   * `{:socket_error, error}` -- socket error occured;
-  * `{:timers, reason}` -- session closed by timers.
+  * `{:timers, reason}` -- session closed by timers;
+  * `{:smpp_session_exit, reason}` -- SMPP session exited with reason `reason`. This will only be received if ESME traps exits. Otherwise, the ESME will exit too.
 
   The return value is `{stop_reason, new_state}`. The session GenServer will stop
   with `stop_reason`.
@@ -402,7 +403,8 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_call({:handle_stop, reason}, _from, st) do
-    do_handle_stop(reason, st)
+    {reason, new_st} = do_handle_stop(reason, st)
+    {:stop, reason, :ok, new_st}
   end
 
   def handle_call({:handle_send_pdu_result, pdu, send_pdu_result}, _from, st) do
@@ -460,9 +462,16 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_info(request, st) do
-    new_module_state = st.module.handle_info(request, st.module_state)
-    new_st = %ESME{st | module_state: new_module_state}
-    {:noreply, new_st}
+    smpp_session = st.smpp_session
+    case request do
+      {:EXIT, ^smpp_session, session_reason} ->
+        {reason, new_st} = do_handle_stop({:smpp_session_exit, session_reason}, st)
+        {:stop, reason, new_st}
+      _ ->
+        new_module_state = st.module.handle_info(request, st.module_state)
+        new_st = %ESME{st | module_state: new_module_state}
+        {:noreply, new_st}
+      end
   end
 
   # Private functions
@@ -585,10 +594,10 @@ defmodule SMPPEX.ESME do
     case result do
       :legacy_impl ->
         Logger.warn("Implementing #{st.module}.handle_stop(st) is deprecated, implement #{st.module}.handle_stop(reason, lost_pdus, st) instead")
-        {:stop, :normal, :ok, st}
+        {:normal, st}
       {:new_impl, %UndefinedFunctionError{arity: 1, function: :handle_stop, module: ^module}} ->
         {exit_reason, new_module_state} = module.handle_stop(reason, lost_pdus, st.module_state)
-        {:stop, exit_reason, :ok, %ESME{st | module_state: new_module_state}}
+        {exit_reason, %ESME{st | module_state: new_module_state}}
       {:new_impl, other_exception} ->
         raise other_exception
     end
