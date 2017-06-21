@@ -24,9 +24,7 @@ defmodule SMPPEX.ProtocolTest do
   test "parse: bind_transmitter_resp" do
     parse_result = parse(<<00, 00, 00, 0x11,   0x80, 00, 00, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0x00, 0xAA, 0xBB, 0xCC>>)
 
-    assert {:ok, {:pdu, _}, _} = parse_result
-
-    {:ok, {:pdu, pdu}, tail} = parse_result
+    assert {:ok, {:pdu, pdu}, tail} = parse_result
 
     assert tail == <<0xAA, 0xBB, 0xCC>>
     assert Pdu.command_id(pdu) == 0x80000002
@@ -57,9 +55,7 @@ defmodule SMPPEX.ProtocolTest do
 
     parse_result = parse(data)
 
-    assert {:ok, {:pdu, _}, _} = parse_result
-
-    {:ok, {:pdu, pdu}, _} = parse_result
+    assert {:ok, {:pdu, pdu}, _} = parse_result
 
     assert Pdu.command_id(pdu) == 0x00000002
     assert Pdu.command_status(pdu) == 0
