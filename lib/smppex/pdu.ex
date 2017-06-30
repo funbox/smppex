@@ -238,7 +238,7 @@ defmodule SMPPEX.Pdu do
     end
   end
 
-  @spec set_optional_field(t, atom, any) :: t
+  @spec set_optional_field(t, integer | atom, any) :: t
 
   @doc """
   Sets Pdu optional field. New Pdu is returned.
@@ -252,8 +252,22 @@ defmodule SMPPEX.Pdu do
 
   """
 
-  def set_optional_field(pdu, name, value) do
-    %Pdu{pdu | optional: Map.put(pdu.optional, name, value)}
+  def set_optional_field(pdu, name, value) when is_atom(name) do
+    optional = Map.delete(pdu.optional, name)
+    optional = case TlvFormat.id_by_name(name) do
+      {:ok, id} -> Map.delete(optional, id)
+      :unknown -> optional
+    end
+    %Pdu{pdu | optional: Map.put(optional, name, value)}
+  end
+
+  def set_optional_field(pdu, id, value) when is_integer(id) do
+    optional = Map.delete(pdu.optional, id)
+    optional = case TlvFormat.name_by_id(id) do
+      {:ok, name} -> Map.delete(optional, name)
+      :unknown -> optional
+    end
+    %Pdu{pdu | optional: Map.put(optional, id, value)}
   end
 
   @spec field(t, integer | atom) :: any
