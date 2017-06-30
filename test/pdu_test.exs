@@ -10,5 +10,13 @@ defmodule SMPPEX.PduTest do
     sequence_number: 123} = SMPPEX.Pdu.new({1, 0, 123}, %{system_id: "sid", password: "pass"}, %{})
   end
 
+  test "setting optional field doesn't allow duplicates" do
+    pdu = SMPPEX.Pdu.new({1, 1, 1}, %{}, %{1060 => "message1", message_payload: "message2"})
+    pdu_with_changed_payload = SMPPEX.Pdu.set_optional_field(pdu, :message_payload, "message3")
+    assert pdu_with_changed_payload.optional == %{message_payload: "message3"}
+    pdu_with_changed_payload = SMPPEX.Pdu.set_optional_field(pdu, 1060, "message3")
+    assert pdu_with_changed_payload.optional == %{1060 => "message3"}
+  end
+
 end
 
