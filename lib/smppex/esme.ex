@@ -121,6 +121,13 @@ defmodule SMPPEX.ESME do
   @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result, state) :: state
 
   @doc """
+  Invoked when the ESME fails to parse a pdu.
+
+  The returned value can either be :ok or {:stop, reason}.
+  """
+  @callback handle_parse_error(reason :: term, state) :: SMPPEX.SMPPHandler.handle_pdu_result
+
+  @doc """
   Invoked when the SMPP session is about to stop.
 
   `lost_pdus` contains sent PDUs which have not received resps (and will never
@@ -202,6 +209,9 @@ defmodule SMPPEX.ESME do
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
       @doc false
+      def handle_parse_error(reason, state), do: {:stop, reason, state}
+
+      @doc false
       def handle_stop(reason, lost_pdus, state) do
         Logger.info("esme #{inspect self()} is stopping, reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
         {:normal, state}
@@ -227,6 +237,7 @@ defmodule SMPPEX.ESME do
         handle_resp: 3,
         handle_resp_timeout: 2,
         handle_send_pdu_result: 3,
+        handle_parse_error: 2,
         handle_stop: 3,
         handle_call: 3,
         handle_cast: 2,
@@ -376,6 +387,13 @@ defmodule SMPPEX.ESME do
     GenServer.call(esme, {:handle_send_pdu_result, pdu, send_pdu_result})
   end
 
+  @spec handle_parse_error(pid, reason :: term) :: :ok | {:error, term}
+
+  @doc false
+  def handle_parse_error(esme, reason) do
+    GenServer.call(esme, {:handle_parse_error, reason})
+  end
+
   # GenServer callbacks
 
   @doc false
@@ -409,6 +427,10 @@ defmodule SMPPEX.ESME do
 
   def handle_call({:handle_send_pdu_result, pdu, send_pdu_result}, _from, st) do
     do_handle_send_pdu_result(pdu, send_pdu_result, st)
+  end
+
+  def handle_call({:handle_parse_error, reason}, _from, st) do
+    do_handle_parse_error(reason, st)
   end
 
   def handle_call({:call, request}, from, st) do
@@ -607,6 +629,16 @@ defmodule SMPPEX.ESME do
     new_module_state = st.module.handle_send_pdu_result(pdu, send_pdu_result, st.module_state)
     new_st = %ESME{st | module_state: new_module_state}
     {:reply, :ok, new_st}
+  end
+
+  defp do_handle_parse_error(reason, st) do
+    case st.module.handle_parse_error(reason, st.module_state) do
+      {:ok, new_module_state} ->
+        new_st = %ESME{st | module_state: new_module_state}
+        {:reply, :ok, new_st}
+      {:stop, reason, new_module_state} ->
+        {:stop, reason, :ok, %ESME{st | module_state: new_module_state}}
+    end
   end
 
   defp do_handle_tick(time, st) do
