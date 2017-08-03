@@ -139,7 +139,8 @@ defmodule SMPPEX.MC do
   * `{:parse_error, error}` -- error in parsing incoming SMPP packet occured;
   * `:socket_closed` -- peer closed socket;
   * `{:socket_error, error}` -- socket error occured;
-  * `{:timers, reason}` -- session closed by timers.
+  * `{:timers, reason}` -- session closed by timers;
+  * `{:unrecognized_message, message}` -- SMPP session received an unknown message.
 
   The return value is `{stop_reason, new_state}`. The session GenServer will stop
   with `stop_reason`.

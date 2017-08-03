@@ -132,7 +132,8 @@ defmodule SMPPEX.ESME do
   * `:socket_closed` -- peer closed socket;
   * `{:socket_error, error}` -- socket error occured;
   * `{:timers, reason}` -- session closed by timers;
-  * `{:smpp_session_exit, reason}` -- SMPP session exited with reason `reason`. This will only be received if ESME traps exits. Otherwise, the ESME will exit too.
+  * `{:smpp_session_exit, reason}` -- SMPP session exited with reason `reason`. This will only be received if ESME traps exits. Otherwise, the ESME will exit too;
+  * `{:unrecognized_message, message}` -- SMPP session received an unknown message.
 
   The return value is `{stop_reason, new_state}`. The session GenServer will stop
   with `stop_reason`.

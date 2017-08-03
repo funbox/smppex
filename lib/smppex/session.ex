@@ -66,16 +66,16 @@ defmodule SMPPEX.Session do
 
   def handle_info(message, state) do
     {ok, closed, error} = state.transport.messages
-    socket = state.socket
     case message do
-      {^ok, ^socket, data} ->
+      {^ok, _socket, data} ->
         handle_data(state, data)
-      {^closed, ^socket} ->
+      {^closed, _socket} ->
         handle_socket_closed(state)
-      {^error, ^socket, reason} ->
+      {^error, _socket, reason} ->
         handle_socket_error(state, reason)
       other ->
         Logger.info("Unrecognized message: #{inspect other}")
+        do_stop(state, :unrecognized_message)
     end
   end
 
