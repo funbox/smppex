@@ -129,9 +129,9 @@ defmodule SMPPEX.MC do
   @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result, state) :: state
 
   @doc """
-  Invoked when the ESME fails to parse a pdu.
+  Invoked when the MC session fails to parse a PDU.
 
-  The returned value can either be :ok or {:stop, reason}.
+  The returned value can either be `{:ok, new_state}` or `{:stop, reason, new_state}`.
   """
   @callback handle_parse_error(reason :: term, state) :: SMPPEX.SMPPHandler.handle_pdu_result
 
@@ -406,7 +406,7 @@ defmodule SMPPEX.MC do
     GenServer.call(mc, {:handle_send_pdu_result, pdu, send_pdu_result})
   end
 
-  @spec handle_parse_error(pid, reason :: term) :: :ok | {:error, term}
+  @spec handle_parse_error(pid, reason :: term) :: :ok
 
   @doc false
   def handle_parse_error(mc, reason) do
@@ -609,7 +609,9 @@ defmodule SMPPEX.MC do
         new_st = %MC{st | module_state: new_module_state}
         {:reply, :ok, new_st}
       {:stop, reason, new_module_state} ->
-        {:stop, reason, :ok, %MC{st | module_state: new_module_state}}
+        Session.stop(st.smpp_session, {:parse_error, reason})
+        new_st = %MC{st | module_state: new_module_state}
+        {:reply, :ok, new_st}
     end
   end
 

@@ -27,6 +27,12 @@ defmodule SMPPEX.Session do
     GenServer.cast(pid, {:send_pdus, pdus})
   end
 
+  @spec send_binary(pid, data :: binary) :: :ok
+
+  def send_binary(pid, data) do
+    GenServer.cast(pid, {:send_binary, data})
+  end
+
   @spec stop(pid, term) :: :ok
 
   def stop(pid, reason) do
@@ -79,6 +85,11 @@ defmodule SMPPEX.Session do
     end
   end
 
+  def handle_cast({:send_binary, data}, state) do
+    do_send_binary(state, data)
+    {:noreply, state}
+  end
+
   def handle_cast({:send_pdus, pdus}, state) do
     {:noreply, do_send_pdus(state, pdus)}
   end
@@ -87,10 +98,14 @@ defmodule SMPPEX.Session do
     do_stop(state, reason)
   end
 
+  defp do_send_binary(state, bin) do
+    state.transport.send(state.socket, bin)
+  end
+
   defp do_send_pdu(state, pdu) do
     case SMPP.build(pdu) do
-      {:ok, binary} ->
-        state.transport.send(state.socket, binary)
+      {:ok, bin} ->
+        do_send_binary(state, bin)
       error ->
         Logger.info("Error #{inspect error}")
         error

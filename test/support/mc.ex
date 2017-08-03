@@ -9,7 +9,7 @@ defmodule Support.MC do
 
   def start_link(mc_opts \\ []) do
     {:ok, st_backup} = Agent.start_link(fn() -> nil end)
-    {:ok, mc_server} = SMPPEX.MC.start({__MODULE__, %{callbacks: [], st_backup: st_backup, mc: nil}}, [mc_opts: mc_opts, transport_opts: [port: 0]])
+    {:ok, mc_server} = SMPPEX.MC.start({__MODULE__, %{sock: nil, callbacks: [], st_backup: st_backup, mc: nil}}, [mc_opts: mc_opts, transport_opts: [port: 0]])
     {st_backup, mc_server}
   end
 
@@ -23,8 +23,12 @@ defmodule Support.MC do
     Agent.get(pid, fn(st) -> st.mc end)
   end
 
-  def init(_sock, _transport, st) do
-    new_st = register_callback(st, {:init})
+  def sock(pid) do
+    SMPPEX.MC.call(pid, :sock)
+  end
+
+  def init(sock, _transport, st) do
+    new_st = register_callback(%{st | sock: sock}, {:init})
     {:ok, new_st}
   end
 
@@ -44,14 +48,23 @@ defmodule Support.MC do
     register_callback(st, {:handle_send_pdu_result, pdu, result})
   end
 
+  def handle_parse_error(reason, st) do
+    new_st = register_callback(st, {:handle_parse_error, reason})
+    {:ok, new_st}
+  end
+
   def handle_stop(reason, lost_pdus, st) do
-     register_callback(st, {:handle_stop, lost_pdus, reason})
-     {:normal, st}
+    register_callback(st, {:handle_stop, lost_pdus, reason})
+    {:normal, st}
   end
 
   def handle_call(:reply_delayed, from, st) do
     spawn(fn() -> GenServer.reply(from, :delayed_reply) end)
     {:noreply, st}
+  end
+
+  def handle_call(:sock, _from, st) do
+    {:reply, st[:sock], st}
   end
 
   def handle_call(request, from, st) when is_function(request) do

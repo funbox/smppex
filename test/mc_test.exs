@@ -361,4 +361,19 @@ defmodule SMPPEX.MCTest do
     assert [:init, :handle_stop] = Support.LegacyMC.callbacks_received(pid)
   end
 
+  test "handle_parse_error", ctx do
+    SMPPEX.ESME.with_session(ctx[:esme], fn(session) ->
+      SMPPEX.Session.send_binary(
+        session,
+        <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>
+      )
+    end)
+    Timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_parse_error, {:unparsed_pdu, _, "Unknown command_id"}}
+    ] = ctx[:callbacks].()
+  end
+
 end
