@@ -21,8 +21,8 @@ defimpl SMPPEX.SMPPHandler, for: SMPPEX.ESME.SMPPHandler do
 
   require Logger
 
-  def handle_pdu(_session, {:unparsed_pdu, raw_pdu, error}) do
-    {:stop, {:parse_error, {:unparsed_pdu, raw_pdu, error}}}
+  def handle_pdu(session, {:unparsed_pdu, raw_pdu, error}) do
+    :ok = ESME.handle_parse_error(session.esme, {:unparsed_pdu, raw_pdu, error})
   end
 
   def handle_pdu(session, {:pdu, pdu}) do

@@ -42,6 +42,11 @@ defmodule Support.ESME do
     register_callback(st, {:handle_send_pdu_result, pdu, result})
   end
 
+  def handle_parse_error(reason, st) do
+    new_st = register_callback(st, {:handle_parse_error, reason})
+    {:ok, new_st}
+  end
+
   def handle_stop(reason, lost_pdus, st) do
     register_callback(st, {:handle_stop, reason, lost_pdus})
     {:normal, st}

@@ -255,6 +255,16 @@ defmodule SMPPEX.ESMETest do
     ] = SupportESME.callbacks_received(ctx[:esme])
   end
 
+  test "handle_parse_error", ctx do
+    Server.send(ctx[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+    Timer.sleep(50)
+
+    assert [
+      {:init},
+      {:handle_parse_error, {:unparsed_pdu, _, "Unknown command_id"}}
+    ] = SupportESME.callbacks_received(ctx[:esme])
+  end
+
   test "enquire_link by timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     ESME.send_pdu(ctx[:esme], pdu)
