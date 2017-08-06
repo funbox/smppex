@@ -36,7 +36,6 @@ defmodule SMPPEX.ESME do
   alias SMPPEX.Session
   alias SMPPEX.SMPPTimers
 
-  use GenServer
   require Logger
 
   defstruct [

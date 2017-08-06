@@ -6,7 +6,6 @@ defmodule SMPPEX.Session do
   use GenServer
   require Logger
 
-  alias :gen_server, as: ErlangGenServer
   alias :proc_lib, as: ProcLib
   alias :proplists, as: Proplists
   alias :ranch, as: Ranch
@@ -14,30 +13,62 @@ defmodule SMPPEX.Session do
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.SMPPHandler
   alias SMPPEX.Pdu
+  alias __MODULE__, as: Session
 
-  @spec send_pdu(pid, Pdu.t) :: :ok
+  @timeout 5000
 
-  def send_pdu(pid, pdu) do
-    send_pdus(pid, [pdu])
-  end
+  defstruct [
+    :ref,
+    :socket,
+    :transport,
+    :module,
+    :module_state,
+    :buffer
+  ]
 
-  @spec send_pdus(pid, [Pdu.t]) :: :ok
+  @type socket :: term
+  @type transport :: module
+  @type reason :: term
+  @type state :: term
+  @type new_state :: term
+  @type reply :: term
+  @type send_pdu_result :: :ok | {:error, term}
+  @type opts :: {module, module_opts :: term}
+  @type from :: GenServer.from
+  @type request :: term
 
-  def send_pdus(pid, pdus) do
-    GenServer.cast(pid, {:send_pdus, pdus})
-  end
+  @callback init(Ranch.ref, socket, transport, opts) ::
+    {:ok, state} |
+    {:eror, reason}
 
-  @spec send_binary(pid, data :: binary) :: :ok
+  @callback handle_pdu(SMPP.pdu_parse_result, state) ::
+    {:ok, [Pdu.t], new_state} |
+    {:stop, reason, [Pdu.t], new_state}
 
-  def send_binary(pid, data) do
-    GenServer.cast(pid, {:send_binary, data})
-  end
+  @callback handle_send_pdu_result(Pdu.t, send_pdu_result, state) :: new_state
 
-  @spec stop(pid, term) :: :ok
+  @spec handle_call(request, from, state) ::
+    {:reply, reply, [Pdu.t], new_state} |
+    {:noreply, [Pdu.t], new_state} |
+    {:stop, reason, reply, [Pdu.t], new_state} |
+    {:stop, reason, [Pdu.t], new_state}
 
-  def stop(pid, reason) do
-    GenServer.cast(pid, {:stop, reason})
-  end
+  @spec handle_cast(request, state) ::
+    {:noreply, [Pdu.t], new_state} |
+    {:stop, reason, [Pdu.t], new_state}
+
+  @spec handle_info(request, state) ::
+    {:noreply, [Pdu.t], new_state} |
+    {:stop, reason, [Pdu.t], new_state}
+
+  @callback handle_socket_closed(state) :: {:stop, reason, new_state}
+  @callback handle_socket_error(error :: term, state) :: {:stop, reason, new_state}
+
+  @callback terminate(reason, state) :: any
+
+  @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
+    {:ok, new_state} |
+    {:error, reason}
 
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
   # Ranch handles this return type, but Dialyzer is not happy with it
@@ -46,21 +77,33 @@ defmodule SMPPEX.Session do
 	   ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
   end
 
-  def init(ref, socket, transport, opts) do
-    session_factory = Proplists.get_value(:handler, opts)
-    case session_factory.(ref, socket, transport, self()) do
-      {:ok, session} ->
+  def cast(server, request) do
+    GenServer.cast(server, {:cast, request})
+  end
+
+  def call(server, request, timeout \\ @timeout) do
+    GenServer.call(server, {:call, request}, timeout)
+  end
+
+  def reply(from, rep) do
+    GenServer.reply(from, rep)
+  end
+
+  def init(ref, socket, transport, {module, module_opts}) do
+    case module.init(socket, transport, module_opts) do
+      {:ok, module_state} ->
         :ok = ProcLib.init_ack({:ok, self()})
         :ok = Ranch.accept_ack(ref)
-        state = %{
+        state = %Session{
           ref: ref,
           socket: socket,
           transport: transport,
-          session: session,
+          module: module,
+          module_state: module_state,
           buffer: <<>>
         }
         wait_for_data(state)
-        ErlangGenServer.enter_loop(__MODULE__, [], state)
+        :gen_server.enter_loop(__MODULE__, [], state)
       {:error, _} = error ->
         :ok = ProcLib.init_ack(error)
     end
@@ -80,42 +123,71 @@ defmodule SMPPEX.Session do
       {^error, _socket, reason} ->
         handle_socket_error(state, reason)
       other ->
-        Logger.info("Unrecognized message: #{inspect other}")
-        do_stop(state, :unrecognized_message)
+        do_handle_info(message, state)
     end
   end
 
-  def handle_cast({:send_binary, data}, state) do
-    do_send_binary(state, data)
-    {:noreply, state}
+  defp handle_socket_closed(state) do
+    {:ok, reason, new_module_state} = state.module.handle_socket_closed(state.module_state)
+    stop(%Session{state | module_state: new_module_state}, reason)
   end
 
-  def handle_cast({:send_pdus, pdus}, state) do
-    {:noreply, do_send_pdus(state, pdus)}
+  defp handle_socket_error(state, error) do
+    {:ok, reason, new_module_state} = state.module.handle_socket_error(error, state.module_state)
+    stop(%Session{state | module_state: new_module_state}, reason)
   end
 
-  def handle_cast({:stop, reason}, state) do
-    do_stop(state, reason)
+  defp do_handle_info(message, state) do
+    case state.module.handle_info(message, state.module_state) do
+      {:noreply, pdus, module_state} ->
+        {:noreply, send_pdus(module_state, state, pdus)}
+      {:stop, reason, pdus, module_state} ->
+        {:stop, reason, send_pdus(module_state, state, pdus)}
+    end
   end
 
-  defp do_send_binary(state, bin) do
+  def handle_call({:call, request}, from, state) do
+    case state.module.handle_call(request, from, state.module_state) do
+      {:reply, reply, pdus, module_state} ->
+        {:reply, reply, send_pdus(module_state, state, pdus)}
+      {:noreply, pdus, module_state} ->
+        {:noreply, send_pdus(module_state, state, pdus)}
+      {:stop, reason, reply, pdus, module_state} ->
+        {:stop, reason, reply, send_pdus(module_state, state, pdus)}
+      {:stop, reason, pdus, module_state} ->
+        {:stop, reason, send_pdus(module_state, state, pdus)}
+    end
+  end
+
+  def handle_cast({:cast, request}, state) do
+    case state.module.handle_cast(request, state.module_state) do
+      {:noreply, pdus, module_state} ->
+        {:noreply, send_pdus(module_state, state, pdus)}
+      {:stop, reason, pdus, module_state} ->
+        {:stop, reason, send_pdus(module_state, state, pdus)}
+    end
+  end
+
+  defp send_binary(state, bin) do
     state.transport.send(state.socket, bin)
   end
 
-  defp do_send_pdu(state, pdu) do
+  defp send_pdu(state, pdu) do
     case SMPP.build(pdu) do
       {:ok, bin} ->
-        do_send_binary(state, bin)
+        send_binary(state, bin)
       error ->
         Logger.info("Error #{inspect error}")
         error
     end
   end
 
-  defp do_send_pdus(state, []), do: state
-  defp do_send_pdus(state, [pdu | pdus]) do
-    new_session = SMPPHandler.handle_send_pdu_result(state.session, pdu, do_send_pdu(state, pdu))
-    do_send_pdus(%{state | session: new_session}, pdus)
+  defp send_pdus(module_state, state, []) do
+    %Session{state | module_state: module_state}
+  end
+  defp send_pdus(module_state, state, [pdu | pdus]) do
+    new_module_state = state.module.handle_send_pdu_result(pdu, send_pdu(state, pdu), module_state)
+    send_pdus(new_module_state, state, pdus)
   end
 
   defp handle_data(state, data) do
@@ -137,38 +209,30 @@ defmodule SMPPEX.Session do
   end
 
   defp handle_parse_error(state, error) do
-    do_stop(state, {:parse_error, error})
+    stop(state, {:parse_error, error})
   end
 
   defp handle_parse_result(state, parse_result, rest_data) do
-    case SMPPHandler.handle_pdu(state.session, parse_result) do
-      :ok ->
-        parse_pdus(state, rest_data)
-      {:ok, session} ->
-        parse_pdus(%{state | session: session}, rest_data)
-      {:ok, session, pdus} ->
-        new_state = do_send_pdus(%{state | session: session}, pdus)
-        parse_pdus(new_state, rest_data)
-      {:stop, session, pdus, reason} ->
-        new_state = do_send_pdus(%{state | session: session}, pdus)
-        do_stop(new_state, reason)
-      {:stop, reason} ->
-        do_stop(state, reason)
+    case state.module.handle_pdu(parse_result, state.module_state) do
+      {:ok, pdus, module_state} ->
+        parse_pdus(send_pdus(module_state, state, pdus), rest_data)
+      {:stop, reason, pdus, module_state} ->
+        stop(send_pdus(module_state, state, pdus), reason)
     end
   end
 
-  defp handle_socket_closed(state) do
-    do_stop(state, :socket_closed)
-  end
-
-  defp handle_socket_error(state, reason) do
-    do_stop(state, {:socket_error, reason})
-  end
-
-  defp do_stop(state, reason) do
+  defp stop(state, reason) do
     _ = state.transport.close(state.socket)
-    SMPPHandler.handle_stop(state.session, reason)
-    {:stop, :normal, state}
+    {:stop, reason, state}
   end
+
+  def terminate(reason, state) do
+    state.module.terminate(reason, state.module_state)
+  end
+
+  def code_change(old_vsn, state, extra) do
+    state.module.code_change(old_vsn, state.module_state, extra)
+  end
+
 
 end
