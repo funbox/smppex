@@ -76,6 +76,16 @@ defmodule SMPPEX.Session do
 	  ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
   end
 
+  # Manual start, without Ranch
+
+  def start_link(socket, transport, opts) do
+    ref = make_ref()
+    case start_link(ref, socket, transport, opts) do
+      {:ok, pid} -> grant_socket(pid, ref, transport, socket, @timeout)
+      {:error, _err} = err -> err
+    end
+  end
+
   def cast(server, request) do
     GenServer.cast(server, {:cast, request})
   end
@@ -86,6 +96,14 @@ defmodule SMPPEX.Session do
 
   def reply(from, rep) do
     GenServer.reply(from, rep)
+  end
+
+  # Ranch'es granting reimplementation
+
+  defp grant_socket(pid, ref, transport, socket, timeout) do
+    transport.controlling_process(socket, pid)
+    Kernel.send(pid, {:shoot, ref, transport, socket, timeout})
+    {:ok, pid}
   end
 
   def init(ref, socket, transport, opts) do

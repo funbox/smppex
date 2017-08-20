@@ -233,28 +233,19 @@ defmodule SMPPEX.ESME do
     timeout = Keyword.get(opts, :timeout, @default_timeout)
     sock_opts = [:binary, {:packet, 0}, {:active, :once}]
     esme_opts = Keyword.get(opts, :esme_opts, [])
-    ref = make_ref()
 
     case transport.connect(convert_host(host), port, sock_opts, timeout) do
       {:ok, socket} ->
         session_opts = {__MODULE__, [mod_with_args, esme_opts]}
-        case Session.start_link(ref, socket, transport, session_opts) do
+        case Session.start_link(socket, transport, session_opts) do
           {:ok, pid} ->
-            grant_socket(pid, ref, transport, socket, timeout)
+            {:ok, pid}
           {:error, _} = error ->
             transport.close(socket)
             error
         end
       {:error, _} = error -> error
     end
-  end
-
-  # Ranch'es granting reimplementation
-
-  defp grant_socket(pid, ref, transport, socket, timeout) do
-    transport.controlling_process(socket, pid)
-    Kernel.send(pid, {:shoot, ref, transport, socket, timeout})
-    {:ok, pid}
   end
 
   @spec send_pdu(session, Pdu.t) :: :ok

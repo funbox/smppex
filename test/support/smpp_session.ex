@@ -2,71 +2,105 @@ defmodule Support.SMPPSession do
   @moduledoc false
 
   defstruct [
-    :pid,
-    :spied_data_pid
+    callbacks_received: nil,
+    pdu_handler: nil,
   ]
 
-  alias Support.SMPPSession
+  @transport :ranch_tcp
+  @timeout 1000
 
-  def create(pid) do
-    handle_pdu = fn(_pdu_info) -> :ok end
-    {:ok, spied_data_pid} = Agent.start_link(fn() -> %{callbacks_received: [], pdu_handler: handle_pdu} end)
-    %SMPPSession{spied_data_pid: spied_data_pid, pid: pid}
-  end
+  alias SMPPEX.Session
+  alias __MODULE__, as: SMPPSession
 
-  def protocol(session) do
-    session.pid
-  end
+  @behaviour Session
 
-  def save_callback(session, name, args) do
-    Agent.update(session.spied_data_pid, fn(data) ->
-      %{data |
-        callbacks_received: [{name, args} | data.callbacks_received]
-      }
-    end)
-  end
-
-  def set_pdu_handler(session, handle_pdu) do
-    Agent.update(session.spied_data_pid, fn(data) ->
-      %{data | pdu_handler: handle_pdu}
-    end)
-  end
-
-  def callbacks_received(session) do
-    Agent.get(session.spied_data_pid, fn(data) -> Enum.reverse(data.callbacks_received) end)
-  end
-
-  def stop(session) do
-    Agent.stop(session.spied_data_pid)
-  end
-end
-
-defimpl SMPPEX.SMPPHandler, for: Support.SMPPSession do
-
-  alias Support.SMPPSession
-
-  def handle_parse_error(session, error) do
-    SMPPSession.save_callback(session, :handle_parse_error, [error])
-  end
-
-  def handle_pdu(session, {:unparsed_pdu, raw_pdu, error} = pdu_info) do
-    SMPPSession.save_callback(session, :handle_pdu, [{:unparsed_pdu, raw_pdu, error}])
-    handle_pdu = Agent.get(session.spied_data_pid, fn(data) -> data.pdu_handler end)
-    handle_pdu.(pdu_info)
-  end
-
-  def handle_pdu(session, {:pdu, pdu} = pdu_info) do
-    SMPPSession.save_callback(session, :handle_pdu, [{:pdu, pdu}])
-    handle_pdu = Agent.get(session.spied_data_pid, fn(data) -> data.pdu_handler end)
-    handle_pdu.(pdu_info)
-  end
-
-  def handle_stop(session, reason) do
-    SMPPSession.save_callback(session, :handle_stop, [reason])
-  end
-
-  def handle_send_pdu_result(session, pdu, send_pdu_result) do
-    SMPPSession.save_callback(session, :handle_send_pdu_result, [pdu, send_pdu_result])
+  def start_link(host, port, pid) do
+    sock_opts = [:binary, {:packet, 0}, {:active, :once}]
+    {:ok, socket} = @transport.connect(host, port, sock_opts, @timeout)
+    {:ok, session} = Session.start_link(socket, @transport, {__MODULE__, [pid]})
     session
   end
+
+  defp save_callback(st, name, args) do
+    Agent.update(
+      st.callbacks_received,
+      fn(callbacks) ->
+        [{name, args} | callbacks]
+      end
+    )
+    st
+  end
+
+  def set_pdu_handler(session, pdu_handler) do
+    Session.call(session, {:set_pdu_handler, pdu_handler})
+  end
+
+  def send_pdus(session, pdus) do
+    Session.call(session, {:send_pdus, pdus})
+  end
+
+  def stop(session, reason \\ :normal) do
+    Session.call(session, {:stop, reason})
+  end
+
+  def init(_socket, _transport, [pid]) do
+    Process.flag(:trap_exit, true)
+    {:ok, %SMPPSession{pdu_handler: fn(_pdu) -> {:ok, []} end, callbacks_received: pid}}
+  end
+
+  def handle_pdu(pdu_info, st) do
+    new_st = save_callback(st, :handle_pdu, [pdu_info])
+    :erlang.list_to_tuple(
+      :erlang.tuple_to_list(st.pdu_handler.(pdu_info)) ++ [new_st]
+    )
+  end
+
+  def handle_send_pdu_result(pdu, result, st) do
+    save_callback(st, :handle_send_pdu_result, [pdu, result])
+  end
+
+  def handle_call({:set_pdu_handler, pdu_handler}, _from, st) do
+    {:reply, :ok, [], %SMPPSession{st | pdu_handler: pdu_handler}}
+  end
+
+  def handle_call(:callbacks_received, _from, st) do
+    {:reply, Enum.reverse(st.callbacks_received), [], st}
+  end
+
+  def handle_call({:send_pdus, pdus}, _from, st) do
+    {:reply, :ok, pdus, st}
+  end
+
+  def handle_call({:stop, reason}, _from, st) do
+    {:stop, reason, :ok, [], st}
+  end
+
+  def handle_call(request, _from, st) do
+    {:reply, :ok, [], save_callback(st, :handle_call, [request])}
+  end
+
+  def handle_cast(request, st) do
+    {:noreply, [], save_callback(st, :handle_cast, [request])}
+  end
+
+  def handle_info(request, st) do
+    {:noreply, [], save_callback(st, :handle_cast, [request])}
+  end
+
+  def handle_socket_closed(st) do
+    {:socket_closed, save_callback(st, :handle_socket_closed, [])}
+  end
+
+  def handle_socket_error(error, st) do
+    {error, save_callback(st, :handle_socket_error, [error])}
+  end
+
+  def terminate(reason, st) do
+    save_callback(st, :terminate, [reason])
+  end
+
+  def code_change(old_vsn, st, extra) do
+    {:ok, save_callback(st, :code_change, [old_vsn, extra])}
+  end
+
 end
