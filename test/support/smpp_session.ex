@@ -39,6 +39,10 @@ defmodule Support.SMPPSession do
     Session.call(session, {:send_pdus, pdus})
   end
 
+  def test_reply(session) do
+    Session.call(session, :test_reply)
+  end
+
   def stop(session, reason \\ :normal) do
     Session.call(session, {:stop, reason})
   end
@@ -65,6 +69,11 @@ defmodule Support.SMPPSession do
 
   def handle_call(:callbacks_received, _from, st) do
     {:reply, Enum.reverse(st.callbacks_received), [], st}
+  end
+
+  def handle_call(:test_reply, from, st) do
+    spawn(fn -> Session.reply(from, :test_reply) end)
+    {:noreply, [], st}
   end
 
   def handle_call({:send_pdus, pdus}, _from, st) do

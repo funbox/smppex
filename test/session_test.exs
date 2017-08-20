@@ -196,4 +196,9 @@ defmodule SMPPEX.SessionTest do
     {:ok, pdu_rx_data} = SMPPEX.Protocol.build(pdu_rx)
     assert pdu_tx_data <> pdu_rx_data == Server.received_data(context[:server])
   end
+
+  test "reply", context do
+    assert :test_reply == SMPPSession.test_reply(context[:session])
+  end
+
 end

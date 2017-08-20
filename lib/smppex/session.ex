@@ -29,7 +29,6 @@ defmodule SMPPEX.Session do
   @type transport :: module
   @type reason :: term
   @type state :: term
-  @type new_state :: term
   @type reply :: term
   @type send_pdu_result :: :ok | {:error, term}
   @type opts :: {module, module_opts :: term}
@@ -41,32 +40,32 @@ defmodule SMPPEX.Session do
     {:eror, reason}
 
   @callback handle_pdu(SMPP.pdu_parse_result, state) ::
-    {:ok, [Pdu.t], new_state} |
-    {:stop, reason, [Pdu.t], new_state}
+    {:ok, [Pdu.t], state} |
+    {:stop, reason, [Pdu.t], state}
 
-  @callback handle_send_pdu_result(Pdu.t, send_pdu_result, state) :: new_state
+  @callback handle_send_pdu_result(Pdu.t, send_pdu_result, state) :: state
 
   @callback handle_call(request, from, state) ::
-    {:reply, reply, [Pdu.t], new_state} |
-    {:noreply, [Pdu.t], new_state} |
-    {:stop, reason, reply, [Pdu.t], new_state} |
-    {:stop, reason, [Pdu.t], new_state}
+    {:reply, reply, [Pdu.t], state} |
+    {:noreply, [Pdu.t], state} |
+    {:stop, reason, reply, [Pdu.t], state} |
+    {:stop, reason, [Pdu.t], state}
 
   @callback handle_cast(request, state) ::
-    {:noreply, [Pdu.t], new_state} |
-    {:stop, reason, [Pdu.t], new_state}
+    {:noreply, [Pdu.t], state} |
+    {:stop, reason, [Pdu.t], state}
 
   @callback handle_info(request, state) ::
-    {:noreply, [Pdu.t], new_state} |
-    {:stop, reason, [Pdu.t], new_state}
+    {:noreply, [Pdu.t], state} |
+    {:stop, reason, [Pdu.t], state}
 
-  @callback handle_socket_closed(state) :: {reason, new_state}
-  @callback handle_socket_error(error :: term, state) :: {reason, new_state}
+  @callback handle_socket_closed(state) :: {reason, state}
+  @callback handle_socket_error(error :: term, state) :: {reason, state}
 
   @callback terminate(reason, state) :: any
 
   @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
-    {:ok, new_state} |
+    {:ok, state} |
     {:error, reason}
 
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
