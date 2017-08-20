@@ -10,8 +10,6 @@ defmodule SMPPEX.PduStorage do
 
   defstruct [
     :by_sequence_number,
-    :on_exit,
-    :monitor,
     :pid
   ]
 
@@ -19,8 +17,8 @@ defmodule SMPPEX.PduStorage do
 
   @spec start :: GenServer.on_start
 
-  def start(on_exit \\ fn(_pid, _reason, _lost_pdus) -> :ok end) when is_function(on_exit, 3) do
-    GenServer.start_link(__MODULE__, [self(), on_exit])
+  def start_link do
+    GenServer.start_link(__MODULE__, [])
   end
 
   @spec store(pid, Pdu.t, non_neg_integer) :: boolean
@@ -47,12 +45,9 @@ defmodule SMPPEX.PduStorage do
     GenServer.call(storage, :fetch_all)
   end
 
-  def init([pid, on_exit]) do
-    monitor = Process.monitor(pid)
+  def init([]) do
     {:ok, %PduStorage{
       by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set]),
-      on_exit: on_exit,
-      monitor: monitor,
       pid: pid,
     }}
   end
@@ -83,19 +78,6 @@ defmodule SMPPEX.PduStorage do
     pdus = for {_sn, {_ex, pdu}} <- ETS.tab2list(st.by_sequence_number), do: pdu
     ETS.delete_all_objects(st.by_sequence_number)
     {:reply, pdus, st}
-  end
-
-  def handle_info({:DOWN, ref, :process, _pid, reason}, st) do
-    if st.monitor == ref do
-      lost_pdus = for {_sn, {_ex, pdu}} <- ETS.tab2list(st.by_sequence_number), do: pdu
-      case lost_pdus do
-        [_ | _] -> st.on_exit.(st.pid, reason, lost_pdus)
-        _ -> :ok
-      end
-      {:stop, :normal, st}
-    else
-      {:noreply, st}
-    end
   end
 
 end

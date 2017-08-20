@@ -38,9 +38,9 @@ defmodule SMPPEX.ESME do
 
   require Logger
 
+  @behaviour Session
+
   defstruct [
-    :client_pool,
-    :smpp_session,
     :module,
     :module_state,
     :timers,
@@ -66,124 +66,64 @@ defmodule SMPPEX.ESME do
 
   @type state :: term
   @type request :: term
+  @type reason :: term
+  @type send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result
+  @type session :: pid
+  @type from :: Session.from
 
-  @doc """
-  Invoked when the ESME is started after connection to SMSC successfully established.
+  @callback init(Session.socket, Session.transport, args) ::
+    {:ok, state} |
+    {:stop, reason :: term}
 
-  `args` argument is taken directly from `start_link` call, which does not return until `init` finishes.
-  The return value should be either `{:ok, state}`, then ESME will successfully start and returned state will
-  be later passed to the other callbacks, or `{:stop, reason}`, then ESME `GenServer` will stop
-  with the returned reason.
+  @callback handle_pdu(pdu :: Pdu.t, state) ::
+    {:ok, state} |
+    {:ok, [Pdu.t], state} |
+    {:stop, reason, state}
 
-  """
+  @callback handle_unparsed_pdu(pdu :: RawPdu.t, error :: term, state) ::
+    {:ok, state} |
+    {:ok, [Pdu.t], state} |
+    {:stop, reason, state}
 
-  @callback init(args :: term) :: {:ok, state} | {:stop, reason :: term}
+  @callback handle_resp(pdu :: Pdu.t, original_pdu :: Pdu.t, state) ::
+    {:ok, state} |
+    {:ok, [Pdu.t], state} |
+    {:stop, reason, state}
 
+  @callback handle_resp_timeout(pdus :: [Pdu.t], state) ::
+    {:ok, state} |
+    {:ok, [Pdu.t], state} |
+    {:stop, reason, state}
 
-  @doc """
-  Invoked when the ESME receives an incoming PDU (which is not a response PDU).
+  @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result, state) :: state
 
-  The returned value is used as the new state.
-  """
+  @callback handle_socket_error(error :: term, state) :: {exit_reason :: term, state}
 
-  @callback handle_pdu(pdu :: Pdu.t, state) :: state
+  @callback handle_socket_closed(state) :: {exit_reason :: term, state}
 
-  @doc """
-  Invoked when the ESME receives a response to a previously sent PDU.
+  @callback handle_call(request, from :: GenServer.from, state) ::
+    {:reply, reply, state} |
+    {:reply, reply, [Pdu.t], state} |
+    {:noreply, [Pdu.t], state} |
+    {:noreply, state} |
+    {:stop, reason, reply, state} |
+    {:stop, reason, state}
 
-  `pdu` argument contains the received response PDU, `original_pdu` contains
-  the previously sent pdu for which the handled response is received.
+  @callback handle_cast(request, from :: GenServer.from, state) ::
+    {:noreply, state} |
+    {:noreply, [Pdu.t], state} |
+    {:stop, reason, state}
 
-  The returned value is used as the new state.
-  """
-  @callback handle_resp(pdu :: Pdu.t, original_pdu :: Pdu.t, state) :: state
+  @callback handle_info(request, state) ::
+    {:noreply, state} |
+    {:noreply, [Pdu.t], state} |
+    {:stop, reason, state}
 
-  @doc """
-  Invoked when the ESME does not receive a response to a previously sent PDU
-  for the specified timeout.
+  @callback terminate(reason, lost_pdus, state) :: any
 
-  `pdu` argument contains the PDU for which no response was received. If the response
-  will be received later it will be dropped (with an `info` log message).
-
-  The returned value is used as the new state.
-  """
-  @callback handle_resp_timeout(pdu :: Pdu.t, state) :: state
-
-  @doc """
-  Invoked when the SMPP session successfully sent PDU to transport or failed to do this.
-
-  `pdu` argument contains the PDU for which send status is reported. `send_pdu_result` can be
-  either `:ok` or `{:error, reason}`.
-
-  The returned value is used as the new state.
-  """
-  @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result, state) :: state
-
-  @doc """
-  Invoked when the ESME fails to parse a PDU.
-
-  The returned value can either be `{:ok, new_state}` or `{:stop, reason, new_state}`.
-  """
-  @callback handle_parse_error(reason :: term, state) :: SMPPEX.SMPPHandler.handle_pdu_result
-
-  @doc """
-  Invoked when the SMPP session is about to stop.
-
-  `lost_pdus` contains sent PDUs which have not received resps (and will never
-   receive since the session terminates).
-
-  `reason` contains one of the following:
-  * `:custom` -- session manually stopped by call to `ESME.stop`;
-  * `{:parse_error, error}` -- error in parsing incoming SMPP packet occured;
-  * `:socket_closed` -- peer closed socket;
-  * `{:socket_error, error}` -- socket error occured;
-  * `{:timers, reason}` -- session closed by timers;
-  * `{:smpp_session_exit, reason}` -- SMPP session exited with reason `reason`. This will only be received if ESME traps exits. Otherwise, the ESME will exit too;
-  * `{:unrecognized_message, message}` -- SMPP session received an unknown message.
-
-  The return value is `{stop_reason, new_state}`. The session GenServer will stop
-  with `stop_reason`.
-  """
-  @callback handle_stop(reason :: term, lost_pdus :: [Pdu.t], state) :: {exit_reason :: term, state}
-
-  @doc """
-  Invoked for handling `call/3` calls.
-
-  The callback is called syncronously for handling.
-
-  The returned values have the same meaning as in `GenServer` `handle_call` callback
-  (but note that only two kinds of responses are possible). In case of delaying a reply (`{:noreply, state}` callback result)
-  it can be later send using `GenServer.reply(from, reply)`
-
-  """
-  @callback handle_call(request, from :: GenServer.from, state) :: {:reply, reply :: term, state} | {:noreply, state}
-
-  @doc """
-  Invoked for handling `cast/2` calls.
-
-  The callback is called asyncronously.
-
-  The returned value is used as the new state.
-  """
-  @callback handle_cast(request, state) :: state
-
-  @doc """
-  Invoked for handling generic messages sent to the ESME process.
-
-  The returned value is used as the new state.
-  """
-  @callback handle_info(request, state) :: state
-
-  @doc """
-  Invoked when ESME was stopped abnormally and wasn't able to
-  handle sent PDUs without resps in `handle_stop`.
-
-  Since the ESME is already stopped, the callback does not receive state,
-  but the former pid of ESME, the reason of its termination and unconfirmed PDUs.
-
-  The returned value is ignored.
-  """
-  @callback handle_lost_pdus(esme :: pid, reason :: term, pdus :: [Pdu.t]) :: any
+  @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
+    {:ok, new_state} |
+    {:error, reason}
 
   defmacro __using__(_) do
     quote location: :keep do
@@ -192,57 +132,62 @@ defmodule SMPPEX.ESME do
       require Logger
 
       @doc false
-      def init(args) do
+      def init(_socket, _transport, args) do
         {:ok, args}
       end
 
       @doc false
-      def handle_pdu(_pdu, state), do: state
+      def handle_pdu(_pdu, state), do: {:ok, state}
 
       @doc false
-      def handle_resp(_pdu, _original_pdu, state), do: state
+      def handle_unparsed_pdu(_pdu, _error, state), do: {:ok, state}
 
       @doc false
-      def handle_resp_timeout(_pdu, state), do: state
+      def handle_resp(_pdu, _original_pdu, state), do: {:ok, state}
+
+      @doc false
+      def handle_resp_timeout(_pdus, state), do: {:ok, state}
 
       @doc false
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
       @doc false
-      def handle_parse_error(reason, state), do: {:stop, reason, state}
+      def handle_socket_error(error, state), do: {{:socket_error, error}, state}
 
       @doc false
-      def handle_stop(reason, lost_pdus, state) do
-        Logger.info("esme #{inspect self()} is stopping, reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
-        {:normal, state}
-      end
+      def handle_socket_closed(state), do: {:socket_closed, state}
 
       @doc false
       def handle_call(_request, _from, state), do: {:reply, :ok, state}
 
       @doc false
-      def handle_cast(_request, state), do: state
+      def handle_cast(_request, state), do: {:noreply, state}
 
       @doc false
-      def handle_info(_request, state), do: state
+      def handle_info(_request, state), do: {:noreply, state}
 
       @doc false
-      def handle_lost_pdus(pid, reason, lost_pdus) do
-        Logger.info("mc_conn #{pid} stopped with reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
+      def terminate(reason, lost_pdus, _state) do
+        Logger.info("ESME #{self()} stopped with reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
       end
 
+      @doc false
+      def code_change(_vsn, state, _extra), do: {:ok, state}
+
       defoverridable [
-        init: 1,
+        init: 3,
         handle_pdu: 2,
         handle_resp: 3,
         handle_resp_timeout: 2,
         handle_send_pdu_result: 3,
-        handle_parse_error: 2,
-        handle_stop: 3,
+        handle_socket_error: 2,
+        handle_socket_closed: 1,
         handle_call: 3,
         handle_cast: 2,
         handle_info: 2,
-        handle_lost_pdus: 3
+        handle_lost_pdus: 3,
+        terminate: 3,
+        code_change: 3
       ]
     end
   end
@@ -284,19 +229,36 @@ defmodule SMPPEX.ESME do
 
   The returned value is either `{:ok, pid}` or `{:error, reason}`.
   """
-  def start_link(host, port, {module, args}, opts \\ []) do
+  def start_link(host, port, {module, args} = mod_with_args, opts \\ []) do
     transport = Keyword.get(opts, :transport, @default_transport)
-    gen_server_opts = Keyword.get(opts, :gen_server_opts, [])
     timeout = Keyword.get(opts, :timeout, @default_timeout)
+    sock_opts = [:binary, {:packet, 0}, {:active, :once}]
     esme_opts = Keyword.get(opts, :esme_opts, [])
-    GenServer.start_link(
-      __MODULE__,
-      [convert_host(host), port, {module, args}, transport, timeout, esme_opts],
-      gen_server_opts
-    )
+    session_opts = {__MODULE__, [socket, transport, mod_with_args, esme_opts]}
+    ref = make_ref()
+
+    case transport.connect(host, port, sock_opts, timeout) do
+      {:ok, socket} ->
+        case Session.start_link(ref, socket, transport, session_opts) do
+          {:ok, pid} ->
+            grant_socket(pid, ref, transport, socket, timeout)
+          {:error, _} = error ->
+            transport.close(socket)
+            error
+        end
+      {:error, _} = error -> error
+    end
   end
 
-  @spec send_pdu(esme :: pid, pdu :: Pdu.t) :: :ok
+  # Ranch'es granting reimplementation
+
+  defp grant_socket(pid, ref, transport, socket, timeout) do
+    transport.controlling_process(socket, pid)
+    Kernel.send(pid, {:shoot, ref, transport, socket, timeout})
+    {:ok, pid}
+  end
+
+  @spec send_pdu(session, Pdu.t) :: :ok
 
   @doc """
   Sends outcoming PDU from the ESME.
@@ -304,218 +266,53 @@ defmodule SMPPEX.ESME do
   The whole command is sent to the ESME asyncronously. The further lifecycle of the PDU
   can be traced through callbacks.
   """
-  def send_pdu(esme, pdu) do
-    GenServer.cast(esme, {:send_pdu, pdu})
+  def send_pdu(pid, pdu) do
+    Session.call(pid, {:send_pdu, pdu})
   end
 
-  @spec reply(esme :: pid, pdu :: Pdu.t, reply_pdu :: Pdu.t) :: :ok
-
-  @doc """
-  Sends reply to previously received PDU from the ESME.
-
-  The whole command is sent to the ESME asyncronously. The further lifecycle of the response PDU
-  can be traced through callbacks.
-  """
-  def reply(esme, pdu, reply_pdu) do
-    GenServer.cast(esme, {:reply, pdu, reply_pdu})
-  end
-
-  @spec stop(esme :: pid) :: :ok
+  @spec stop(session) :: :ok
 
   @doc """
   Stops ESME asyncronously.
 
   The very moment of the SMPP session termination can be traced via `handle_stop` callback.
   """
-  def stop(esme) do
-    GenServer.cast(esme, :stop)
+  def stop(pid) do
+    Session.call(pid, :stop)
   end
 
-  @spec call(esme ::pid, arg :: term, timeout) :: term
+  @spec call(session, request :: term, timeout) :: term
 
   @doc """
   Makes a syncronous call to ESME.
 
   The call is handled by `handle_call/3` ESME callback.
   """
-  def call(esme, request, timeout \\ @default_call_timeout) do
-    GenServer.call(esme, {:call, request}, timeout)
+  def call(pid, request, timeout \\ @default_call_timeout) do
+    Session.call(pid, {:call, request}, timeout)
   end
 
-  @spec cast(pid, term) :: :ok
+  @spec cast(session, request :: term) :: :ok
 
   @doc """
   Makes an asyncronous call to ESME.
 
   The call is handled by `handle_cast/2` ESME callback.
   """
-  def cast(esme, request) do
-    GenServer.cast(esme, {:cast, request})
+  def cast(pid, request) do
+    Session.cast(pid, {:cast, request})
   end
 
-  @spec with_session(esme :: pid, (smpp_session :: pid -> any)) :: :ok
+  @spec reply(from, response :: term)
 
-  @doc """
-  Asyncronously executes the passed lambda passing SMPP session(`SMPPEX.Session`) to it directly.
-
-  This function can be used for uncommon cases like sending PDUs bypassing timers or
-  sequence_number assignment.
-  """
-  def with_session(esme, fun) do
-    GenServer.cast(esme, {:with_session, fun})
+  def reply(from, response) do
+    Session.reply(from, response)
   end
 
-  @spec handle_pdu(pid, Pdu.t) :: :ok
+  # SMPP.Session callbacks
 
-  @doc false
-  def handle_pdu(esme, pdu) do
-    GenServer.call(esme, {:handle_pdu, pdu})
-  end
-
-  @spec handle_stop(pid, reason :: term) :: :ok
-
-  @doc false
-  def handle_stop(esme, reason) do
-    GenServer.call(esme, {:handle_stop, reason})
-  end
-
-  @type send_pdu_result :: :ok | {:error, term}
-  @spec handle_send_pdu_result(pid, Pdu.t, send_pdu_result) :: :ok
-
-  @doc false
-  def handle_send_pdu_result(esme, pdu, send_pdu_result) do
-    GenServer.call(esme, {:handle_send_pdu_result, pdu, send_pdu_result})
-  end
-
-  @spec handle_parse_error(pid, reason :: term) :: :ok
-
-  @doc false
-  def handle_parse_error(esme, reason) do
-    GenServer.call(esme, {:handle_parse_error, reason})
-  end
-
-  # GenServer callbacks
-
-  @doc false
-  def init([host, port, mod_with_args, transport, timeout, esme_opts]) do
-    esme = self()
-    handler = fn(ref, _socket, _transport, session) ->
-      Process.link(esme)
-      Kernel.send esme, {ref, session}
-      {:ok, SMPPEX.ESME.SMPPHandler.new(esme)}
-    end
-
-    case start_session(handler, host, port, transport, timeout) do
-      {:ok, pool, session} ->
-        init_esme(mod_with_args, pool, session, esme_opts)
-      {:error, reason} -> {:stop, reason}
-    end
-  end
-
-  @doc false
-  def handle_call({:handle_pdu, pdu}, _from, st) do
-    case Pdu.resp?(pdu) do
-      true -> do_handle_resp(pdu, st)
-      false -> do_handle_pdu(pdu, st)
-    end
-  end
-
-  def handle_call({:handle_stop, reason}, _from, st) do
-    {reason, new_st} = do_handle_stop(reason, st)
-    {:stop, reason, :ok, new_st}
-  end
-
-  def handle_call({:handle_send_pdu_result, pdu, send_pdu_result}, _from, st) do
-    do_handle_send_pdu_result(pdu, send_pdu_result, st)
-  end
-
-  def handle_call({:handle_parse_error, reason}, _from, st) do
-    do_handle_parse_error(reason, st)
-  end
-
-  def handle_call({:call, request}, from, st) do
-    case st.module.handle_call(request, from, st.module_state) do
-      {:reply, reply, new_module_state} ->
-        new_st = %ESME{st | module_state: new_module_state}
-        {:reply, reply, new_st}
-      {:noreply, new_module_state} ->
-        new_st = %ESME{st | module_state: new_module_state}
-        {:noreply, new_st}
-    end
-  end
-
-  @doc false
-  def handle_cast({:send_pdu, pdu}, st) do
-    new_st = do_send_pdu(pdu, st)
-    {:noreply, new_st}
-  end
-
-  def handle_cast({:reply, pdu, reply_pdu}, st) do
-    new_st = do_reply(pdu, reply_pdu, st)
-    {:noreply, new_st}
-  end
-
-  def handle_cast({:with_session, fun}, st) do
-    fun.(st.smpp_session)
-    {:noreply, st}
-  end
-
-  def handle_cast(:stop, st) do
-    Session.stop(st.smpp_session, :custom)
-    {:noreply, st}
-  end
-
-  def handle_cast({:cast, request}, st) do
-    new_module_state = st.module.handle_cast(request, st.module_state)
-    new_st = %ESME{st | module_state: new_module_state}
-    {:noreply, new_st}
-  end
-
-  @doc false
-  def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
-    new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
-    Erlang.cancel_timer(st.tick_timer_ref)
-    Kernel.send self(), {:tick, SMPPEX.Time.monotonic}
-    {:noreply, %ESME{st | tick_timer_ref: new_tick_timer_ref}}
-  end
-
-  def handle_info({:tick, time}, st) do
-    do_handle_tick(time, st)
-  end
-
-  def handle_info(request, st) do
-    smpp_session = st.smpp_session
-    case request do
-      {:EXIT, ^smpp_session, session_reason} ->
-        {reason, new_st} = do_handle_stop({:smpp_session_exit, session_reason}, st)
-        {:stop, reason, new_st}
-      _ ->
-        new_module_state = st.module.handle_info(request, st.module_state)
-        new_st = %ESME{st | module_state: new_module_state}
-        {:noreply, new_st}
-      end
-  end
-
-  # Private functions
-
-  defp start_session(handler, host, port, transport, timeout) do
-    case transport.connect(host, port, [:binary, {:packet, 0}, {:active, :once}], timeout) do
-      {:ok, socket} ->
-        pool = ClientPool.start(handler, 2, transport, timeout)
-        ClientPool.start_session(pool, socket)
-        ref = ClientPool.ref(pool)
-        receive do
-          {^ref, session} ->
-            {:ok, pool, session}
-        after timeout ->
-          {:error, :session_init_timeout}
-        end
-      {:error, _} = err -> err
-    end
-  end
-
-  defp init_esme({module, args}, pool, session, esme_opts) do
-    case module.init(args) do
+  def init(socket, transport, {module, args}, esme_opts) do
+    case module.init(socket, transport, args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(esme_opts, :timer_resolution, @default_timer_resolution)
         timer_ref = Erlang.start_timer(timer_resolution, self(), :emit_tick)
@@ -538,8 +335,6 @@ defmodule SMPPEX.ESME do
         response_limit = Keyword.get(esme_opts, :response_limit, @default_response_limit)
 
         {:ok, %ESME{
-          client_pool: pool,
-          smpp_session: session,
           module: module,
           module_state: state,
           timers: timers,
@@ -550,146 +345,231 @@ defmodule SMPPEX.ESME do
           timer_resolution: timer_resolution,
           tick_timer_ref: timer_ref
         }}
-      {:stop, _} = stop ->
-        ClientPool.stop(pool)
-        stop
+      {:error, _} = error ->
+        error
     end
   end
 
-  defp do_handle_pdu(pdu, st) do
-    new_module_state = st.module.handle_pdu(pdu, st.module_state)
-    new_timers = SMPPTimers.handle_peer_transaction(st.timers, st.time)
-    {:reply, :ok, %ESME{st | module_state: new_module_state, timers: new_timers}}
+  def handle_pdu({:unparsed_pdu, raw_pdu, error}, st) do
+    raw_pdu
+    |> st.module.handle_unparsed_pdu(error, st.module_state)
+    |> process_handle_unparsed_pdu_reply(st)
   end
 
-  defp do_handle_resp(pdu, st) do
+  def handle_pdu({:pdu, pdu}, st) do
+    if Pdu.resp?(pdu) do
+      pdu
+      |> handle_non_resp_pdu(st)
+      |> process_handle_pdu_reply()
+    else
+      pdu
+      |> handle_resp_pdu(st)
+      |> process_handle_resp_reply()
+    end
+  end
+
+  def handle_send_pdu_result(pdu, send_pdu_result, st) do
+    new_module_state = st.module.handle_send_pdu_result(pdu, send_pdu_result, st.module_state)
+    %ESME{st | module_state: new_module_state}
+  end
+
+  def handle_call({:send_pdu, pdu}, _from, st) do
+    {{:reply, :ok, [pdu], st.module_state}, st}
+    |> process_handle_call_reply()
+  end
+
+  def handle_call({:call, request}, from, st) do
+    {st.module.handle_call(request, from, st.module_state), st}
+    |> process_handle_call_reply()
+  end
+
+  def handle_cast({:cast, request}, st) do
+    {st.module.handle_call(request, st.module_state), st}
+    |> process_handle_cast_reply()
+  end
+
+  @doc false
+  def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
+    new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
+    Erlang.cancel_timer(st.tick_timer_ref)
+    Kernel.send self(), {:check_timers, SMPPEX.Time.monotonic}
+    Kernel.send self(), {:check_expired_pdus, SMPPEX.Time.monotonic}
+    {:noreply, [], %ESME{st | tick_timer_ref: new_tick_timer_ref}}
+  end
+
+  def handle_info({:check_timers, time}, st) do
+    check_timers(time, st)
+  end
+
+  def handle_info({:check_expired_pdus, time}, st) do
+    check_expired_pdus(time, st)
+  end
+
+  def handle_info(request, st) do
+    {st.module.handle_call(request, st.module_state), st}
+    |> process_handle_info_reply()
+  end
+
+  def handle_socket_closed(st) do
+    {reason, new_module_state} = st.module.handle_socket_closed(st.module_state)
+    {reason, %ESME{st | module_state: new_module_state}}
+  end
+
+  def handle_socket_error(error, st) do
+    {reason, new_module_state} = st.module.handle_socket_closed(error, st.module_state)
+    {reason, %ESME{st | module_state: new_module_state}}
+  end
+
+  def terminate(reason, st) do
+    lost_pdus = PduStorage.fetch_all(st.pdus)
+    st.module.terminate(reason, lost_pdus, t.module_state)
+  end
+
+  def code_change(old_vsn, st, extra) do
+    case state.module.code_change(old_vsn, st.module_state, extra) do
+      {:ok, new_module_state} ->
+        {:ok, %ESME{st | module_state: new_module_state}}
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  # Private
+
+  defp handle_non_resp_pdu(pdu, st) do
+    new_timers = SMPPTimers.handle_peer_transaction(st.timers, st.time)
+    {
+      st.module.handle_pdu(pdu, st.module_state),
+      %ESME{st | timers: new_timers}}
+    }
+  end
+
+  defp handle_resp_pdu(pdu, st) do
     sequence_number = Pdu.sequence_number(pdu)
     new_timers = SMPPTimers.handle_peer_action(st.timers, st.time)
     new_st = %ESME{st | timers: new_timers}
     case PduStorage.fetch(st.pdus, sequence_number) do
       [] ->
         Logger.info("esme #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
-        {:reply, :ok, new_st}
+        {{:ok, new_st.module_state}, new_st}
       [original_pdu] ->
-        do_handle_resp_for_pdu(pdu, original_pdu, new_st)
+        handle_resp_for_known_pdu(pdu, original_pdu, new_st)
     end
   end
 
-  defp do_handle_resp_for_pdu(pdu, original_pdu, st) do
-    new_module_state = st.module.handle_resp(pdu, original_pdu, st.module_state)
-    new_st = %ESME{st | module_state: new_module_state}
-    case Pdu.bind_resp?(pdu) do
-      true -> do_handle_bind_resp(pdu, new_st)
-      false -> {:reply, :ok, new_st}
+  defp handle_resp_for_known_pdu(pdu, original_pdu, st) do
+    new_st = update_timer_bind_status(st)
+    {
+      new_st.module.handle_resp(pdu, original_pdu, new_st.module_state),
+      new_st
+    }
+  end
+
+  defp update_timer_bind_status(pdu, st) do
+    if Pdu.bind_resp?(pdu) && Pdu.success_resp?(pdu) do
+      new_timers = SMPPTimers.handle_bind(st.timers, st.time)
+      %ESME{st | timers: new_timers}
+    else
+      st
     end
   end
 
-  defp do_handle_bind_resp(pdu, st) do
-    case Pdu.success_resp?(pdu) do
-      true ->
-        new_timers = SMPPTimers.handle_bind(st.timers, st.time)
-        new_st = %ESME{st | timers: new_timers}
-        {:reply, :ok, new_st}
-      false ->
-        Logger.info("esme #{inspect self()}, bind failed with status #{Pdu.command_status(pdu)}, stopping")
-        Session.stop(st.smpp_session, :bind_failed)
-        {:reply, :ok, st}
-    end
+  defp check_expired_pdus(time, st) do
+    st.pdus
+    |> PduStorage.fetch_expired(time)
+    |> st.module.handle_resp_timeout(st.module_state)
+    |> process_handle_resp_timeout_reply()
   end
 
-  defp do_handle_stop(reason, st) do
-    lost_pdus = PduStorage.fetch_all(st.pdus)
-
-    Process.unlink(st.smpp_session)
-    ClientPool.stop(st.client_pool)
-
-    # TODO: remove legacy implementation handling in future versions
-    module = st.module
-
-    result = try do
-      module.handle_stop(st.module_state)
-      :legacy_impl
-    rescue
-      e in UndefinedFunctionError -> {:new_impl, e}
-    end
-
-    case result do
-      :legacy_impl ->
-        Logger.warn("Implementing #{st.module}.handle_stop(st) is deprecated, implement #{st.module}.handle_stop(reason, lost_pdus, st) instead")
-        {:normal, st}
-      {:new_impl, %UndefinedFunctionError{arity: 1, function: :handle_stop, module: ^module}} ->
-        {exit_reason, new_module_state} = module.handle_stop(reason, lost_pdus, st.module_state)
-        {exit_reason, %ESME{st | module_state: new_module_state}}
-      {:new_impl, other_exception} ->
-        raise other_exception
-    end
-  end
-
-  defp do_handle_send_pdu_result(pdu, send_pdu_result, st) do
-    new_module_state = st.module.handle_send_pdu_result(pdu, send_pdu_result, st.module_state)
-    new_st = %ESME{st | module_state: new_module_state}
-    {:reply, :ok, new_st}
-  end
-
-  defp do_handle_parse_error(reason, st) do
-    case st.module.handle_parse_error(reason, st.module_state) do
-      {:ok, new_module_state} ->
-        new_st = %ESME{st | module_state: new_module_state}
-        {:reply, :ok, new_st}
-      {:stop, reason, new_module_state} ->
-        Session.stop(st.smpp_session, {:parse_error, reason})
-        new_st = %ESME{st | module_state: new_module_state}
-        {:reply, :ok, new_st}
-    end
-  end
-
-  defp do_handle_tick(time, st) do
-    expired_pdus = PduStorage.fetch_expired(st.pdus, time)
-    new_st = do_handle_expired_pdus(expired_pdus, st)
-    do_handle_timers(time, new_st)
-  end
-
-  defp do_handle_expired_pdus([], st), do: st
-  defp do_handle_expired_pdus([pdu | pdus], st) do
-    new_module_state = st.module.handle_resp_timeout(pdu, st.module_state)
-    new_st = %ESME{st | module_state: new_module_state}
-    do_handle_expired_pdus(pdus, new_st)
-  end
-
-  defp do_handle_timers(time, st) do
+  defp check_timers(time, st) do
     case SMPPTimers.handle_tick(st.timers, time) do
       {:ok, new_timers} ->
         new_st = %ESME{st | timers: new_timers, time: time}
-        {:noreply, new_st}
+        {:noreply, [], new_st}
       {:stop, reason} ->
         Logger.info("esme #{inspect self()}, being stopped by timers(#{reason})")
-        Session.stop(st.smpp_session, {:timers, reason})
-        {:noreply, st}
+        {:stop, {:timers, reason}, [], st}
       {:enquire_link, new_timers} ->
-        new_st = %ESME{st | timers: new_timers, time: time}
-        do_send_enquire_link(new_st)
+        enquire_link = SMPPEX.Pdu.Factory.enquire_link
+        {new_st, pdus} = save_sent_pdus(
+          [enquire_link],
+          %ESME{st | timers: new_timers, time: time}
+        )
+        {:noreply, pdus, new_st}
     end
   end
 
-  defp do_send_enquire_link(st) do
-    enquire_link = SMPPEX.Pdu.Factory.enquire_link
-    new_st = do_send_pdu(enquire_link, st)
-    {:noreply, new_st}
+  defp save_sent_pdus(pdus, st, pdus_to_send \\ [])
+  defp save_sent_pdus([], st, pdus_to_send), do: {st, List.reverse(pdus_to_send)}
+  defp save_sent_pdus([pdu | pdus], st, pdus_to_send) do
+    if Pdu.resp?(pdu) do
+      save_sent_pdus(pdus, st, [pdu | pdus_to_send])
+    else
+      sequence_number = st.sequence_number + 1
+      new_pdu = %Pdu{pdu | sequence_number: sequence_number}
+      true = PduStorage.store(st.pdus, new_pdu, st.time + st.response_limit)
+      new_st = %ESME{st | sequence_number: sequence_number}
+      save_sent_pdus(pdus, new_st, [new_pdu | pdus_to_send])
+    end
   end
 
-  defp do_send_pdu(pdu, st) do
-    sequence_number = st.sequence_number + 1
-    new_pdu = %Pdu{pdu | sequence_number: sequence_number}
-    true = PduStorage.store(st.pdus, new_pdu, st.time + st.response_limit)
-    Session.send_pdu(st.smpp_session, new_pdu)
-    new_st = %ESME{st | sequence_number: sequence_number}
-    new_st
-  end
+  defp process_handle_pdu_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_pdu_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_pdu_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
 
-  defp do_reply(pdu, reply_pdu, st) do
-    new_reply_pdu = %Pdu{reply_pdu | sequence_number: pdu.sequence_number}
-    Session.send_pdu(st.smpp_session, new_reply_pdu)
-    st
+  defp process_handle_unparsed_pdu_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_unparsed_pdu_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_unparsed_pdu_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
+
+  defp process_handle_resp_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_resp_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_resp_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
+
+  defp process_handle_resp_timeout_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_resp_timeout_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_resp_timeout_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
+
+  defp process_handle_call_reply({{:reply, _reply, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_call_reply({{:reply, _reply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_call_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_call_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_call_reply({{:stop, _rsn, _reply, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_call_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
+
+  defp process_handle_cast_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_cast_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_cast_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
+
+  defp process_handle_info_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_info_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_info_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
+
+  defp process_reply({{:ok, module_state}, st}) do
+    {:ok, [], %ESME{st | module_state: module_state}}
+  end
+  defp process_reply({{:ok, pdus, module_state}, st}) do
+    {new_st, pdus_to_send} = save_sent_pdus(pdus, st)
+    {:ok, pdus_to_send, %ESME{new_st | module_state: module_state}}
+  end
+  defp process_reply({{:reply, reply, module_state}, st}) do
+    {:reply, reply, [], %ESME{st | module_state: module_state}}
+  end
+  defp process_reply({{:reply, reply, pdus, module_state}, st}) do
+    {new_st, pdus_to_send} = save_sent_pdus(pdus, st)
+    {:reply, reply, pdus_to_send, %ESME{new_st | module_state: module_state}}
+  end
+  defp process_reply({{:noreply, module_state}, st}) do
+    {:noreply, [], %ESME{st | module_state: module_state}}
+  end
+  defp process_reply({{:noreply, pdus, module_state}, st}) do
+    {new_st, pdus_to_send} = save_sent_pdus(pdus, st)
+    {:noreply, pdus_to_send, %ESME{new_st | module_state: module_state}}
+  end
+  defp process_reply({{:stop, reason, reply, module_state}, st}) do
+    {:stop, reason, reply, [], %ESME{st | module_state: module_state}}
+  end
+  defp process_reply({{:stop, reason, module_state}, st}) do
+    {:stop, reason, [], %ESME{st | module_state: module_state}}
   end
 
   defp convert_host(host) when is_binary(host), do: to_char_list(host)

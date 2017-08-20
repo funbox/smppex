@@ -469,6 +469,25 @@ defmodule SMPPEX.Pdu do
     fields_as_tuple(pdu, [:destination_addr, :dest_addr_ton, :dest_addr_npi])
   end
 
+  @spec as_reply_to(pdu :: Pdu.t, reply_to_pdu :: Pdu.t) :: Pdu.t
+
+  @doc """
+  Makes `pdu` be reply to the `reply_to_pdu`, i.e. assigns `reply_to_pdu`'s
+  `sequence_number` to `pdu`.
+
+  ## Examples
+
+      iex(1)> pdu1 = SMPPEX.Pdu.new({0x00000004, 0, 123})
+      iex(2)> pdu2 = SMPPEX.Pdu.new(0x80000004) |> SMPPEX.Pdu.as_reply_to(pdu1)
+      iex(3)> SMPPEX.Pdu.sequence_number(pdu2)
+      123
+
+  """
+
+  def as_reply_to(pdu, reply_to_pdu) do
+     %Pdu{pdu | sequence_number: reply_to_pdu.sequence_number}
+  end
+
   defp fields_as_tuple(pdu, fields) do
     fields
     |> Enum.map(fn field_name -> Pdu.field(pdu, field_name) end)

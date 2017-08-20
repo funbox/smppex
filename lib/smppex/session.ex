@@ -7,11 +7,8 @@ defmodule SMPPEX.Session do
   require Logger
 
   alias :proc_lib, as: ProcLib
-  alias :proplists, as: Proplists
-  alias :ranch, as: Ranch
 
   alias SMPPEX.Protocol, as: SMPP
-  alias SMPPEX.SMPPHandler
   alias SMPPEX.Pdu
   alias __MODULE__, as: Session
 
@@ -37,7 +34,7 @@ defmodule SMPPEX.Session do
   @type from :: GenServer.from
   @type request :: term
 
-  @callback init(Ranch.ref, socket, transport, opts) ::
+  @callback init(socket, transport, opts) ::
     {:ok, state} |
     {:eror, reason}
 
@@ -47,22 +44,22 @@ defmodule SMPPEX.Session do
 
   @callback handle_send_pdu_result(Pdu.t, send_pdu_result, state) :: new_state
 
-  @spec handle_call(request, from, state) ::
+  @callback handle_call(request, from, state) ::
     {:reply, reply, [Pdu.t], new_state} |
     {:noreply, [Pdu.t], new_state} |
     {:stop, reason, reply, [Pdu.t], new_state} |
     {:stop, reason, [Pdu.t], new_state}
 
-  @spec handle_cast(request, state) ::
+  @callback handle_cast(request, state) ::
     {:noreply, [Pdu.t], new_state} |
     {:stop, reason, [Pdu.t], new_state}
 
-  @spec handle_info(request, state) ::
+  @callback handle_info(request, state) ::
     {:noreply, [Pdu.t], new_state} |
     {:stop, reason, [Pdu.t], new_state}
 
-  @callback handle_socket_closed(state) :: {:stop, reason, new_state}
-  @callback handle_socket_error(error :: term, state) :: {:stop, reason, new_state}
+  @callback handle_socket_closed(state) :: {reason, new_state}
+  @callback handle_socket_error(error :: term, state) :: {reason, new_state}
 
   @callback terminate(reason, state) :: any
 
@@ -73,8 +70,9 @@ defmodule SMPPEX.Session do
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
   # Ranch handles this return type, but Dialyzer is not happy with it
 
+
   def start_link(ref, socket, transport, opts) do
-	   ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+	  ProcLib.start_link(__MODULE__, :init, [socket, transport, opts, after_ack])
   end
 
   def cast(server, request) do
@@ -89,11 +87,12 @@ defmodule SMPPEX.Session do
     GenServer.reply(from, rep)
   end
 
-  def init(ref, socket, transport, {module, module_opts}) do
+  def init(socket, transport, opts, after_ack) do
+    {module, module_opts} = opts
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
         :ok = ProcLib.init_ack({:ok, self()})
-        :ok = Ranch.accept_ack(ref)
+        Ranch.accept_ack(ref)
         state = %Session{
           ref: ref,
           socket: socket,
@@ -122,18 +121,18 @@ defmodule SMPPEX.Session do
         handle_socket_closed(state)
       {^error, _socket, reason} ->
         handle_socket_error(state, reason)
-      other ->
+    _ ->
         do_handle_info(message, state)
     end
   end
 
   defp handle_socket_closed(state) do
-    {:ok, reason, new_module_state} = state.module.handle_socket_closed(state.module_state)
+    {reason, new_module_state} = state.module.handle_socket_closed(state.module_state)
     stop(%Session{state | module_state: new_module_state}, reason)
   end
 
   defp handle_socket_error(state, error) do
-    {:ok, reason, new_module_state} = state.module.handle_socket_error(error, state.module_state)
+    {reason, new_module_state} = state.module.handle_socket_error(error, state.module_state)
     stop(%Session{state | module_state: new_module_state}, reason)
   end
 
@@ -231,8 +230,12 @@ defmodule SMPPEX.Session do
   end
 
   def code_change(old_vsn, state, extra) do
-    state.module.code_change(old_vsn, state.module_state, extra)
+    case state.module.code_change(old_vsn, state.module_state, extra) do
+      {:ok, new_module_state} ->
+        {:ok, %Session{state | module_state: new_module_state}}
+      {:error, _} = err ->
+        err
+    end
   end
-
 
 end
