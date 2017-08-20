@@ -29,7 +29,6 @@ defmodule SMPPEX.ESME do
 
   alias :erlang, as: Erlang
 
-  alias SMPPEX.ClientPool
   alias SMPPEX.ESME
   alias SMPPEX.Pdu
   alias SMPPEX.PduStorage
@@ -67,13 +66,14 @@ defmodule SMPPEX.ESME do
   @type state :: term
   @type request :: term
   @type reason :: term
+  @type reply :: term
   @type send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result
   @type session :: pid
   @type from :: Session.from
 
-  @callback init(Session.socket, Session.transport, args) ::
+  @callback init(Session.socket, Session.transport, args :: term) ::
     {:ok, state} |
-    {:stop, reason :: term}
+    {:stop, reason}
 
   @callback handle_pdu(pdu :: Pdu.t, state) ::
     {:ok, state} |
@@ -101,7 +101,7 @@ defmodule SMPPEX.ESME do
 
   @callback handle_socket_closed(state) :: {exit_reason :: term, state}
 
-  @callback handle_call(request, from :: GenServer.from, state) ::
+  @callback handle_call(request, from, state) ::
     {:reply, reply, state} |
     {:reply, reply, [Pdu.t], state} |
     {:noreply, [Pdu.t], state} |
@@ -109,7 +109,7 @@ defmodule SMPPEX.ESME do
     {:stop, reason, reply, state} |
     {:stop, reason, state}
 
-  @callback handle_cast(request, from :: GenServer.from, state) ::
+  @callback handle_cast(request, from, state) ::
     {:noreply, state} |
     {:noreply, [Pdu.t], state} |
     {:stop, reason, state}
@@ -119,10 +119,10 @@ defmodule SMPPEX.ESME do
     {:noreply, [Pdu.t], state} |
     {:stop, reason, state}
 
-  @callback terminate(reason, lost_pdus, state) :: any
+  @callback terminate(reason, lost_pdus :: [Pdu.t], state) :: any
 
   @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
-    {:ok, new_state} |
+    {:ok, state} |
     {:error, reason}
 
   defmacro __using__(_) do
@@ -185,7 +185,6 @@ defmodule SMPPEX.ESME do
         handle_call: 3,
         handle_cast: 2,
         handle_info: 2,
-        handle_lost_pdus: 3,
         terminate: 3,
         code_change: 3
       ]
@@ -229,16 +228,16 @@ defmodule SMPPEX.ESME do
 
   The returned value is either `{:ok, pid}` or `{:error, reason}`.
   """
-  def start_link(host, port, {module, args} = mod_with_args, opts \\ []) do
+  def start_link(host, port, {_module, _args} = mod_with_args, opts \\ []) do
     transport = Keyword.get(opts, :transport, @default_transport)
     timeout = Keyword.get(opts, :timeout, @default_timeout)
     sock_opts = [:binary, {:packet, 0}, {:active, :once}]
     esme_opts = Keyword.get(opts, :esme_opts, [])
-    session_opts = {__MODULE__, [socket, transport, mod_with_args, esme_opts]}
     ref = make_ref()
 
-    case transport.connect(host, port, sock_opts, timeout) do
+    case transport.connect(convert_host(host), port, sock_opts, timeout) do
       {:ok, socket} ->
+        session_opts = {__MODULE__, [mod_with_args, esme_opts]}
         case Session.start_link(ref, socket, transport, session_opts) do
           {:ok, pid} ->
             grant_socket(pid, ref, transport, socket, timeout)
@@ -303,7 +302,7 @@ defmodule SMPPEX.ESME do
     Session.cast(pid, {:cast, request})
   end
 
-  @spec reply(from, response :: term)
+  @spec reply(from, response :: term) :: :ok
 
   def reply(from, response) do
     Session.reply(from, response)
@@ -311,7 +310,7 @@ defmodule SMPPEX.ESME do
 
   # SMPP.Session callbacks
 
-  def init(socket, transport, {module, args}, esme_opts) do
+  def init(socket, transport, [{module, args}, esme_opts]) do
     case module.init(socket, transport, args) do
       {:ok, state} ->
         timer_resolution = Keyword.get(esme_opts, :timer_resolution, @default_timer_resolution)
@@ -331,7 +330,7 @@ defmodule SMPPEX.ESME do
           inactivity_limit
         )
 
-        {:ok, pdu_storage} = PduStorage.start(&module.handle_lost_pdus/3)
+        {:ok, pdu_storage} = PduStorage.start_link()
         response_limit = Keyword.get(esme_opts, :response_limit, @default_response_limit)
 
         {:ok, %ESME{
@@ -351,9 +350,8 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_pdu({:unparsed_pdu, raw_pdu, error}, st) do
-    raw_pdu
-    |> st.module.handle_unparsed_pdu(error, st.module_state)
-    |> process_handle_unparsed_pdu_reply(st)
+    {st.module.handle_unparsed_pdu(raw_pdu, error, st.module_state), st}
+    |> process_handle_unparsed_pdu_reply()
   end
 
   def handle_pdu({:pdu, pdu}, st) do
@@ -422,11 +420,11 @@ defmodule SMPPEX.ESME do
 
   def terminate(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
-    st.module.terminate(reason, lost_pdus, t.module_state)
+    st.module.terminate(reason, lost_pdus, st.module_state)
   end
 
   def code_change(old_vsn, st, extra) do
-    case state.module.code_change(old_vsn, st.module_state, extra) do
+    case st.module.code_change(old_vsn, st.module_state, extra) do
       {:ok, new_module_state} ->
         {:ok, %ESME{st | module_state: new_module_state}}
       {:error, _} = err ->
@@ -440,7 +438,7 @@ defmodule SMPPEX.ESME do
     new_timers = SMPPTimers.handle_peer_transaction(st.timers, st.time)
     {
       st.module.handle_pdu(pdu, st.module_state),
-      %ESME{st | timers: new_timers}}
+      %ESME{st | timers: new_timers}
     }
   end
 
@@ -458,7 +456,7 @@ defmodule SMPPEX.ESME do
   end
 
   defp handle_resp_for_known_pdu(pdu, original_pdu, st) do
-    new_st = update_timer_bind_status(st)
+    new_st = update_timer_bind_status(pdu, st)
     {
       new_st.module.handle_resp(pdu, original_pdu, new_st.module_state),
       new_st
@@ -475,9 +473,11 @@ defmodule SMPPEX.ESME do
   end
 
   defp check_expired_pdus(time, st) do
-    st.pdus
+    module_reply = st.pdus
     |> PduStorage.fetch_expired(time)
     |> st.module.handle_resp_timeout(st.module_state)
+
+    {module_reply, st}
     |> process_handle_resp_timeout_reply()
   end
 
@@ -500,7 +500,7 @@ defmodule SMPPEX.ESME do
   end
 
   defp save_sent_pdus(pdus, st, pdus_to_send \\ [])
-  defp save_sent_pdus([], st, pdus_to_send), do: {st, List.reverse(pdus_to_send)}
+  defp save_sent_pdus([], st, pdus_to_send), do: {st, Enum.reverse(pdus_to_send)}
   defp save_sent_pdus([pdu | pdus], st, pdus_to_send) do
     if Pdu.resp?(pdu) do
       save_sent_pdus(pdus, st, [pdu | pdus_to_send])
@@ -536,7 +536,7 @@ defmodule SMPPEX.ESME do
   defp process_handle_call_reply({{:stop, _rsn, _reply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
 
-  defp process_handle_cast_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+    defp process_handle_cast_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_cast_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_cast_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
 

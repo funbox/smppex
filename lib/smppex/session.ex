@@ -7,6 +7,8 @@ defmodule SMPPEX.Session do
   require Logger
 
   alias :proc_lib, as: ProcLib
+  alias :ranch, as: Ranch
+  alias :gen_server, as: GenServerErl
 
   alias SMPPEX.Protocol, as: SMPP
   alias SMPPEX.Pdu
@@ -70,9 +72,8 @@ defmodule SMPPEX.Session do
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
   # Ranch handles this return type, but Dialyzer is not happy with it
 
-
   def start_link(ref, socket, transport, opts) do
-	  ProcLib.start_link(__MODULE__, :init, [socket, transport, opts, after_ack])
+	  ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
   end
 
   def cast(server, request) do
@@ -87,7 +88,7 @@ defmodule SMPPEX.Session do
     GenServer.reply(from, rep)
   end
 
-  def init(socket, transport, opts, after_ack) do
+  def init(ref, socket, transport, opts) do
     {module, module_opts} = opts
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
@@ -102,7 +103,7 @@ defmodule SMPPEX.Session do
           buffer: <<>>
         }
         wait_for_data(state)
-        :gen_server.enter_loop(__MODULE__, [], state)
+        GenServerErl.enter_loop(__MODULE__, [], state)
       {:error, _} = error ->
         :ok = ProcLib.init_ack(error)
     end

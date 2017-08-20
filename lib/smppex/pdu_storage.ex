@@ -9,13 +9,12 @@ defmodule SMPPEX.PduStorage do
   alias SMPPEX.Pdu
 
   defstruct [
-    :by_sequence_number,
-    :pid
+    :by_sequence_number
   ]
 
   @type t :: %PduStorage{}
 
-  @spec start :: GenServer.on_start
+  @spec start_link :: GenServer.on_start
 
   def start_link do
     GenServer.start_link(__MODULE__, [])
@@ -47,8 +46,7 @@ defmodule SMPPEX.PduStorage do
 
   def init([]) do
     {:ok, %PduStorage{
-      by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set]),
-      pid: pid,
+      by_sequence_number: ETS.new(:pdu_storage_by_sequence_number, [:set])
     }}
   end
 
