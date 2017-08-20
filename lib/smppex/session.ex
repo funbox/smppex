@@ -121,8 +121,8 @@ defmodule SMPPEX.Session do
         }
         wait_for_data(state)
         GenServerErl.enter_loop(__MODULE__, [], state)
-      {:error, _} = error ->
-        :ok = ProcLib.init_ack(error)
+      {:stop, reason} ->
+        :ok = ProcLib.init_ack({:error, reason})
     end
   end
 

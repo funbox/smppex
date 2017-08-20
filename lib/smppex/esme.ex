@@ -335,8 +335,8 @@ defmodule SMPPEX.ESME do
           timer_resolution: timer_resolution,
           tick_timer_ref: timer_ref
         }}
-      {:error, _} = error ->
-        error
+      {:stop, _} = stop ->
+        stop
     end
   end
 
@@ -348,12 +348,12 @@ defmodule SMPPEX.ESME do
   def handle_pdu({:pdu, pdu}, st) do
     if Pdu.resp?(pdu) do
       pdu
-      |> handle_non_resp_pdu(st)
-      |> process_handle_pdu_reply()
-    else
-      pdu
       |> handle_resp_pdu(st)
       |> process_handle_resp_reply()
+    else
+      pdu
+      |> handle_non_resp_pdu(st)
+      |> process_handle_pdu_reply()
     end
   end
 
@@ -373,7 +373,7 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_cast({:cast, request}, st) do
-    {st.module.handle_call(request, st.module_state), st}
+    {st.module.handle_cast(request, st.module_state), st}
     |> process_handle_cast_reply()
   end
 
@@ -395,7 +395,7 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_info(request, st) do
-    {st.module.handle_call(request, st.module_state), st}
+    {st.module.handle_info(request, st.module_state), st}
     |> process_handle_info_reply()
   end
 

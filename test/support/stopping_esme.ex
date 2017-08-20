@@ -3,9 +3,8 @@ defmodule Support.StoppingESME do
 
   use SMPPEX.ESME
 
-  def init(stop_reason) do
+  def init(_socket, _transport, stop_reason) do
     {:stop, stop_reason}
   end
 
 end
-
