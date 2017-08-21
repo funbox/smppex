@@ -525,7 +525,7 @@ defmodule SMPPEX.ESME do
 
   defp process_handle_resp_timeout_reply({{:ok, mst}, st}), do: process_reply({{:noreply, mst}, st})
   defp process_handle_resp_timeout_reply({{:ok, pdus, mst}, st}), do: process_reply({{:noreply, pdus, mst}, st})
-  defp process_handle_resp_timeout_reply({{:stop, reason, mst}, st} = arg), do: process_reply(arg)
+  defp process_handle_resp_timeout_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
 
   defp process_handle_call_reply({{:reply, _reply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:reply, _reply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
