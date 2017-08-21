@@ -3,10 +3,14 @@ defmodule Support.ESME do
 
   use SMPPEX.ESME
 
+  @transport :ranch_tcp
+
   def start_link(host, port, pid, handler, esme_opts \\ []) do
-    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, {pid, handler}}, [{:esme_opts, esme_opts}])
+    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, {pid, handler}}, [esme_opts: esme_opts, transport: @transport])
     esme
   end
+
+  def socket_messages, do: @transport.messages
 
   def init(socket, transport, st) do
     Process.flag(:trap_exit, true)
@@ -51,6 +55,10 @@ defmodule Support.ESME do
 
   def handle_info(request, st) do
     register(st, {:handle_info, request})
+  end
+
+  def code_change(old_vsn, st, extra) do
+    register(st, {:code_change, old_vsn, extra})
   end
 
   def terminate(reason, lost_pdus, st) do

@@ -3,6 +3,7 @@ defmodule SMPPEX.ESMETest do
 
   alias :gen_tcp, as: GenTCP
   alias :timer, as: Timer
+  alias :sys, as: Sys
 
   alias SMPPEX.Protocol.CommandNames
   alias Support.TCP.Server
@@ -151,24 +152,24 @@ defmodule SMPPEX.ESMETest do
     assert Pdu.sequence_number(reply_received) == 123
   end
 
-  test "stop by handle_call response", ctx do
+  test "stop", ctx do
     Process.flag(:trap_exit, true)
 
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_call, :stop, _from}, st -> {:stop, :some_reason, :ok, st}
       {:terminate, _reason, _lost_pdus}, _st -> nil
     end)
 
     Timer.sleep(50)
 
-    assert :ok = ESME.call(esme, :stop)
+    assert :ok = ESME.stop(esme, :oops)
 
     assert [
       {:init, _, _},
-      {:handle_call, :stop, _from},
-      {:terminate, _reason, _lost_pdus}
+      {:terminate, :oops, _lost_pdus}
     ] = ctx[:callbacks].()
+
+    Timer.sleep(50)
 
     refute Process.alive?(esme)
   end
@@ -185,6 +186,47 @@ defmodule SMPPEX.ESMETest do
     Timer.sleep(10)
 
     assert [{:init, _, _}, {:handle_cast, ^ref}] = ctx[:callbacks].()
+  end
+
+  test "cast with pdu", ctx do
+    ref = make_ref()
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_cast, ^ref}, st -> {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
+      {:handle_send_pdu_result, _, _}, st -> st
+    end)
+
+    assert :ok == ESME.cast(esme, ref)
+
+    Timer.sleep(50)
+
+    assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "cast with stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    ref = make_ref()
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_cast, ^ref}, st -> {:stop, :ooops, st}
+      {:terminate, _, _}, _ -> nil
+    end)
+
+    ESME.cast(esme, ref)
+
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_cast, ^ref},
+      {:terminate, :ooops, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
   end
 
   test "call", ctx do
@@ -206,11 +248,57 @@ defmodule SMPPEX.ESMETest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_call, ^ref, from}, st ->
-        spawn(ESME.reply(from, :got_it))
+        spawn(fn -> ESME.reply(from, :got_it) end)
         {:noreply, st}
     end)
 
     assert :got_it == ESME.call(esme, ref)
+  end
+
+  test "call with delayed reply and pdu", ctx do
+    ref = make_ref()
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_call, ^ref, from}, st ->
+        spawn(fn -> ESME.reply(from, :got_it) end)
+        {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
+      {:handle_send_pdu_result, _, _}, st -> st
+    end)
+
+    assert :got_it == ESME.call(esme, ref)
+
+    Timer.sleep(50)
+
+    assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+
+    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "call with delayed reply and stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    ref = make_ref()
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_call, ^ref, from}, st ->
+        spawn(fn -> Timer.sleep(20); ESME.reply(from, :got_it) end)
+        {:stop, :ooops, st}
+      {:terminate, _, _}, _ -> nil
+    end)
+
+    spawn_link(fn -> ESME.call(esme, ref) end)
+
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_call, ^ref, _from},
+      {:terminate, :ooops, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
   end
 
   test "info", ctx do
@@ -222,13 +310,54 @@ defmodule SMPPEX.ESMETest do
     end)
 
     Kernel.send esme, ref
-    Timer.sleep(10)
+    Timer.sleep(50)
 
     assert [{:init, _, _}, {:handle_info, ^ref}] = ctx[:callbacks].()
   end
 
-  test "init", ctx do
+  test "info with pdu", ctx do
+    ref = make_ref()
+
     esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_info, ^ref}, st -> {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
+      {:handle_send_pdu_result, _, _}, st -> st
+    end)
+
+    Kernel.send(esme, ref)
+
+    Timer.sleep(50)
+
+    assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "info with stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    ref = make_ref()
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_info, ^ref}, st -> {:stop, :ooops, st}
+      {:terminate, _, _}, _ -> nil
+    end)
+
+    Kernel.send(esme, ref)
+
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_info, ^ref},
+      {:terminate, :ooops, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "init", ctx do
+    _esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
     end)
 
@@ -243,11 +372,11 @@ defmodule SMPPEX.ESMETest do
     assert {:error, :oops} == ESME.start_link({127,0,0,1}, Server.port(server), {Support.StoppingESME, :oops})
   end
 
-  test "handle_pdu", ctx do
+  test "handle_pdu with ok", ctx do
     pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123}
     {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
 
-    esme = ctx[:esme].(fn
+    _esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_pdu, _pdu}, st -> {:ok, st}
     end)
@@ -261,9 +390,64 @@ defmodule SMPPEX.ESMETest do
     assert Pdu.sequence_number(received_pdu) == 123
   end
 
-  test "handle_resp", ctx do
+  test "handle_pdu with ok and pdus", ctx do
+    pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123}
+    {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
+
+    _esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_pdu, _pdu}, st -> {:ok, [SMPPEX.Pdu.Factory.bind_transmitter_resp(0)], st}
+    end)
+
+    Server.send(ctx[:server], pdu_data)
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_pdu, _},
+      {:handle_send_pdu_result, _, _}
+    ] = ctx[:callbacks].()
+
+    assert {:ok, {:pdu, reply_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+
+    assert Pdu.command_id(reply_pdu) |> CommandNames.name_by_id == {:ok, :bind_transmitter_resp}
+  end
+
+  test "handle_pdu with stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123}
+    {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_pdu, _pdu}, st -> {:stop, :nopenope, st}
+      {:terminate, _, _}, _st -> nil
+    end)
+
+    Server.send(ctx[:server], pdu_data)
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_pdu, _},
+      {:terminate, :nopenope, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "handle_resp ok", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -272,16 +456,86 @@ defmodule SMPPEX.ESMETest do
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok},
       {:handle_resp, received_reply_pdu, _}
     ] = ctx[:callbacks].()
+
     assert Pdu.mandatory_field(received_reply_pdu, :system_id) == "sid"
+  end
+
+  test "handle_resp ok with pdus", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, [SMPPEX.Pdu.Factory.enquire_link()], st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
+    Timer.sleep(50)
+
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, received_reply_pdu, _},
+      {:handle_send_pdu_result, _, :ok}
+    ] = ctx[:callbacks].()
+
+    assert Pdu.mandatory_field(received_reply_pdu, :system_id) == "sid"
+
+    assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+    assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = SMPPEX.Protocol.parse(rest_data)
+
+    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "handle_resp ok with stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:stop, :nopenope, st}
+      {:terminate, _, _}, _ -> nil
+    end)
+
+    ESME.send_pdu(esme, pdu)
+    Timer.sleep(50)
+
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp, _, _},
+      {:terminate, :nopenope, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
   end
 
   test "handle_resp (with additional submit_sm)", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -290,7 +544,7 @@ defmodule SMPPEX.ESMETest do
     Timer.sleep(50)
 
     pdu = SMPPEX.Pdu.Factory.submit_sm({"from", 1, 2}, {"to", 1, 2}, "message")
-    ESME.send_pdu(ctx[:esme], pdu)
+    ESME.send_pdu(esme, pdu)
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.submit_sm_resp(0) | sequence_number: 2}
@@ -299,7 +553,7 @@ defmodule SMPPEX.ESMETest do
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok},
       {:handle_resp, bind_resp, _},
       {:handle_send_pdu_result, _, :ok},
@@ -311,7 +565,13 @@ defmodule SMPPEX.ESMETest do
 
   test "handle_resp with unknown resp", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+    end)
+
+    ESME.send_pdu(esme, pdu)
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 2}
@@ -320,56 +580,183 @@ defmodule SMPPEX.ESMETest do
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok},
     ] = ctx[:callbacks].()
   end
 
-  test "handle_resp_timeout", ctx do
+  test "handle_resp_timeout with ok", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp_timeout, _pdu}, st -> {:ok, st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
     time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 2050})
+    Kernel.send(esme, {:check_expired_pdus, time + 2050})
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
     {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
     Server.send(ctx[:server], reply_pdu_data)
 
     Timer.sleep(50)
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok},
-      {:handle_resp_timeout, timeout_pdu},
+      {:handle_resp_timeout, [timeout_pdu]},
     ] = ctx[:callbacks].()
 
     assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"
   end
 
+  test "handle_resp_timeout with ok and pdus", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp_timeout, _pdu}, st -> {:ok, [SMPPEX.Pdu.Factory.enquire_link()], st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
+    time = SMPPEX.Time.monotonic
+    Timer.sleep(50)
+
+    Kernel.send(esme, {:check_expired_pdus, time + 2050})
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+
+    Timer.sleep(50)
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp_timeout, [timeout_pdu]},
+      {:handle_send_pdu_result, _, :ok},
+    ] = ctx[:callbacks].()
+
+    assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"
+
+    assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+    assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = SMPPEX.Protocol.parse(rest_data)
+
+    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "handle_resp_timeout with stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp_timeout, _pdu}, st -> {:stop, :nopenope, st}
+      {:terminate, _, _}, _ -> nil
+    end)
+
+    ESME.send_pdu(esme, pdu)
+    time = SMPPEX.Time.monotonic
+    Timer.sleep(50)
+
+    Kernel.send(esme, {:check_expired_pdus, time + 2050})
+
+    Timer.sleep(50)
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, :ok},
+      {:handle_resp_timeout, [_timeout_pdu]},
+      {:terminate, :nopenope, []},
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
   test "handle_send_pdu_result", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "too_long_password")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+    end)
+
+    ESME.send_pdu(esme, pdu)
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, {:error, _}}
     ] = ctx[:callbacks].()
   end
 
-  test "handle_parse_error", ctx do
+  test "handle_unparsed_pdu with ok", ctx do
     Server.send(ctx[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+
+    _esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_unparsed_pdu, _pdu, _error}, st -> {:ok, st}
+    end)
+
     Timer.sleep(50)
 
     assert [
-      {:init},
-      {:handle_parse_error, {:unparsed_pdu, _, "Unknown command_id"}}
+      {:init, _, _},
+      {:handle_unparsed_pdu, _pdu, "Unknown command_id"},
     ] = ctx[:callbacks].()
+  end
+
+  test "handle_unparsed_pdu with ok and pdus", ctx do
+    _esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_unparsed_pdu, _pdu, _error}, st -> {:ok, [SMPPEX.Pdu.Factory.enquire_link()], st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+    end)
+
+    Server.send(ctx[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+
+    Timer.sleep(50)
+
+    assert {:ok, {:pdu, reply_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+
+    assert Pdu.command_id(reply_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+  end
+
+  test "handle_unparsed_pdu with ok and stop", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_unparsed_pdu, _pdu, _error}, st -> {:stop, :nopenope, st}
+      {:terminate, _pdu, _los_pdus}, _st -> nil
+    end)
+
+    Server.send(ctx[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_unparsed_pdu, _pdu, "Unknown command_id"},
+      {:terminate, :nopenope, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
   end
 
   test "enquire_link by timeout", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
     time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
@@ -378,7 +765,7 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 1050})
+    Kernel.send(esme, {:check_timers, time + 1050})
     Timer.sleep(50)
 
     assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
@@ -386,10 +773,17 @@ defmodule SMPPEX.ESMETest do
     assert Pdu.command_id(enquire_link) |> CommandNames.name_by_id == {:ok, :enquire_link}
   end
 
-
   test "enquire_link cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+      {:handle_pdu, _pdu}, st -> {:ok, st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
     time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
@@ -398,7 +792,7 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 950})
+    Kernel.send(esme, {:check_timers, time + 950})
     Timer.sleep(50)
 
     action_pdu = %Pdu{SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
@@ -406,7 +800,7 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], action_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 1050})
+    Kernel.send(esme, {:check_timers, time + 1050})
     Timer.sleep(50)
 
     assert {:ok, {:pdu, _bind_pdu}, <<>>} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
@@ -414,7 +808,15 @@ defmodule SMPPEX.ESMETest do
 
   test "enquire_link timeout cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+      {:handle_pdu, _pdu}, st -> {:ok, st}
+    end)
+
+    ESME.send_pdu(esme, pdu)
     time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
@@ -423,7 +825,7 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 1050})
+    Kernel.send(esme, {:check_timers, time + 1050})
     Timer.sleep(50)
 
     action_pdu = %Pdu{SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
@@ -431,11 +833,11 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], action_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 2100})
+    Kernel.send(esme, {:check_timers, time + 2100})
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
       {:handle_send_pdu_result, _, :ok}, # enquire_link sent
@@ -447,8 +849,18 @@ defmodule SMPPEX.ESMETest do
 
 
   test "stop by enquire_link timeout", ctx do
+    Process.flag(:trap_exit, true)
+
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+      {:terminate, _reason, _los_pdus}, _st -> nil
+    end)
+
+    ESME.send_pdu(esme, pdu)
     time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
@@ -457,23 +869,33 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 1050})
-    Kernel.send(ctx[:esme], {:tick, time + 2050})
+    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:check_timers, time + 2050})
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
       {:handle_send_pdu_result, _, :ok}, # enquire_link sent
-      {:handle_stop, {:timers, :enquire_link_timer}, _}
-    ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
-    refute Process.alive?(ctx[:esme])
+      {:terminate, {:timers, :enquire_link_timer}, _los_pdus}
+    ] = ctx[:callbacks].()
+    refute Process.alive?(esme)
   end
 
   test "stop by inactivity timeout", ctx do
+    Process.flag(:trap_exit, true)
+
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+      {:terminate, _reason, _los_pdus}, _st -> nil
+    end)
+
+    ESME.send_pdu(esme, pdu)
     time = SMPPEX.Time.monotonic
     Timer.sleep(50)
 
@@ -482,75 +904,130 @@ defmodule SMPPEX.ESMETest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(ctx[:esme], {:tick, time + 10050})
+    Kernel.send(esme, {:check_timers, time + 10050})
     Timer.sleep(50)
 
     assert [
-      {:init},
+      {:init, _, _},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
-      {:handle_stop, {:timers, :inactivity_timer}, []}
-    ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
-    refute Process.alive?(ctx[:esme])
-  end
+      {:terminate, {:timers, :inactivity_timer}, []}
+    ] = ctx[:callbacks].()
 
-  test "bind fail", ctx do
-    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
-    Timer.sleep(50)
-
-    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(1) | sequence_number: 1}
-    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
-    Server.send(ctx[:server], reply_pdu_data)
-    Timer.sleep(50)
-
-    assert [
-      {:init},
-      {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
-      {:handle_resp, _, _},
-      {:handle_stop, :bind_failed, []}
-    ] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
-    refute Process.alive?(ctx[:esme])
+    refute Process.alive?(esme)
   end
 
   test "lost_pdus", ctx do
+    Process.flag(:trap_exit, true)
+
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
-    ESME.send_pdu(ctx[:esme], pdu)
-    Timer.sleep(50)
-    ESME.stop(ctx[:esme])
-    Timer.sleep(50)
 
-    assert [{:init}, {:handle_send_pdu_result, _, _}, {:handle_stop, :custom, [%SMPPEX.Pdu{command_id: 2}]}] = SupportESME.callbacks_received_backuped(ctx[:callback_backup])
-    refute Process.alive?(ctx[:esme])
-  end
-
-  test "legacy handle_stop" do
-    server = Server.start_link
-    Timer.sleep(50)
-
-    {callback_backup, legacy_esme} = Support.LegacyESME.start_link({127,0,0,1}, Server.port(server), [])
-    ESME.stop(legacy_esme)
-    Timer.sleep(50)
-
-    assert [:handle_stop] = SupportESME.callbacks_received_backuped(callback_backup)
-  end
-
-
-  test "smpp_session crash", ctx do
-    Process.flag(:trap_exit, true)
-    ESME.with_session(ctx[:esme], fn(pid) -> Process.exit(pid, :kill) end)
-    Timer.sleep(50)
-    refute Process.alive?(ctx[:esme])
-  end
-
-  test "smpp_session crash when trapping exits", ctx do
-    Process.flag(:trap_exit, true)
-    ESME.with_session(ctx[:esme], fn(pid) ->
-      Process.flag(:trap_exit, true)
-      Process.exit(pid, :kill)
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:terminate, _reason, _los_pdus}, _st -> nil
     end)
+
+    ESME.send_pdu(esme, pdu)
     Timer.sleep(50)
-    refute Process.alive?(ctx[:esme])
+    Process.exit(esme, :oops)
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, _},
+      {:terminate, :oops, [%SMPPEX.Pdu{command_id: 2}]}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "timeout event", ctx do
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+    end)
+
+    Kernel.send(esme, {:timeout, make_ref(), :emit_tick})
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _}
+    ] = ctx[:callbacks].()
+
+    assert Process.alive?(esme)
+  end
+
+  test "code_change ok", ctx do
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:code_change, _old_vsn, _extra}, st -> {:ok, st}
+    end)
+
+    Sys.suspend(esme)
+    Sys.change_code(esme, SupportESME, '0.0.1', :some_extra)
+    Sys.resume(esme)
+
+    assert [
+      {:init, _, _},
+      {:code_change, '0.0.1', :some_extra}
+    ] = ctx[:callbacks].()
+  end
+
+  test "code_change fail", ctx do
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:code_change, _old_vsn, _extra}, _st -> {:error, :oops}
+    end)
+
+    Sys.suspend(esme)
+    Sys.change_code(esme, SupportESME, '0.0.1', :some_extra)
+    Sys.resume(esme)
+
+    assert [
+      {:init, _, _},
+      {:code_change, '0.0.1', :some_extra}
+    ] = ctx[:callbacks].()
+  end
+
+  test "socket closed", ctx do
+    Process.flag(:trap_exit, true)
+
+    _esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_socket_closed}, st -> {:ooops, st}
+      {:terminate, _reason, _los_pdus}, _st -> nil
+    end)
+
+    Server.stop(ctx[:server])
+
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_socket_closed},
+      {:terminate, :ooops, []}
+    ] = ctx[:callbacks].()
+  end
+
+  test "socket error", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_socket_error, :wow_such_socket_error}, st -> {:ooops, st}
+      {:terminate, _reason, _los_pdus}, _st -> nil
+    end)
+
+    {_ok, _closed, error} = SupportESME.socket_messages
+    Kernel.send(esme, {error, :socket, :wow_such_socket_error})
+
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_socket_error, :wow_such_socket_error},
+      {:terminate, :ooops, []}
+    ] = ctx[:callbacks].()
   end
 
 end

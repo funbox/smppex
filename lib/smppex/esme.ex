@@ -177,6 +177,7 @@ defmodule SMPPEX.ESME do
       defoverridable [
         init: 3,
         handle_pdu: 2,
+        handle_unparsed_pdu: 3,
         handle_resp: 3,
         handle_resp_timeout: 2,
         handle_send_pdu_result: 3,
@@ -267,8 +268,8 @@ defmodule SMPPEX.ESME do
 
   The very moment of the SMPP session termination can be traced via `handle_stop` callback.
   """
-  def stop(pid) do
-    Session.call(pid, :stop)
+  def stop(pid, reason \\ :normal) do
+    Session.call(pid, {:stop, reason})
   end
 
   @spec call(session, request :: term, timeout) :: term
@@ -367,6 +368,11 @@ defmodule SMPPEX.ESME do
     |> process_handle_call_reply()
   end
 
+  def handle_call({:stop, reason}, _from, st) do
+    {{:stop, reason, :ok, st.module_state}, st}
+    |> process_handle_call_reply()
+  end
+
   def handle_call({:call, request}, from, st) do
     {st.module.handle_call(request, from, st.module_state), st}
     |> process_handle_call_reply()
@@ -405,7 +411,7 @@ defmodule SMPPEX.ESME do
   end
 
   def handle_socket_error(error, st) do
-    {reason, new_module_state} = st.module.handle_socket_closed(error, st.module_state)
+    {reason, new_module_state} = st.module.handle_socket_error(error, st.module_state)
     {reason, %ESME{st | module_state: new_module_state}}
   end
 
@@ -464,12 +470,13 @@ defmodule SMPPEX.ESME do
   end
 
   defp check_expired_pdus(time, st) do
-    module_reply = st.pdus
-    |> PduStorage.fetch_expired(time)
-    |> st.module.handle_resp_timeout(st.module_state)
-
-    {module_reply, st}
-    |> process_handle_resp_timeout_reply()
+    case PduStorage.fetch_expired(st.pdus, time) do
+      [] ->
+        {:noreply, [], st}
+      pdus ->
+        module_reply = st.module.handle_resp_timeout(pdus, st.module_state)
+        process_handle_resp_timeout_reply({module_reply, st})
+    end
   end
 
   defp check_timers(time, st) do
@@ -516,9 +523,9 @@ defmodule SMPPEX.ESME do
   defp process_handle_resp_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_resp_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
 
-  defp process_handle_resp_timeout_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_resp_timeout_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_resp_timeout_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_resp_timeout_reply({{:ok, mst}, st}), do: process_reply({{:noreply, mst}, st})
+  defp process_handle_resp_timeout_reply({{:ok, pdus, mst}, st}), do: process_reply({{:noreply, pdus, mst}, st})
+  defp process_handle_resp_timeout_reply({{:stop, reason, mst}, st} = arg), do: process_reply(arg)
 
   defp process_handle_call_reply({{:reply, _reply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:reply, _reply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
@@ -527,7 +534,7 @@ defmodule SMPPEX.ESME do
   defp process_handle_call_reply({{:stop, _rsn, _reply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
 
-    defp process_handle_cast_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
+  defp process_handle_cast_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_cast_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_cast_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
 
