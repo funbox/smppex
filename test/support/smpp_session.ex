@@ -9,15 +9,15 @@ defmodule Support.SMPPSession do
   @transport :ranch_tcp
   @timeout 1000
 
-  alias SMPPEX.Session
+  alias SMPPEX.TransportSession
   alias __MODULE__, as: SMPPSession
 
-  @behaviour Session
+  @behaviour TransportSession
 
   def start_link(host, port, pid) do
     sock_opts = [:binary, {:packet, 0}, {:active, :once}]
     {:ok, socket} = @transport.connect(host, port, sock_opts, @timeout)
-    {:ok, session} = Session.start_link(socket, @transport, {__MODULE__, [pid]})
+    {:ok, session} = TransportSession.start_link(socket, @transport, {__MODULE__, [pid]})
     session
   end
 
@@ -32,19 +32,19 @@ defmodule Support.SMPPSession do
   end
 
   def set_pdu_handler(session, pdu_handler) do
-    Session.call(session, {:set_pdu_handler, pdu_handler})
+    TransportSession.call(session, {:set_pdu_handler, pdu_handler})
   end
 
   def send_pdus(session, pdus) do
-    Session.call(session, {:send_pdus, pdus})
+    TransportSession.call(session, {:send_pdus, pdus})
   end
 
   def test_reply(session) do
-    Session.call(session, :test_reply)
+    TransportSession.call(session, :test_reply)
   end
 
   def stop(session, reason \\ :normal) do
-    Session.call(session, {:stop, reason})
+    TransportSession.call(session, {:stop, reason})
   end
 
   def init(_socket, _transport, [pid]) do
@@ -72,7 +72,7 @@ defmodule Support.SMPPSession do
   end
 
   def handle_call(:test_reply, from, st) do
-    spawn(fn -> Session.reply(from, :test_reply) end)
+    spawn(fn -> TransportSession.reply(from, :test_reply) end)
     {:noreply, [], st}
   end
 

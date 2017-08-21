@@ -7,7 +7,7 @@ defmodule SMPPEX.ESME.Sync do
   methods provided by `SMPPEX.ESME` like `SMPPEX.ESME.send_pdu/2`, etc.
   """
 
-  use SMPPEX.ESME
+  use SMPPEX.Session
 
   alias SMPPEX.ESME
   alias SMPPEX.Pdu

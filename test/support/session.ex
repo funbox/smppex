@@ -1,14 +1,9 @@
-defmodule Support.ESME do
+defmodule Support.Session do
   @moduledoc false
 
-  use SMPPEX.ESME
+  use SMPPEX.Session
 
   @transport :ranch_tcp
-
-  def start_link(host, port, pid, handler, esme_opts \\ []) do
-    {:ok, esme} = SMPPEX.ESME.start_link(host, port, {__MODULE__, {pid, handler}}, [esme_opts: esme_opts, transport: @transport])
-    esme
-  end
 
   def socket_messages, do: @transport.messages
 
