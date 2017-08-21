@@ -5,7 +5,7 @@ defmodule SMPPEX.PduStorageTest do
   alias SMPPEX.Pdu
 
   test "store" do
-    {:ok, storage} = PduStorage.start
+    {:ok, storage} = PduStorage.start_link
     pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1") | sequence_number: 123}
     pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass2") | sequence_number: 123}
 
@@ -18,7 +18,7 @@ defmodule SMPPEX.PduStorageTest do
   end
 
   test "fetch" do
-    {:ok, storage} = PduStorage.start
+    {:ok, storage} = PduStorage.start_link
     pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "pass") | sequence_number: 123}
 
     assert true == PduStorage.store(storage, pdu, 321)
@@ -28,7 +28,7 @@ defmodule SMPPEX.PduStorageTest do
   end
 
   test "expire" do
-    {:ok, storage} = PduStorage.start
+    {:ok, storage} = PduStorage.start_link
     pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass") | sequence_number: 123}
     pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass") | sequence_number: 124}
 
@@ -41,35 +41,14 @@ defmodule SMPPEX.PduStorageTest do
   end
 
   test "stop && lost_pdus" do
-    {:ok, a} = Agent.start_link(fn() -> [] end)
+    {:ok, storage} = PduStorage.start_link
     pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass") | sequence_number: 123}
     pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass") | sequence_number: 124}
 
-    spawn_link(fn() ->
-      {:ok, storage} = PduStorage.start(fn(_pid, _reason, pdus) ->
-        Agent.update(a, fn(_) -> pdus end)
-      end)
-      PduStorage.store(storage, pdu1, 1000)
-      PduStorage.store(storage, pdu2, 2000)
-    end)
+    assert true == PduStorage.store(storage, pdu1, 1000)
+    assert true == PduStorage.store(storage, pdu2, 2000)
 
-    :timer.sleep(50)
-
-    assert Agent.get(a, & &1) == [pdu1, pdu2]
-  end
-
-  test "stop && lost_pdus when no lost pdus present" do
-    {:ok, a} = Agent.start_link(fn() -> nil end)
-
-    spawn_link(fn() ->
-      {:ok, _storage} = PduStorage.start(fn(_pid, _reason, pdus) ->
-        Agent.update(a, fn(_) -> pdus end)
-      end)
-    end)
-
-    :timer.sleep(50)
-
-    assert Agent.get(a, & &1) == nil
+    assert [pdu1, pdu2] == PduStorage.fetch_all(storage)
   end
 
 end
