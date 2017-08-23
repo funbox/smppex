@@ -304,7 +304,11 @@ defmodule SMPPEX.Session do
 
   def handle_send_pdu_result(pdu, send_pdu_result, st) do
     new_module_state = st.module.handle_send_pdu_result(pdu, send_pdu_result, st.module_state)
-    %Session{st | module_state: new_module_state}
+    new_st = case send_pdu_result do
+      :ok -> update_timer_bind_status(pdu, st)
+      {:error, _} -> st
+    end
+    %Session{new_st | module_state: new_module_state}
   end
 
   def handle_call({:send_pdu, pdu}, _from, st) do
@@ -389,7 +393,7 @@ defmodule SMPPEX.Session do
     new_st = %Session{st | timers: new_timers}
     case PduStorage.fetch(st.pdus, sequence_number) do
       [] ->
-        Logger.info("esme #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
+        Logger.info("Session #{inspect self()}, resp for unknown pdu(sequence_number: #{sequence_number}), dropping")
         {{:ok, new_st.module_state}, new_st}
       [original_pdu] ->
         handle_resp_for_known_pdu(pdu, original_pdu, new_st)
@@ -429,7 +433,7 @@ defmodule SMPPEX.Session do
         new_st = %Session{st | timers: new_timers, time: time}
         {:noreply, [], new_st}
       {:stop, reason} ->
-        Logger.info("esme #{inspect self()}, being stopped by timers(#{reason})")
+        Logger.info("Session #{inspect self()}, being stopped by timers(#{reason})")
         {:stop, {:timers, reason}, [], st}
       {:enquire_link, new_timers} ->
         enquire_link = SMPPEX.Pdu.Factory.enquire_link

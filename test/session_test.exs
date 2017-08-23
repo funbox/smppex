@@ -26,25 +26,28 @@ defmodule SMPPEX.SessionTest do
 
     esme_opts = [
       enquire_link_limit: 1000,
+      session_init_limit: :infinity,
       enquire_link_resp_limit: 1000,
       inactivity_limit: 10000,
       response_limit: 2000,
       timer_resolution: 100000
     ]
 
-    esme = fn(handler) ->
+    esme_with_opts = fn(handler, opts) ->
       case SMPPEX.ESME.start_link(
         {127,0,0,1},
         Server.port(server),
         {SupportSession, {callback_agent, handler}},
-        [esme_opts: esme_opts]
+        [esme_opts: opts]
       ) do
         {:ok, pid} -> pid
         other -> other
       end
     end
 
-    {:ok, esme: esme, callbacks: callbacks, server: server}
+    esme = & esme_with_opts.(&1, esme_opts)
+
+    {:ok, esme: esme, esme_with_opts: esme_with_opts, callbacks: callbacks, server: server}
   end
 
   test "send_pdu", ctx do
@@ -800,7 +803,6 @@ defmodule SMPPEX.SessionTest do
 
   end
 
-
   test "stop by enquire_link timeout", ctx do
     Process.flag(:trap_exit, true)
 
@@ -868,6 +870,79 @@ defmodule SMPPEX.SessionTest do
     ] = ctx[:callbacks].()
 
     refute Process.alive?(esme)
+  end
+
+  test "stop by session_init_time", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme_with_opts].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:terminate, _reason, _los_pdus}, _st -> nil
+    end, session_init_limit: 1000)
+
+    time = SMPPEX.Time.monotonic
+
+    Kernel.send(esme, {:check_timers, time + 1050})
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:terminate, {:timers, :session_init_timer}, []}
+    ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "stop by session_init_time cancel: esme", ctx do
+    esme = ctx[:esme_with_opts].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+      {:terminate, _reason, _los_pdus}, _st -> nil
+    end, session_init_limit: 1000)
+
+    time = SMPPEX.Time.monotonic
+
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+    Session.send_pdu(esme, pdu)
+
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+    Timer.sleep(50)
+
+    Kernel.send(esme, {:check_timers, time + 1050})
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, _},
+      {:handle_resp, _, _}
+    ] = ctx[:callbacks].()
+
+    assert Process.alive?(esme)
+  end
+
+  test "stop by session_init_time cancel: mc", ctx do
+    esme = ctx[:esme_with_opts].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+    end, session_init_limit: 1000)
+
+    time = SMPPEX.Time.monotonic
+
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid")
+    Session.send_pdu(esme, pdu)
+
+    Kernel.send(esme, {:check_timers, time + 1050})
+    Timer.sleep(50)
+
+    assert [
+      {:init, _, _},
+      {:handle_send_pdu_result, _, _},
+    ] = ctx[:callbacks].()
+
+    assert Process.alive?(esme)
   end
 
   test "lost_pdus", ctx do
