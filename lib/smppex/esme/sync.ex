@@ -10,8 +10,6 @@ defmodule SMPPEX.ESME.Sync do
   use SMPPEX.Session
 
   alias SMPPEX.Session
-
-  alias SMPPEX.ESME
   alias SMPPEX.Pdu
 
   require Logger
@@ -29,7 +27,7 @@ defmodule SMPPEX.ESME.Sync do
   the underlying `SMPPEX.ESME.start_link/4` call.
   """
   def start_link(host, port, opts \\ []) do
-    ESME.start_link(host, port, {__MODULE__, %{from: nil, pdu: nil, additional_pdus: [], state: :free}}, opts)
+    SMPPEX.ESME.start_link(host, port, {__MODULE__, %{from: nil, pdu: nil, additional_pdus: [], state: :free}}, opts)
   end
 
   @spec request(esme :: pid, pdu :: Pdu.t, timeout :: non_neg_integer) :: {:ok, resp :: Pdu.t} | :timeout | :stop | {:error, reason :: term}
@@ -186,7 +184,6 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   defp set_free(st), do: %{st | from: nil, pdu: nil, state: :free}
-
 
   defp call(pid, request, timeout) do
     ref = make_ref()
