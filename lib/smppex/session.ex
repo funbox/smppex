@@ -266,7 +266,7 @@ defmodule SMPPEX.Session do
           inactivity_limit
         )
 
-        {:ok, pdu_storage} = PduStorage.start_link()
+        pdu_storage = PduStorage.new
         response_limit = Keyword.get(session_opts, :response_limit, @default_response_limit)
 
         {:ok, %Session{
