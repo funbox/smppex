@@ -40,7 +40,7 @@ defmodule Smppex.Mixfile do
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
       {:inch_ex, only: :docs},
-      {:ranch, "~> 1.3"}
+      {:ranch, "~> 1.4"}
     ]
   end
 

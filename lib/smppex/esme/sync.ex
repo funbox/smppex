@@ -95,7 +95,7 @@ defmodule SMPPEX.ESME.Sync do
     Session.stop(esme)
   end
 
-  # ESME callbacks
+  # Session callbacks
 
   @doc false
   def handle_call({:call, {:request, pdu}, from}, _from, st) do

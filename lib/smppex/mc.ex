@@ -19,8 +19,8 @@ defmodule SMPPEX.MC do
       acceptor_count,
       transport,
       transport_opts,
-      TransportSession,
-      {Session, [mod_with_args, mc_opts]}
+      SMPPEX.TransportSession,
+      {SMPPEX.Session, [mod_with_args, mc_opts]}
     )
 
     case start_result do

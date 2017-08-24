@@ -6,7 +6,6 @@ defmodule SMPPEX.SessionTest do
 
   alias SMPPEX.Protocol.CommandNames
   alias Support.TCP.Server
-  alias Support.Session, as: SupportSession
   alias SMPPEX.Session
   alias SMPPEX.Pdu
 
@@ -37,7 +36,7 @@ defmodule SMPPEX.SessionTest do
       case SMPPEX.ESME.start_link(
         {127,0,0,1},
         Server.port(server),
-        {SupportSession, {callback_agent, handler}},
+        {Support.Session, {callback_agent, handler}},
         [esme_opts: opts]
       ) do
         {:ok, pid} -> pid
@@ -992,7 +991,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Sys.suspend(esme)
-    Sys.change_code(esme, SupportSession, '0.0.1', :some_extra)
+    Sys.change_code(esme, Support.Session, '0.0.1', :some_extra)
     Sys.resume(esme)
 
     assert [
@@ -1008,7 +1007,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Sys.suspend(esme)
-    Sys.change_code(esme, SupportSession, '0.0.1', :some_extra)
+    Sys.change_code(esme, Support.Session, '0.0.1', :some_extra)
     Sys.resume(esme)
 
     assert [
@@ -1046,7 +1045,7 @@ defmodule SMPPEX.SessionTest do
       {:terminate, _reason, _los_pdus}, _st -> nil
     end)
 
-    {_ok, _closed, error} = SupportSession.socket_messages
+    {_ok, _closed, error} = Support.Session.socket_messages
     Kernel.send(esme, {error, :socket, :wow_such_socket_error})
 
     Timer.sleep(50)
