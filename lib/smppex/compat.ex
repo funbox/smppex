@@ -17,7 +17,7 @@ defmodule SMPPEX.Compat do
       raise "OTP version #{otp_release} is not supported"
   end
 
-  @spec to_charlist(term) :: charlist
+  @spec to_charlist(term) :: list
 
   if System.version |> Version.match?(">= 1.3.0") do
     def to_charlist(s), do: Kernel.to_charlist(s)
