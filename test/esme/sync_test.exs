@@ -289,6 +289,7 @@ defmodule SMPPEX.ESME.SyncTest do
     esme = ctx[:esme].()
 
     assert :ok = ESMESync.stop(esme)
+    Timer.sleep(30)
 
     refute Process.alive?(esme)
   end
