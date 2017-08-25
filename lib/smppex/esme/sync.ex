@@ -133,13 +133,17 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   @doc false
-  def handle_resp_timeout(pdu, st) do
-    case Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp do
-      true ->
-        reply(st.from, :timeout)
-        {:ok, set_free(st)}
-      false ->
-        {:ok, push_to_waiting({:timeout, pdu}, st)}
+  def handle_resp_timeout(pdus, st) do
+    {:ok, process_timeouts(pdus, st)}
+  end
+
+  def process_timeouts([], st), do: st
+  def process_timeouts([pdu | pdus], st) do
+    if st.pdu && Pdu.same?(pdu, st.pdu) && st.state == :wait_for_resp do
+      reply(st.from, :timeout)
+      process_timeouts(pdus, set_free(st))
+    else
+      process_timeouts(pdus, push_to_waiting({:timeout, pdu}, st))
     end
   end
 
@@ -162,12 +166,11 @@ defmodule SMPPEX.ESME.Sync do
     case result do
       :ok -> push_to_waiting({:ok, pdu}, st)
       {:error, error} ->
-        case Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp do
-          true ->
-            reply(st.from, {:error, error})
-            set_free(st)
-          false ->
-            push_to_waiting({:error, pdu, error}, st)
+        if st.pdu && Pdu.same?(pdu, st.pdu) && st.state == :wait_for_resp do
+          reply(st.from, {:error, error})
+          set_free(st)
+        else
+          push_to_waiting({:error, pdu, error}, st)
         end
     end
   end
