@@ -256,7 +256,7 @@ defmodule SMPPEX.Session do
         inactivity_limit = Keyword.get(session_opts, :inactivity_limit, @default_inactivity_limit)
         session_init_limit = Keyword.get(session_opts, :session_init_limit, @default_session_init_limit)
 
-        time = SMPPEX.Time.monotonic
+        time = SMPPEX.Compat.monotonic_time
 
         timers = SMPPTimers.new(
           time,
@@ -335,8 +335,8 @@ defmodule SMPPEX.Session do
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
     new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
-    Kernel.send self(), {:check_timers, SMPPEX.Time.monotonic}
-    Kernel.send self(), {:check_expired_pdus, SMPPEX.Time.monotonic}
+    Kernel.send self(), {:check_timers, SMPPEX.Compat.monotonic_time}
+    Kernel.send self(), {:check_expired_pdus, SMPPEX.Compat.monotonic_time}
     {:noreply, [], %Session{st | tick_timer_ref: new_tick_timer_ref}}
   end
 

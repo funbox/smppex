@@ -549,7 +549,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     Kernel.send(esme, {:check_expired_pdus, time + 2050})
@@ -577,7 +577,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     Kernel.send(esme, {:check_expired_pdus, time + 2050})
@@ -614,7 +614,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     Kernel.send(esme, {:check_expired_pdus, time + 2050})
@@ -711,7 +711,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -738,7 +738,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -771,7 +771,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -814,7 +814,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -849,7 +849,7 @@ defmodule SMPPEX.SessionTest do
     end)
 
     Session.send_pdu(esme, pdu)
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
     Timer.sleep(50)
 
     reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
@@ -878,7 +878,7 @@ defmodule SMPPEX.SessionTest do
       {:terminate, _reason, _los_pdus}, _st -> nil
     end, session_init_limit: 1000)
 
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
 
     Kernel.send(esme, {:check_timers, time + 1050})
     Timer.sleep(50)
@@ -899,7 +899,7 @@ defmodule SMPPEX.SessionTest do
       {:terminate, _reason, _los_pdus}, _st -> nil
     end, session_init_limit: 1000)
 
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
 
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
     Session.send_pdu(esme, pdu)
@@ -927,7 +927,7 @@ defmodule SMPPEX.SessionTest do
       {:handle_send_pdu_result, _pdu, _result}, st -> st
     end, session_init_limit: 1000)
 
-    time = SMPPEX.Time.monotonic
+    time = SMPPEX.Compat.monotonic_time
 
     pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid")
     Session.send_pdu(esme, pdu)
