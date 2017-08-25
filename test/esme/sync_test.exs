@@ -190,7 +190,7 @@ defmodule SMPPEX.ESME.SyncTest do
     ctx[:mc].(fn
       {:init, _, _}, st ->
         {:ok, st}
-      {:handle_pdu, pdu}, st ->
+      {:handle_pdu, _pdu}, st ->
         {:ok, st}
       {:handle_send_pdu_result, _, _}, st -> st
     end)

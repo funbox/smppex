@@ -28,7 +28,7 @@ defmodule SMPPEX.ESME do
     end
   end
 
-  defp convert_host(host) when is_binary(host), do: to_char_list(host)
+  defp convert_host(host) when is_binary(host), do: to_charlist(host)
   defp convert_host(host), do: host
 
 end
