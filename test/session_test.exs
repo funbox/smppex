@@ -4,7 +4,6 @@ defmodule SMPPEX.SessionTest do
   alias :timer, as: Timer
   alias :sys, as: Sys
 
-  alias SMPPEX.Protocol.CommandNames
   alias Support.TCP.Server
   alias SMPPEX.Session
   alias SMPPEX.Pdu
@@ -157,7 +156,7 @@ defmodule SMPPEX.SessionTest do
     Timer.sleep(50)
 
     assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
-    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(enquire_link_pdu) == :enquire_link
   end
 
   test "cast with stop", ctx do
@@ -227,7 +226,7 @@ defmodule SMPPEX.SessionTest do
 
     assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
 
-    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(enquire_link_pdu) == :enquire_link
   end
 
   test "call with delayed reply and stop", ctx do
@@ -284,7 +283,7 @@ defmodule SMPPEX.SessionTest do
     Timer.sleep(50)
 
     assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
-    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(enquire_link_pdu) == :enquire_link
   end
 
   test "info with stop", ctx do
@@ -366,7 +365,7 @@ defmodule SMPPEX.SessionTest do
 
     assert {:ok, {:pdu, reply_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
 
-    assert Pdu.command_id(reply_pdu) |> CommandNames.name_by_id == {:ok, :bind_transmitter_resp}
+    assert Pdu.command_name(reply_pdu) == :bind_transmitter_resp
   end
 
   test "handle_pdu with stop", ctx do
@@ -448,7 +447,7 @@ defmodule SMPPEX.SessionTest do
     assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = SMPPEX.Protocol.parse(rest_data)
 
-    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(enquire_link_pdu) == :enquire_link
   end
 
   test "handle_resp ok with stop", ctx do
@@ -514,8 +513,8 @@ defmodule SMPPEX.SessionTest do
       {:handle_send_pdu_result, _, :ok},
       {:handle_resp, submit_sm_resp, _}
     ] = ctx[:callbacks].()
-    assert Pdu.command_id(bind_resp) |> CommandNames.name_by_id == {:ok, :bind_transmitter_resp}
-    assert Pdu.command_id(submit_sm_resp) |> CommandNames.name_by_id == {:ok, :submit_sm_resp}
+    assert Pdu.command_name(bind_resp) == :bind_transmitter_resp
+    assert Pdu.command_name(submit_sm_resp) == :submit_sm_resp
   end
 
   test "handle_resp with unknown resp", ctx do
@@ -599,7 +598,7 @@ defmodule SMPPEX.SessionTest do
     assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = SMPPEX.Protocol.parse(rest_data)
 
-    assert Pdu.command_id(enquire_link_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(enquire_link_pdu) == :enquire_link
   end
 
   test "handle_resp_timeout with stop", ctx do
@@ -677,7 +676,7 @@ defmodule SMPPEX.SessionTest do
 
     assert {:ok, {:pdu, reply_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
 
-    assert Pdu.command_id(reply_pdu) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(reply_pdu) == :enquire_link
   end
 
   test "handle_unparsed_pdu with ok and stop", ctx do
@@ -725,7 +724,7 @@ defmodule SMPPEX.SessionTest do
 
     assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
     assert {:ok, {:pdu, enquire_link}, _} = rest_data |> SMPPEX.Protocol.parse
-    assert Pdu.command_id(enquire_link) |> CommandNames.name_by_id == {:ok, :enquire_link}
+    assert Pdu.command_name(enquire_link) == :enquire_link
   end
 
   test "enquire_link cancel by peer action", ctx do
