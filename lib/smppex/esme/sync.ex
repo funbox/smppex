@@ -1,10 +1,10 @@
 defmodule SMPPEX.ESME.Sync do
   @moduledoc """
-  `SMPPEX.ESME.Sync` is an implementation of `SMPPEX.ESME`. It allows to send PDUs
+  `SMPPEX.ESME.Sync` is an ESME implementation of `SMPPEX.Session`. It allows to send PDUs
   to SMSCs in a syncronous way, i.e. blocking till the response PDU comes.
 
-  `SMPPEX.ESME.Sync` is an `SMPPEX.ESME`, so one can use with `SMPPEX.ESME.Sync` all
-  methods provided by `SMPPEX.ESME` like `SMPPEX.ESME.send_pdu/2`, etc.
+  One can use with `SMPPEX.ESME.Sync` all
+  methods provided by `SMPPEX.Session` like `SMPPEX.Session.send_pdu/2`, etc.
   """
 
   use SMPPEX.Session
@@ -89,7 +89,7 @@ defmodule SMPPEX.ESME.Sync do
   @spec stop(esme :: pid) :: :ok
 
   @doc """
-  Stops ESME syncronously.
+  Stops ESME.
   """
   def stop(esme) do
     Session.stop(esme)
