@@ -2,15 +2,7 @@ defmodule SMPPEX.Session do
   @moduledoc """
   Module for implementing custom SMPP Session entities.
 
-  `SMPPEX.Session` represents a `GenServer` process which spawns and interacts with `SMPPEX.TransportSession`
-  `ranch_protocol`. The session is spawned under control of `ranch` supervision tree.
-  The session makes all requests to the Session process *syncronously* (via `GenServer.call`),
-  while the Session process makes only *asyncronous*(via `GenServer.cast`) requests to the session.
 
-  This is made intentionally since this allows:
-  * to avoid any kind of deadlocks while the session and the Session process interact actively;
-  * to control incoming SMPP message rate to avoid overflooding;
-  * not to lose any control over connection because of the asyncronous nature of TCP implementation in OTP.
 
   To implement an Session entitiy, one should implement several callbacks (`SMPPEX.Session` behaviour).
   The most proper way to do it is to `use` `SMPPEX.Session`:
@@ -65,7 +57,7 @@ defmodule SMPPEX.Session do
   @type request :: term
   @type reason :: term
   @type reply :: term
-  @type send_pdu_result :: SMPPEX.SMPPHandler.send_pdu_result
+  @type send_pdu_result :: TransportSession.send_pdu_result
   @type session :: pid
   @type from :: TransportSession.from
 
