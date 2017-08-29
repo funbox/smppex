@@ -283,10 +283,7 @@ defmodule SMPPEX.Session do
   @spec send_pdu(session, Pdu.t) :: :ok
 
   @doc """
-  Sends outcoming PDU from the Session.
-
-  The whole command is sent to the Session asyncronously. The further lifecycle of the PDU
-  can be traced through callbacks.
+  Sends a PDU from the session to the peer.
   """
   def send_pdu(pid, pdu) do
     TransportSession.call(pid, {:send_pdu, pdu})
@@ -295,9 +292,7 @@ defmodule SMPPEX.Session do
   @spec stop(session) :: :ok
 
   @doc """
-  Stops Session asyncronously.
-
-  The very moment of the SMPP session termination can be traced via `handle_stop` callback.
+  Stops the session syncronously.
   """
   def stop(pid, reason \\ :normal) do
     TransportSession.call(pid, {:stop, reason})
@@ -306,9 +301,9 @@ defmodule SMPPEX.Session do
   @spec call(session, request :: term, timeout) :: term
 
   @doc """
-  Makes a syncronous call to Session.
+  Makes a syncronous call to the session.
 
-  The call is handled by `handle_call/3` Session callback.
+  The call is handled by `handle_call/3` `SMPPEX.Session` callback.
   """
   def call(pid, request, timeout \\ @default_call_timeout) do
     TransportSession.call(pid, {:call, request}, timeout)
@@ -319,7 +314,7 @@ defmodule SMPPEX.Session do
   @doc """
   Makes an asyncronous call to Session.
 
-  The call is handled by `handle_cast/2` Session callback.
+  The call is handled by `handle_cast/2` `SMPPEX.Session` callback.
   """
   def cast(pid, request) do
     TransportSession.cast(pid, {:cast, request})
@@ -327,6 +322,15 @@ defmodule SMPPEX.Session do
 
   @spec reply(from, response :: term) :: :ok
 
+  @doc """
+  Replies to a client calling `Session.call` method.
+
+  This function can be used to explicitly send a reply to a client that called `call/3`.
+
+  `from` must be the `from` argument (the second argument) accepted by `handle_call/3` callbacks.
+
+   The return value is always `:ok`.
+  """
   def reply(from, response) do
     TransportSession.reply(from, response)
   end
