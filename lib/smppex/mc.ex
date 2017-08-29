@@ -44,7 +44,7 @@ defmodule SMPPEX.MC do
 
   @doc """
   Starts listener for MC entitiy.
-  
+
   `module` is the callback module which should implement `SMPPEX.Session` behaviour.
   `args` is the argument passed to the `init` callback each time a new connection is received.
   `opts` is a keyword list of different options:
@@ -66,7 +66,7 @@ defmodule SMPPEX.MC do
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
     transport_opts = Keyword.get(opts, :transport_opts, [{:port, 0}])
-    mc_opts = Keyword.get(opts, :mc_opts)
+    mc_opts = Keyword.get(opts, :mc_opts, [])
     ref = make_ref()
 
     start_result = Ranch.start_listener(
