@@ -62,11 +62,11 @@ defmodule SMPPEX do
   `SMPPEX.ESME` can be used when more complicated client logic is needed, for example
   custom immediate reactions to all incoming PDUs, rps/window control, etc.
 
-  `SMPPEX.ESME` provides "empty" defaults for all required callbacks, so minimal ESME
+  `SMPPEX.Session` provides "empty" defaults for all required callbacks, so minimal ESME
   could be very simple:
 
       defmodule DummyESME do
-        use SMPPEX.ESME
+        use SMPPEX.Session
 
         def start_link(host, port) do
           SMPPEX.ESME.start_link(host, port, {__MODULE__, []})
@@ -76,7 +76,7 @@ defmodule SMPPEX do
   It is still completely functional:
 
       {:ok, esme} = DummyESME.start_link(host, port)
-      SMPPEX.ESME.send_pdu(esme, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
+      SMPPEX.Session.send_pdu(esme, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
 
   Here's a more complicated example of ESME, which does the following:
 
@@ -90,10 +90,10 @@ defmodule SMPPEX do
     * Starts to send predefined PDUs after bind at maximum possible rate but regarding window size.
     * Stops after all PDUs are sent and notifies the waiting process.
 
-  ```
+  ```elixir
   defmodule SMPPBenchmarks.ESME do
 
-    use SMPPEX.ESME
+    use SMPPEX.Session
     require Logger
 
     @from {"from", 1, 1}
@@ -107,65 +107,66 @@ defmodule SMPPEX do
       SMPPEX.ESME.start_link("127.0.0.1", port, {__MODULE__, [waiting_pid, count, window]})
     end
 
-    def init([waiting_pid, count, window]) do
-      SMPPEX.ESME.send_pdu(self(), SMPPEX.Pdu.Factory.bind_transmitter(@system_id, @password))
+    def init(_, _, [waiting_pid, count, window]) do
+      Kernel.send(self(), :bind)
       {:ok, %{waiting_pid: waiting_pid, count_to_send: count, count_waiting_resp: 0, window: window}}
     end
 
     def handle_resp(pdu, _original_pdu, st) do
-      case pdu |> SMPPEX.Pdu.command_id |> SMPPEX.Protocol.CommandNames.name_by_id do
-        {:ok, :submit_sm_resp} ->
-          new_st = %{st | count_waiting_resp: st.count_waiting_resp - 1}
+      case SMPPEX.Pdu.command_name(pdu) do
+        :submit_sm_resp ->
+          new_st = %{ st | count_waiting_resp: st.count_waiting_resp - 1 }
           send_pdus(new_st)
-        {:ok, :bind_transmitter_resp} ->
+        :bind_transmitter_resp ->
           send_pdus(st)
         _ ->
-          st
+          {:ok, st}
       end
     end
 
     def handle_resp_timeout(pdu, st) do
       Logger.error("PDU timeout: #{inspect pdu}, terminating")
-      SMPPEX.ESME.stop(self())
+      {:stop, :resp_timeout, st}
+
+    end
+
+    def terminate(reason, _, st) do
+      Logger.info("ESME stopped with reason #{inspect reason}")
+      Kernel.send(st.waiting_pid, {self(), :done})
       st
     end
 
-    def handle_stop(st) do
-      Logger.info("ESME stopped")
-      Kernel.send(st.waiting_pid, {self(), :done})
-      st
+    def handle_info(:bind, st) do
+      {:noreply, [SMPPEX.Pdu.Factory.bind_transmitter(@system_id, @password)], st}
     end
 
     defp send_pdus(st) do
       cond do
         st.count_to_send > 0 ->
           count_to_send = min(st.window - st.count_waiting_resp, st.count_to_send)
-          :ok = do_send(self(), count_to_send)
-          %{st | count_waiting_resp: st.window, count_to_send: st.count_to_send - count_to_send}
+          new_st = %{ st | count_waiting_resp: st.window, count_to_send: st.count_to_send - count_to_send }
+          {:ok, make_pdus(count_to_send), new_st}
         st.count_waiting_resp > 0 ->
-          st
+          {:ok, st}
         true ->
           Logger.info("All PDUs sent, all resps received, terminating")
-          SMPPEX.ESME.stop(self())
-          st
+          {:stop, :normal, st}
       end
     end
 
-    defp do_send(_esme, n) when n <= 0, do: :ok
-    defp do_send(esme, n) do
-      submit_sm = SMPPEX.Pdu.Factory.submit_sm(@from, @to, @message)
-      :ok = SMPPEX.ESME.send_pdu(esme, submit_sm)
-      do_send(esme, n - 1)
+    defp make_pdus(0), do: []
+    defp make_pdus(n) do
+      for _ <- 1..n, do: SMPPEX.Pdu.Factory.submit_sm(@from, @to, @message)
     end
+
   end
   ```
 
-  Not all callbacks are used yet in this example, for the full list see `SMPPEX.ESME` documentation.
+  Not all callbacks are used yet in this example, for the full list see `SMPPEX.Session` documentation.
 
   ## SMPPEX.MC
 
-  `SMPPEX.MC` is used for _receiving_ and handling SMPP connections. This module also provides
-  default "empty" callbacks.
+  `SMPPEX.MC` is used for _receiving_ and handling SMPP connections.
 
   Here is an example of a very simple MC, which does the following:
 
@@ -175,10 +176,14 @@ defmodule SMPPEX do
   * Responds with incremental message ids to all incoming `submit_sm` packets (regardless of the bind state).
 
 
-  ```
+  ```elixir
+  
   defmodule MC do
 
-    use SMPPEX.MC
+    use SMPPEX.Session
+
+    alias SMPPEX.Pdu
+    alias SMPPEX.Pdu.Factory, as: PduFactory
 
     def start(port) do
       SMPPEX.MC.start({__MODULE__, []}, [transport_opts: [port: port]])
@@ -189,19 +194,18 @@ defmodule SMPPEX do
     end
 
     def handle_pdu(pdu, last_id) do
-      case pdu |> SMPPEX.Pdu.command_id |> SMPPEX.Protocol.CommandNames.name_by_id do
-        {:ok, :submit_sm} ->
-          SMPPEX.MC.reply(self(), pdu, SMPPEX.Pdu.Factory.submit_sm_resp(0, to_string(last_id)))
-          last_id + 1
-        {:ok, :bind_transmitter} ->
-          SMPPEX.MC.reply(self(), pdu, SMPPEX.Pdu.Factory.bind_transmitter_resp(0))
-          last_id
-        {:ok, :enquire_link} ->
-          SMPPEX.MC.reply(self(), pdu, SMPPEX.Pdu.Factory.enquire_link_resp)
-          last_id
-        _ -> last_id
+      case Pdu.command_name(pdu) do
+        :submit_sm ->
+          {:ok, [PduFactory.submit_sm_resp(0, to_string(last_id)) |> Pdu.as_reply_to(pdu)], last_id + 1}
+        :bind_transmitter ->
+          {:ok, [PduFactory.bind_transmitter_resp(0) |> Pdu.as_reply_to(pdu)], last_id}
+        :enquire_link ->
+          {:ok, [PduFactory.enquire_link_resp |> Pdu.as_reply_to(pdu)], last_id}
+        _ ->
+          {:ok, last_id}
       end
     end
+
   end
   ```
 
