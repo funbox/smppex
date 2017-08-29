@@ -120,11 +120,9 @@ defmodule SMPPEX.Pdu.Errors do
   """
   def description(error_code)
 
-  Enum.each errors, fn({name, code, desc}) ->
+  for {name, code, desc} <- errors do
     def code_by_name(unquote(name)), do: unquote(code)
-
     def format(unquote(code)), do: unquote(to_string(name))
-
     def description(unquote(code)), do: unquote(desc)
   end
 
@@ -132,4 +130,3 @@ defmodule SMPPEX.Pdu.Errors do
   def description(code) when is_integer(code), do: to_string(code)
 
 end
-

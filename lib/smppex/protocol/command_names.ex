@@ -34,7 +34,7 @@ defmodule SMPPEX.Protocol.CommandNames do
   @spec name_by_id(integer) :: :unknown | {:ok, atom}
   @spec id_by_name(atom) :: :unknown | {:ok, non_neg_integer}
 
-  Enum.each command_ids, fn({name, id}) ->
+  for {name, id} <- command_ids do
     def name_by_id(unquote(id)) do
       {:ok, unquote(name)}
     end

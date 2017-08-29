@@ -55,7 +55,7 @@ defmodule SMPPEX.Protocol.TlvFormat do
   @spec id_by_name(atom) :: :unknown | {:ok, non_neg_integer}
   @spec format_by_id(integer) :: :unknown | {:ok, tlv_value_spec}
 
-  Enum.each tlvs, fn({name, id, format}) ->
+  for {name, id, format} <- tlvs do
     def name_by_id(unquote(id)) do
       {:ok, unquote(name)}
     end

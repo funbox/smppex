@@ -45,7 +45,7 @@ defmodule SMPPEX.Pdu.MessageState do
   """
   def format(state)
 
-  Enum.each statuses, fn({name, code}) ->
+  for {name, code} <- statuses do
     def code_by_name(unquote(name)), do: unquote(code)
 
     def format(unquote(code)), do: unquote(to_string(name))
