@@ -1,4 +1,5 @@
 defmodule SMPPEX.Session.Defaults do
+  @moduledoc false
 
   defaults = [
     enquire_link_limit: 30000,
@@ -14,5 +15,5 @@ defmodule SMPPEX.Session.Defaults do
       unquote(value)
     end
   end
-  
+
 end

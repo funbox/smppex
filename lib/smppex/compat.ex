@@ -1,4 +1,5 @@
 defmodule SMPPEX.Compat do
+  @moduledoc false
 
   @spec monotonic_time() :: integer
 
