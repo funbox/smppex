@@ -2,8 +2,6 @@ defmodule SMPPEX.Session do
   @moduledoc """
   Module for implementing custom SMPP Session entities.
 
-
-
   To implement an Session entitiy, one should implement several callbacks (`SMPPEX.Session` behaviour).
   The most proper way to do it is to `use` `SMPPEX.Session`:
 
@@ -54,56 +52,161 @@ defmodule SMPPEX.Session do
   @type session :: pid
   @type from :: TransportSession.from
 
-  @callback init(TransportSession.socket, TransportSession.transport, args :: term) ::
+  @doc """
+  Invoked when a session is started after a connection successfully established.
+
+  `args` argument is taken directly from `ESME.start_link` or `MC.start` call.
+  The return value should be either `{:ok, state}`, then the session will successfully start and the returned state will be later passed to the other callbacks, or `{:stop, reason}`, then the session will stop with the returned reason.
+  """
+  @callback init(socket :: TransportSession.socket, transport :: TransportSession.transport, args :: term) ::
     {:ok, state} |
     {:stop, reason}
 
+  @doc """
+  Invoked when the session receives an incoming PDU (which is not a response PDU).
+
+  The callback return values indicate the following:
+  * `{:ok, state}` — use `state` as the new session state;
+  * `{:ok, pdus, state}` — use `state` as the new session state and additionally send `pdus` to the connection;
+  * `{:stop, reason, state}` — stop with reason `reason` and use `state` as the new session state.
+  """
   @callback handle_pdu(pdu :: Pdu.t, state) ::
     {:ok, state} |
     {:ok, [Pdu.t], state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked when the session receives an incoming PDU which couldn't be correctly parsed.
+
+  The callback return values indicate the following:
+  * `{:ok, state}` — use `state` as the new session state;
+  * `{:ok, pdus, state}` — use `state` as the new session state and additionally send `pdus` to the connection;
+  * `{:stop, reason, state}` — stop with reason `reason` and use `state` as the new session state.
+  """
   @callback handle_unparsed_pdu(pdu :: RawPdu.t, error :: term, state) ::
     {:ok, state} |
     {:ok, [Pdu.t], state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked when the session receives a response to a previously sent PDU.
+
+  `pdu` argument contains the received response PDU, `original_pdu` contains
+  the previously sent pdu for which the handled response is received.
+
+  The callback return values indicate the following:
+  * `{:ok, state}` — use `state` as the new session state;
+  * `{:ok, pdus, state}` — use `state` as the new session state and additionally send `pdus` to the connection;
+  * `{:stop, reason, state}` — stop with reason `reason` and use `state` as the new session state.
+  """
   @callback handle_resp(pdu :: Pdu.t, original_pdu :: Pdu.t, state) ::
     {:ok, state} |
     {:ok, [Pdu.t], state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked when the session does not receive a response to a previously sent PDU
+  within the specified timeout.
+
+  `pdu` argument contains the PDU for which no response was received. If the response
+  will be received later it will be dropped (with an `info` log message).
+
+  The callback return values indicate the following:
+  * `{:ok, state}` — use `state` as the new session state;
+  * `{:ok, pdus, state}` — use `state` as the new session state and additionally send `pdus` to the connection;
+  * `{:stop, reason, state}` — stop with reason `reason` and use `state` as the new session state.
+  """
   @callback handle_resp_timeout(pdus :: [Pdu.t], state) ::
     {:ok, state} |
     {:ok, [Pdu.t], state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked when the SMPP session successfully sent PDU to transport or failed to do this.
+
+  `pdu` argument contains the PDU for which send status is reported. `send_pdu_result` can be
+  either `:ok` or `{:error, reason}`.
+
+  The returned value is used as the new state.
+  """
   @callback handle_send_pdu_result(pdu :: Pdu.t, send_pdu_result, state) :: state
 
+  @doc """
+  Invoked when the connection's socket reported a error.
+
+  The returned value should be `{reason, state}`. The session stops then with `reason`.
+  """
   @callback handle_socket_error(error :: term, state) :: {exit_reason :: term, state}
 
+  @doc """
+  Invoked when the connection is closed by the peer.
+
+  The returned value should be `{reason, state}`. The session stops then with `reason`.
+  """
   @callback handle_socket_closed(state) :: {exit_reason :: term, state}
 
+  @doc """
+  Invoked to handle an arbitrary syncronous `request` sent to the session with `Session.call/3` method.
+
+  `from` argument can be used to send a response asyncronously via `Session.reply/2`.
+
+  The returned values indicate the following:
+  * `{:reply, reply, state}` — reply with `reply` and use `state` as the new state;
+  * `{:reply, reply, pdus, state}`  — reply with `reply`, use `state` as the new state and additionally send `pdus` to the peer;
+  * `{:noreply, state}` — do not reply and use `state` as the new state. The reply can be send later via `Session.reply`;
+  * `{:noreply, pdus, state}` — do not reply, use `state` as the new state and additionally send `pdus` to the peer. The reply can be send later via `Session.reply`;
+  * `{:stop, reason, reply, state}` — reply with `reply`, use `state` as the new state and exit with `reason`;
+  * `{:stop, reason, state}` — do not reply, use `state` as the new state and exit with `reason`.
+  """
   @callback handle_call(request, from, state) ::
     {:reply, reply, state} |
     {:reply, reply, [Pdu.t], state} |
-    {:noreply, [Pdu.t], state} |
     {:noreply, state} |
+    {:noreply, [Pdu.t], state} |
     {:stop, reason, reply, state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked to handle an arbitrary asyncronous `request` sent to the session with `Session.cast/2` method.
+
+  The returned values indicate the following:
+  * `{:noreply, state}` — use `state` as the new state;
+  * `{:noreply, pdus, state}` — use `state` as the new state and additionally send `pdus` to the peer.;
+  * `{:stop, reason, state}` — use `state` as the new state and exit with `reason`.
+  """
   @callback handle_cast(request, state) ::
     {:noreply, state} |
     {:noreply, [Pdu.t], state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked to handle a generic message `request` sent to the session process.
+
+  The returned values indicate the following:
+  * `{:noreply, state}` — use `state` as the new state;
+  * `{:noreply, pdus, state}` — use `state` as the new state and additionally send `pdus` to the peer.;
+  * `{:stop, reason, state}` — use `state` as the new state and exit with `reason`.
+  """
   @callback handle_info(request, state) ::
     {:noreply, state} |
     {:noreply, [Pdu.t], state} |
     {:stop, reason, state}
 
+  @doc """
+  Invoked when the session process is about to exit.
+
+  `lost_pdus` contain a list of nonresp `pdus` sent by the session to the peer and which have not yet received a response.
+
+  The returned value is ignored.
+
+  This callback is called from the underlying `GenServer` `terminate` callbacks, so it has all the corresponding caveats, see [`GenServer.terminate/2` docs](https://hexdocs.pm/elixir/GenServer.html#c:terminate/2).
+  """
   @callback terminate(reason, lost_pdus :: [Pdu.t], state) :: any
 
+  @doc """
+  Invoked to change the state of the session when a different version of a module is loaded (hot code swapping) and the state’s term structure should be changed. The method has the same semantics as the original `GenServer.code_change/3` callback.
+
+  """
   @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
     {:ok, state} |
     {:error, reason}
