@@ -22,6 +22,7 @@ defmodule SMPPEX.Session do
   alias :erlang, as: Erlang
 
   alias __MODULE__, as: Session
+  alias SMPPEX.Session.Defaults
   alias SMPPEX.Pdu
   alias SMPPEX.PduStorage
   alias SMPPEX.TransportSession
@@ -42,14 +43,6 @@ defmodule SMPPEX.Session do
     :timer_resolution,
     :tick_timer_ref
   ]
-
-  @default_enquire_link_limit 30000
-  @default_enquire_link_resp_limit 30000
-  @default_session_init_limit 10000
-  @default_inactivity_limit :infinity
-  @default_response_limit 60000
-
-  @default_timer_resolution 100
 
   @default_call_timeout 5000
 
@@ -240,13 +233,13 @@ defmodule SMPPEX.Session do
   def init(socket, transport, [{module, args}, session_opts]) do
     case module.init(socket, transport, args) do
       {:ok, state} ->
-        timer_resolution = Keyword.get(session_opts, :timer_resolution, @default_timer_resolution)
+        timer_resolution = Keyword.get(session_opts, :timer_resolution, Defaults.timer_resolution)
         timer_ref = Erlang.start_timer(timer_resolution, self(), :emit_tick)
 
-        enquire_link_limit = Keyword.get(session_opts, :enquire_link_limit,  @default_enquire_link_limit)
-        enquire_link_resp_limit = Keyword.get(session_opts, :enquire_link_resp_limit,  @default_enquire_link_resp_limit)
-        inactivity_limit = Keyword.get(session_opts, :inactivity_limit, @default_inactivity_limit)
-        session_init_limit = Keyword.get(session_opts, :session_init_limit, @default_session_init_limit)
+        enquire_link_limit = Keyword.get(session_opts, :enquire_link_limit,  Defaults.enquire_link_limit)
+        enquire_link_resp_limit = Keyword.get(session_opts, :enquire_link_resp_limit,  Defaults.enquire_link_resp_limit)
+        inactivity_limit = Keyword.get(session_opts, :inactivity_limit, Defaults.inactivity_limit)
+        session_init_limit = Keyword.get(session_opts, :session_init_limit, Defaults.session_init_limit)
 
         time = SMPPEX.Compat.monotonic_time
 
@@ -259,7 +252,7 @@ defmodule SMPPEX.Session do
         )
 
         pdu_storage = PduStorage.new
-        response_limit = Keyword.get(session_opts, :response_limit, @default_response_limit)
+        response_limit = Keyword.get(session_opts, :response_limit, Defaults.response_limit)
 
         {:ok, %Session{
           module: module,
