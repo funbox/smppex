@@ -26,7 +26,7 @@ The package can be installed as:
 
   ```elixir
   def deps do
-    [{:smppex, "~> 1.0"}]
+    [{:smppex, "~> 2.0.0"}]
   end
   ```
 
