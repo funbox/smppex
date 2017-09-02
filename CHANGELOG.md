@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.1] - 2017-09-02
+### Changed
+- `PduStorage` implementation to be OTP 17 compatible.
+
 ## [2.0.0] - 2017-08-30
 This release contains significant architectural changes and API incompatibilities.
 
