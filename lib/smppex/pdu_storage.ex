@@ -3,6 +3,7 @@ defmodule SMPPEX.PduStorage do
 
   alias :ets, as: ETS
 
+  alias SMPPEX.Compat
   alias SMPPEX.PduStorage
   alias SMPPEX.Pdu
 
@@ -30,7 +31,7 @@ defmodule SMPPEX.PduStorage do
   @spec fetch(t, non_neg_integer) :: [Pdu.t]
 
   def fetch(storage, sequence_number) do
-    case ETS.take(storage.by_sequence_number, sequence_number) do
+    case Compat.ets_take(storage.by_sequence_number, sequence_number) do
       [{^sequence_number, {_expire_time, pdu}}] ->
         [pdu]
       [] ->
