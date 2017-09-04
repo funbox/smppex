@@ -4,6 +4,10 @@
 [![Coverage Status](https://coveralls.io/repos/github/savonarola/smppex/badge.svg?branch=master)](https://coveralls.io/github/savonarola/smppex?branch=master)
 [![Inline docs](http://inch-ci.org/github/savonarola/smppex.svg?branch=master)](http://inch-ci.org/github/savonarola/smppex)
 
+<a href="https://funbox.ru">
+  <img src="http://funbox.ru/badges/sponsored_by_funbox.svg" alt="Sponsored by FunBox" width=250 />
+</a>
+
 # Smppex
 
 SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.org)
