@@ -172,7 +172,6 @@ defmodule SMPPEX do
 
   * Starts and listens to connections on the specified port.
   * Responds with OK status to all incoming binds.
-  * Responds to all `enquire_link` packets.
   * Responds with incremental message ids to all incoming `submit_sm` packets (regardless of the bind state).
 
 
