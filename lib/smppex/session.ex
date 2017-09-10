@@ -203,7 +203,10 @@ defmodule SMPPEX.Session do
 
   This callback is called from the underlying `GenServer` `terminate` callbacks, so it has all the corresponding caveats, see [`GenServer.terminate/2` docs](https://hexdocs.pm/elixir/GenServer.html#c:terminate/2).
   """
-  @callback terminate(reason, lost_pdus :: [Pdu.t], state) :: any
+  @callback terminate(reason, lost_pdus :: [Pdu.t], state) ::
+    :stop |
+    {:stop, [Pdu.t], state}
+
 
   @doc """
   Invoked to change the state of the session when a different version of a module is loaded (hot code swapping) and the state’s term structure should be changed. The method has the same semantics as the original `GenServer.code_change/3` callback.
@@ -257,6 +260,7 @@ defmodule SMPPEX.Session do
       @doc false
       def terminate(reason, lost_pdus, _state) do
         Logger.info("Session #{inspect self()} stopped with reason: #{inspect reason}, lost_pdus: #{inspect lost_pdus}")
+        :stop
       end
 
       @doc false
@@ -467,7 +471,13 @@ defmodule SMPPEX.Session do
 
   def terminate(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
-    st.module.terminate(reason, lost_pdus, st.module_state)
+    case st.module.terminate(reason, lost_pdus, st.module_state) do
+      :stop -> {[], st}
+      {:stop, pdus, new_module_state} when is_list(pdus) ->
+        {pdus, %Session{st | module_state: new_module_state}}
+      other ->
+        exit({:bad_terminate_reply, other})
+    end
   end
 
   def code_change(old_vsn, st, extra) do
@@ -587,12 +597,10 @@ defmodule SMPPEX.Session do
   defp process_handle_unparsed_pdu_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_unparsed_pdu_reply({reply, st}), do: {:stop, {:bad_handle_unparsed_pdu_reply, reply}, st}
 
-
   defp process_handle_resp_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_resp_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_resp_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_resp_reply({reply, st}), do: {:stop, {:bad_handle_resp_reply, reply}, st}
-
 
   defp process_handle_resp_timeout_reply({{:ok, mst}, st}), do: process_reply({{:noreply, mst}, st})
   defp process_handle_resp_timeout_reply({{:ok, pdus, mst}, st}), do: process_reply({{:noreply, pdus, mst}, st})

@@ -111,7 +111,7 @@ defmodule SMPPEX.SessionTest do
 
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:terminate, _reason, _lost_pdus}, _st -> nil
+      {:terminate, _reason, _lost_pdus}, _st -> :stop
     end)
 
     Timer.sleep(50)
@@ -123,7 +123,11 @@ defmodule SMPPEX.SessionTest do
       {:terminate, :oops, _lost_pdus}
     ] = ctx[:callbacks].()
 
-    Timer.sleep(50)
+    receive do
+      x -> assert {:EXIT, ^esme, :oops} = x
+    after 50 ->
+      assert false
+    end
 
     refute Process.alive?(esme)
   end
@@ -159,6 +163,43 @@ defmodule SMPPEX.SessionTest do
     assert Pdu.command_name(enquire_link_pdu) == :enquire_link
   end
 
+  test "terminate with sending pdus", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _, _}, st -> st
+      {:terminate, _, _}, st -> {:stop, [SMPPEX.Pdu.Factory.enquire_link], st}
+    end)
+
+    assert :ok == Session.stop(esme)
+
+    Timer.sleep(50)
+
+    assert {:ok, {:pdu, enquire_link_pdu}, _rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+
+    assert Pdu.command_name(enquire_link_pdu) == :enquire_link
+  end
+
+  test "terminate with invalid response", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:terminate, _reason, _lost_pdus}, _st -> :bad_resp
+    end)
+
+    assert :ok = Session.stop(esme, :oops)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_terminate_reply, :bad_resp}} = x
+    after 50 ->
+      assert false
+    end
+
+    refute Process.alive?(esme)
+  end
+
   test "cast with stop", ctx do
     Process.flag(:trap_exit, true)
 
@@ -167,7 +208,7 @@ defmodule SMPPEX.SessionTest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_cast, ^ref}, st -> {:stop, :ooops, st}
-      {:terminate, _, _}, _ -> nil
+      {:terminate, _, _}, _ -> :stop
     end)
 
     Session.cast(esme, ref)
@@ -239,7 +280,7 @@ defmodule SMPPEX.SessionTest do
       {:handle_call, ^ref, from}, st ->
         spawn(fn -> Timer.sleep(20); Session.reply(from, :got_it) end)
         {:stop, :ooops, st}
-      {:terminate, _, _}, _ -> nil
+      {:terminate, _, _}, _ -> :stop
     end)
 
     spawn_link(fn -> Session.call(esme, ref) end)
@@ -294,7 +335,7 @@ defmodule SMPPEX.SessionTest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_info, ^ref}, st -> {:stop, :ooops, st}
-      {:terminate, _, _}, _ -> nil
+      {:terminate, _, _}, _ -> :stop
     end)
 
     Kernel.send(esme, ref)
@@ -377,7 +418,7 @@ defmodule SMPPEX.SessionTest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_pdu, _pdu}, st -> {:stop, :nopenope, st}
-      {:terminate, _, _}, _st -> nil
+      {:terminate, _, _}, _st -> :stop
     end)
 
     Server.send(ctx[:server], pdu_data)
@@ -459,7 +500,7 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp, _pdu, _original_pdu}, st -> {:stop, :nopenope, st}
-      {:terminate, _, _}, _ -> nil
+      {:terminate, _, _}, _ -> :stop
     end)
 
     Session.send_pdu(esme, pdu)
@@ -610,7 +651,7 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp_timeout, _pdu}, st -> {:stop, :nopenope, st}
-      {:terminate, _, _}, _ -> nil
+      {:terminate, _, _}, _ -> :stop
     end)
 
     Session.send_pdu(esme, pdu)
@@ -685,7 +726,7 @@ defmodule SMPPEX.SessionTest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_unparsed_pdu, _pdu, _error}, st -> {:stop, :nopenope, st}
-      {:terminate, _pdu, _los_pdus}, _st -> nil
+      {:terminate, _pdu, _los_pdus}, _st -> :stop
     end)
 
     Server.send(ctx[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
@@ -807,7 +848,7 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end)
 
     Session.send_pdu(esme, pdu)
@@ -841,7 +882,7 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end)
 
     Session.send_pdu(esme, pdu)
@@ -871,7 +912,7 @@ defmodule SMPPEX.SessionTest do
 
     esme = ctx[:esme_with_opts].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end, session_init_limit: 1000)
 
     time = SMPPEX.Compat.monotonic_time
@@ -892,7 +933,7 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end, session_init_limit: 1000)
 
     time = SMPPEX.Compat.monotonic_time
@@ -947,7 +988,7 @@ defmodule SMPPEX.SessionTest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end)
 
     Session.send_pdu(esme, pdu)
@@ -1017,7 +1058,7 @@ defmodule SMPPEX.SessionTest do
     _esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_socket_closed}, st -> {:ooops, st}
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end)
 
     Server.stop(ctx[:server])
@@ -1037,7 +1078,7 @@ defmodule SMPPEX.SessionTest do
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_socket_error, :wow_such_socket_error}, st -> {:ooops, st}
-      {:terminate, _reason, _los_pdus}, _st -> nil
+      {:terminate, _reason, _los_pdus}, _st -> :stop
     end)
 
     {_ok, _closed, error} = Support.Session.socket_messages

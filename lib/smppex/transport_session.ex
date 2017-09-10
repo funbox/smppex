@@ -62,7 +62,7 @@ defmodule SMPPEX.TransportSession do
   @callback handle_socket_closed(state) :: {reason, state}
   @callback handle_socket_error(error :: term, state) :: {reason, state}
 
-  @callback terminate(reason, state) :: any
+  @callback terminate(reason, state) :: {[Pdu.t], state}
 
   @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
     {:ok, state} |
@@ -244,7 +244,8 @@ defmodule SMPPEX.TransportSession do
   end
 
   def terminate(reason, state) do
-    state.module.terminate(reason, state.module_state)
+    {pdus, new_module_state} = state.module.terminate(reason, state.module_state)
+    send_pdus(new_module_state, state, pdus)
   end
 
   def code_change(old_vsn, state, extra) do

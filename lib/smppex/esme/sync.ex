@@ -158,7 +158,7 @@ defmodule SMPPEX.ESME.Sync do
       nil -> :nop
       from -> reply(from, :stop)
     end
-    {:normal, st}
+    :stop
   end
 
   @doc false
