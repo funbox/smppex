@@ -133,7 +133,7 @@ defmodule SMPPEX do
     def terminate(reason, _, st) do
       Logger.info("ESME stopped with reason #{inspect reason}")
       Kernel.send(st.waiting_pid, {self(), :done})
-      st
+      :stop
     end
 
     def handle_info(:bind, st) do
@@ -177,7 +177,7 @@ defmodule SMPPEX do
 
 
   ```elixir
-  
+
   defmodule MC do
 
     use SMPPEX.Session
