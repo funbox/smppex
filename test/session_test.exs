@@ -224,6 +224,26 @@ defmodule SMPPEX.SessionTest do
     refute Process.alive?(esme)
   end
 
+  test "cast with invalid reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_cast, _}, _st -> :foo
+      {:terminate, _, _}, _ -> :stop
+    end)
+
+    Session.cast(esme, :bar)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_cast_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
+
+    refute Process.alive?(esme)
+  end
+
   test "call", ctx do
     ref = make_ref()
 
@@ -296,6 +316,26 @@ defmodule SMPPEX.SessionTest do
     refute Process.alive?(esme)
   end
 
+  test "call with invalid handle_call reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_call, _, _}, _st -> :foo
+      {:terminate, _, _}, _ -> :stop
+    end)
+
+    spawn(fn -> Session.call(esme, :bar) end)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_call_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
+
+    refute Process.alive?(esme)
+  end
+
   test "info", ctx do
     ref = make_ref()
 
@@ -347,6 +387,26 @@ defmodule SMPPEX.SessionTest do
       {:handle_info, ^ref},
       {:terminate, :ooops, []}
     ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "info with invalid reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_info, _}, _st -> :foo
+      {:terminate, _, _}, _ -> :stop
+    end)
+
+    send(esme, :bar)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_info_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
 
     refute Process.alive?(esme)
   end
@@ -429,6 +489,29 @@ defmodule SMPPEX.SessionTest do
       {:handle_pdu, _},
       {:terminate, :nopenope, []}
     ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "handle_pdu with invalid reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password") | sequence_number: 123}
+    {:ok, pdu_data} = SMPPEX.Protocol.build(pdu)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_pdu, _pdu}, _st -> :foo
+      {:terminate, _, _}, _st -> :stop
+    end)
+
+    Server.send(ctx[:server], pdu_data)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_pdu_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
 
     refute Process.alive?(esme)
   end
@@ -580,6 +663,35 @@ defmodule SMPPEX.SessionTest do
     ] = ctx[:callbacks].()
   end
 
+  test "handle_resp with invalid reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp, _pdu, _original_pdu}, _st -> :foo
+      {:terminate, _, _}, _ -> :stop
+    end)
+
+    Session.send_pdu(esme, pdu)
+    Timer.sleep(50)
+
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+    Timer.sleep(50)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_resp_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
+
+    refute Process.alive?(esme)
+  end
+
   test "handle_resp_timeout with ok", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
 
@@ -671,6 +783,33 @@ defmodule SMPPEX.SessionTest do
     refute Process.alive?(esme)
   end
 
+  test "handle_resp_timeout with invalid reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_send_pdu_result, _pdu, _result}, st -> st
+      {:handle_resp_timeout, _pdu}, _st -> :foo
+      {:terminate, _, _}, _ -> :stop
+    end)
+
+    Session.send_pdu(esme, pdu)
+    time = SMPPEX.Compat.monotonic_time
+    Timer.sleep(50)
+
+    Kernel.send(esme, {:check_expired_pdus, time + 2050})
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_resp_timeout_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
+
+    refute Process.alive?(esme)
+  end
+
   test "handle_send_pdu_result", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "too_long_password")
 
@@ -738,6 +877,26 @@ defmodule SMPPEX.SessionTest do
       {:handle_unparsed_pdu, _pdu, "Unknown command_id"},
       {:terminate, :nopenope, []}
     ] = ctx[:callbacks].()
+
+    refute Process.alive?(esme)
+  end
+
+  test "handle_unparsed_pdu with invalid reply", ctx do
+    Process.flag(:trap_exit, true)
+
+    esme = ctx[:esme].(fn
+      {:init, _socket, _transport}, st -> {:ok, st}
+      {:handle_unparsed_pdu, _pdu, _error}, _st -> :foo
+      {:terminate, _pdu, _los_pdus}, _st -> :stop
+    end)
+
+    Server.send(ctx[:server], <<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+
+    receive do
+      x -> assert {:EXIT, ^esme, {:bad_handle_unparsed_pdu_reply, :foo}} = x
+    after 50 ->
+      assert false
+    end
 
     refute Process.alive?(esme)
   end

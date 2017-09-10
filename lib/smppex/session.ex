@@ -590,22 +590,22 @@ defmodule SMPPEX.Session do
   defp process_handle_pdu_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_pdu_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_pdu_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_pdu_reply({reply, st}), do: {:stop, {:bad_handle_pdu_reply, reply}, st}
+  defp process_handle_pdu_reply({reply, st}), do: {:stop, {:bad_handle_pdu_reply, reply}, [], st}
 
   defp process_handle_unparsed_pdu_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_unparsed_pdu_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_unparsed_pdu_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_unparsed_pdu_reply({reply, st}), do: {:stop, {:bad_handle_unparsed_pdu_reply, reply}, st}
+  defp process_handle_unparsed_pdu_reply({reply, st}), do: {:stop, {:bad_handle_unparsed_pdu_reply, reply}, [], st}
 
   defp process_handle_resp_reply({{:ok, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_resp_reply({{:ok, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_resp_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_resp_reply({reply, st}), do: {:stop, {:bad_handle_resp_reply, reply}, st}
+  defp process_handle_resp_reply({reply, st}), do: {:stop, {:bad_handle_resp_reply, reply}, [], st}
 
   defp process_handle_resp_timeout_reply({{:ok, mst}, st}), do: process_reply({{:noreply, mst}, st})
   defp process_handle_resp_timeout_reply({{:ok, pdus, mst}, st}), do: process_reply({{:noreply, pdus, mst}, st})
   defp process_handle_resp_timeout_reply({{:stop, _reason, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_resp_timeout_reply({reply, st}), do: {:stop, {:bad_handle_resp_timeout_reply, reply}, st}
+  defp process_handle_resp_timeout_reply({reply, st}), do: {:stop, {:bad_handle_resp_timeout_reply, reply}, [], st}
 
   defp process_handle_call_reply({{:reply, _reply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:reply, _reply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
@@ -613,18 +613,17 @@ defmodule SMPPEX.Session do
   defp process_handle_call_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:stop, _rsn, _reply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_call_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_call_reply({reply, st}), do: {:stop, {:bad_handle_call_reply, reply}, st}
-
+  defp process_handle_call_reply({reply, st}), do: {:stop, {:bad_handle_call_reply, reply}, [], st}
 
   defp process_handle_cast_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_cast_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_cast_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_cast_reply({reply, st}), do: {:stop, {:bad_handle_cast_reply, reply}, st}
+  defp process_handle_cast_reply({reply, st}), do: {:stop, {:bad_handle_cast_reply, reply}, [], st}
 
   defp process_handle_info_reply({{:noreply, _pdus, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_info_reply({{:noreply, _mst}, _st} = arg), do: process_reply(arg)
   defp process_handle_info_reply({{:stop, _rsn, _mst}, _st} = arg), do: process_reply(arg)
-  defp process_handle_info_reply({reply, st}), do: {:stop, {:bad_handle_info_reply, reply}, st}
+  defp process_handle_info_reply({reply, st}), do: {:stop, {:bad_handle_info_reply, reply}, [], st}
 
   defp process_reply({{:ok, module_state}, st}) do
     {:ok, [], %Session{st | module_state: module_state}}
