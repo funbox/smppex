@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.1.0] - 2017-09-10
 ### Added
 - Automatic handling of `enquire_link` and `enquire_link_resp` PDUs.
 
