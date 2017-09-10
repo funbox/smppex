@@ -156,7 +156,7 @@ defmodule SMPPEX.ESME.SyncTest do
 
     spawn_link(fn ->
       Timer.sleep(30)
-      Session.send_pdu(mc_session, SMPPEX.Pdu.Factory.enquire_link)
+      Session.send_pdu(mc_session, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
     end)
 
     {time, _} = Timer.tc(fn ->
@@ -180,7 +180,7 @@ defmodule SMPPEX.ESME.SyncTest do
       pid -> pid
     end
 
-    Session.send_pdu(mc_session, SMPPEX.Pdu.Factory.enquire_link)
+    Session.send_pdu(mc_session, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
     Timer.sleep(30)
 
     assert [pdu: _] = ESMESync.wait_for_pdus(esme)
@@ -230,14 +230,14 @@ defmodule SMPPEX.ESME.SyncTest do
         pid = self()
         spawn(fn ->
           Timer.sleep(30)
-          Session.send_pdu(pid, SMPPEX.Pdu.Factory.enquire_link_resp |> Pdu.as_reply_to(pdu))
+          Session.send_pdu(pid, SMPPEX.Pdu.Factory.bind_transmitter_resp(0) |> Pdu.as_reply_to(pdu))
         end)
         {:ok, [], st}
       {:handle_send_pdu_result, _, _}, st -> st
     end)
     esme = ctx[:esme].()
 
-    Session.send_pdu(esme, SMPPEX.Pdu.Factory.enquire_link)
+    Session.send_pdu(esme, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
     assert [ok: _] = ESMESync.wait_for_pdus(esme)
 
     {time, _} = Timer.tc(fn ->
@@ -262,7 +262,7 @@ defmodule SMPPEX.ESME.SyncTest do
     end)
     esme = ctx[:esme_with_opts].([esme_opts: esme_opts])
 
-    Session.send_pdu(esme, SMPPEX.Pdu.Factory.enquire_link)
+    Session.send_pdu(esme, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
     assert [ok: _] = ESMESync.wait_for_pdus(esme)
     assert [{:timeout, _}] = ESMESync.wait_for_pdus(esme, 100)
   end
@@ -308,7 +308,7 @@ defmodule SMPPEX.ESME.SyncTest do
       pid -> pid
     end
 
-    Session.send_pdu(mc_session, SMPPEX.Pdu.Factory.enquire_link)
+    Session.send_pdu(mc_session, SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password"))
 
     Timer.sleep(30)
 

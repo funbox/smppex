@@ -719,7 +719,7 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:tick, time + 1050})
     Timer.sleep(50)
 
     assert {:ok, {:pdu, _}, rest_data} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
@@ -734,7 +734,6 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
-      {:handle_pdu, _pdu}, st -> {:ok, st}
     end)
 
     Session.send_pdu(esme, pdu)
@@ -746,7 +745,7 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 950})
+    Kernel.send(esme, {:tick, time + 950})
     Timer.sleep(50)
 
     action_pdu = %Pdu{SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
@@ -754,10 +753,12 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], action_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:tick, time + 1050})
     Timer.sleep(50)
 
-    assert {:ok, {:pdu, _bind_pdu}, <<>>} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+    assert {:ok, {:pdu, _bind_pdu}, rest} = Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse
+    assert {:ok, {:pdu, _enquire_link_resp}, <<>>} = rest |> SMPPEX.Protocol.parse
+
   end
 
   test "enquire_link timeout cancel by peer action", ctx do
@@ -767,7 +768,6 @@ defmodule SMPPEX.SessionTest do
       {:init, _socket, _transport}, st -> {:ok, st}
       {:handle_send_pdu_result, _pdu, _result}, st -> st
       {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
-      {:handle_pdu, _pdu}, st -> {:ok, st}
     end)
 
     Session.send_pdu(esme, pdu)
@@ -779,7 +779,7 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:tick, time + 1050})
     Timer.sleep(50)
 
     action_pdu = %Pdu{SMPPEX.Pdu.Factory.enquire_link | sequence_number: 1}
@@ -787,16 +787,13 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], action_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 2100})
+    Kernel.send(esme, {:tick, time + 2100})
     Timer.sleep(50)
 
     assert [
       {:init, _, _},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
-      {:handle_resp, _, _},
-      {:handle_send_pdu_result, _, :ok}, # enquire_link sent
-      {:handle_pdu, _},                  # pdu from server
-      {:handle_send_pdu_result, _, :ok} # no timeout or stop, new enquire_link sent
+      {:handle_resp, _, _}
     ] = ctx[:callbacks].()
 
   end
@@ -822,15 +819,14 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 1050})
-    Kernel.send(esme, {:check_timers, time + 2050})
+    Kernel.send(esme, {:tick, time + 1050})
+    Kernel.send(esme, {:tick, time + 2050})
     Timer.sleep(50)
 
     assert [
       {:init, _, _},
       {:handle_send_pdu_result, _, :ok}, # bind_transmitter sent
       {:handle_resp, _, _},
-      {:handle_send_pdu_result, _, :ok}, # enquire_link sent
       {:terminate, {:timers, :enquire_link_timer}, _los_pdus}
     ] = ctx[:callbacks].()
     refute Process.alive?(esme)
@@ -857,7 +853,7 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 10050})
+    Kernel.send(esme, {:tick, time + 10050})
     Timer.sleep(50)
 
     assert [
@@ -880,7 +876,7 @@ defmodule SMPPEX.SessionTest do
 
     time = SMPPEX.Compat.monotonic_time
 
-    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:tick, time + 1050})
     Timer.sleep(50)
 
     assert [
@@ -909,7 +905,7 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:tick, time + 1050})
     Timer.sleep(50)
 
     assert [
@@ -932,7 +928,7 @@ defmodule SMPPEX.SessionTest do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid")
     Session.send_pdu(esme, pdu)
 
-    Kernel.send(esme, {:check_timers, time + 1050})
+    Kernel.send(esme, {:tick, time + 1050})
     Timer.sleep(50)
 
     assert [
