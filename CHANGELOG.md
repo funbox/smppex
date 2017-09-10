@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Automatic handling of `enquire_link` and `enquire_link_resp` PDUs.
+
 ## [2.0.1] - 2017-09-02
 ### Changed
 - `PduStorage` implementation to be OTP 17 compatible.
