@@ -39,7 +39,7 @@ defmodule Smppex.Mixfile do
       {:dialyxir, "~> 0.4.4", only: :dev},
       {:earmark, "~> 1.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
-      {:inch_ex, only: :docs},
+      {:inch_ex, "~> 0.5.6", only: :docs},
       {:ranch, "~> 1.3"}
     ]
   end
