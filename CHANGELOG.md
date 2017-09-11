@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.2.1] - 2017-09-11
+### Changed
+- Loosened `ranch` version requirements.
+
 ## [2.2.0] - 2017-09-10
 ### Changed
 - Added strict response type for `terminate` callback. Also, `terminate` callback is now allowed to return some last pdus for sending.
