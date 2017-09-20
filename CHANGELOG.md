@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.2.3] - 2017-09-21
+
+### Changed
+- SMPPEX.ESME.Sync: ignore successful send_pdu_result for syncronously sent PDUs.
+- SMPPEX.ESME.Sync: exit with normal on socket close.
+
 ## [2.2.2] - 2017-09-21
 ### Changed
 - Fixed handling socket close/error for SMPPEX.ESME.Sync
