@@ -134,7 +134,7 @@ defmodule SMPPEX.ESME.Sync do
   @doc false
   @impl true
   def handle_resp(pdu, original_pdu, st) do
-    case st.pdu != nil and Pdu.same?(original_pdu, st.pdu) and st.state == :wait_for_resp do
+    case waiting_for_pdu_resp?(original_pdu, st) do
       true ->
         reply(st.from, {:ok, pdu})
         {:ok, set_free(st)}
@@ -149,20 +149,22 @@ defmodule SMPPEX.ESME.Sync do
     {:ok, process_timeouts(pdus, st)}
   end
 
-  defp process_timeouts([], st), do: st
-  defp process_timeouts([pdu | pdus], st) do
-    if st.pdu && Pdu.same?(pdu, st.pdu) && st.state == :wait_for_resp do
-      reply(st.from, :timeout)
-      process_timeouts(pdus, set_free(st))
-    else
-      process_timeouts(pdus, push_to_waiting({:timeout, pdu}, st))
-    end
-  end
-
   @doc false
   @impl true
   def handle_pdu(pdu, st) do
     {:ok, push_to_waiting({:pdu, pdu}, st)}
+  end
+
+  @doc false
+  @impl true
+  def handle_socket_closed(st) do
+    {:normal, st}
+  end
+
+  @doc false
+  @impl true
+  def handle_socket_error(error, st) do
+    {{:socket_error, error}, st}
   end
 
   @doc false
@@ -179,15 +181,34 @@ defmodule SMPPEX.ESME.Sync do
   @impl true
   def handle_send_pdu_result(pdu, result, st) do
     case result do
-      :ok -> push_to_waiting({:ok, pdu}, st)
+      :ok ->
+        if waiting_for_pdu_resp?(pdu, st) do
+          st
+        else
+          push_to_waiting({:ok, pdu}, st)
+        end
       {:error, error} ->
-        if st.pdu && Pdu.same?(pdu, st.pdu) && st.state == :wait_for_resp do
+        if waiting_for_pdu_resp?(pdu, st) do
           reply(st.from, {:error, error})
           set_free(st)
         else
           push_to_waiting({:error, pdu, error}, st)
         end
     end
+  end
+
+  defp process_timeouts([], st), do: st
+  defp process_timeouts([pdu | pdus], st) do
+    if waiting_for_pdu_resp?(pdu, st) do
+      reply(st.from, :timeout)
+      process_timeouts(pdus, set_free(st))
+    else
+      process_timeouts(pdus, push_to_waiting({:timeout, pdu}, st))
+    end
+  end
+
+  defp waiting_for_pdu_resp?(pdu, st) do
+    st.pdu != nil and Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp  
   end
 
   defp push_to_waiting(pdu_info, st) do
