@@ -98,17 +98,27 @@ defmodule SMPPEX.ESME.Sync do
   # Session callbacks
 
   @doc false
+  @impl true
+  def init(_socket, _transport, st) do
+    Process.flag(:trap_exit, true)
+    {:ok, st}
+  end
+
+  @doc false
+  @impl true
   def handle_call({:call, {:request, pdu}, from}, _from, st) do
     new_st = %{st | from: from, pdu: pdu, state: :wait_for_resp}
     {:reply, :ok, [pdu], new_st}
   end
 
+  @impl true
   def handle_call(:pdus, _from, st) do
     pdus = Enum.reverse(st.additional_pdus)
     new_st = %{st | additional_pdus: []}
     {:reply, pdus, new_st}
   end
 
+  @impl true
   def handle_call({:call, :wait_for_pdus, from}, _from, st) do
     new_st = case st.additional_pdus do
       [_ | _] ->
@@ -122,6 +132,7 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   @doc false
+  @impl true
   def handle_resp(pdu, original_pdu, st) do
     case st.pdu != nil and Pdu.same?(original_pdu, st.pdu) and st.state == :wait_for_resp do
       true ->
@@ -133,12 +144,13 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   @doc false
+  @impl true
   def handle_resp_timeout(pdus, st) do
     {:ok, process_timeouts(pdus, st)}
   end
 
-  def process_timeouts([], st), do: st
-  def process_timeouts([pdu | pdus], st) do
+  defp process_timeouts([], st), do: st
+  defp process_timeouts([pdu | pdus], st) do
     if st.pdu && Pdu.same?(pdu, st.pdu) && st.state == :wait_for_resp do
       reply(st.from, :timeout)
       process_timeouts(pdus, set_free(st))
@@ -148,11 +160,13 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   @doc false
+  @impl true
   def handle_pdu(pdu, st) do
     {:ok, push_to_waiting({:pdu, pdu}, st)}
   end
 
   @doc false
+  @impl true
   def terminate(_reason, _los_pdus, st) do
     case st.from do
       nil -> :nop
@@ -162,6 +176,7 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   @doc false
+  @impl true
   def handle_send_pdu_result(pdu, result, st) do
     case result do
       :ok -> push_to_waiting({:ok, pdu}, st)
@@ -198,7 +213,7 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
-  def reply({ref, pid} = _from, response) do
+  defp reply({ref, pid} = _from, response) do
     send(pid, {ref, response})
   end
 
