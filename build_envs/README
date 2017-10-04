@@ -1,3 +1,0 @@
-Docker environments for running tests on legacy versions of Elixir/Erlang.
-
-Generally, one should clean local _build directory before running tests in Docker

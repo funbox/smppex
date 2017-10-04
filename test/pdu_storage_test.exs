@@ -48,7 +48,7 @@ defmodule SMPPEX.PduStorageTest do
     assert true == PduStorage.store(storage, pdu1, 1000)
     assert true == PduStorage.store(storage, pdu2, 2000)
 
-    assert [pdu1, pdu2] == PduStorage.fetch_all(storage)
+    assert Enum.sort([pdu1, pdu2]) == Enum.sort(PduStorage.fetch_all(storage))
   end
 
 end

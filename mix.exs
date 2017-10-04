@@ -5,7 +5,7 @@ defmodule Smppex.Mixfile do
     [
       app: :smppex,
       version: "2.2.3",
-      elixir: "~> 1.0",
+      elixir: "~> 1.1",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       source_url: "https://github.com/savonarola/smppex",

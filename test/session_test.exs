@@ -147,15 +147,14 @@ defmodule SMPPEX.SessionTest do
   end
 
   test "cast with pdu", ctx do
-    ref = make_ref()
 
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_cast, ^ref}, st -> {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
+      {:handle_cast, :req}, st -> {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
       {:handle_send_pdu_result, _, _}, st -> st
     end)
 
-    assert :ok == Session.cast(esme, ref)
+    assert :ok == Session.cast(esme, :req)
 
     Timer.sleep(50)
 
@@ -203,21 +202,19 @@ defmodule SMPPEX.SessionTest do
   test "cast with stop", ctx do
     Process.flag(:trap_exit, true)
 
-    ref = make_ref()
-
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_cast, ^ref}, st -> {:stop, :ooops, st}
+      {:handle_cast, :req}, st -> {:stop, :ooops, st}
       {:terminate, _, _}, _ -> :stop
     end)
 
-    Session.cast(esme, ref)
+    Session.cast(esme, :req)
 
     Timer.sleep(50)
 
     assert [
       {:init, _, _},
-      {:handle_cast, ^ref},
+      {:handle_cast, :req},
       {:terminate, :ooops, []}
     ] = ctx[:callbacks].()
 
@@ -245,43 +242,40 @@ defmodule SMPPEX.SessionTest do
   end
 
   test "call", ctx do
-    ref = make_ref()
 
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_call, ^ref, _from}, st -> {:reply, :got_it, st}
+      {:handle_call, :req, _from}, st -> {:reply, :got_it, st}
     end)
 
-    assert :got_it == Session.call(esme, ref)
+    assert :got_it == Session.call(esme, :req)
 
-    assert [{:init, _, _}, {:handle_call, ^ref, _from}] = ctx[:callbacks].()
+    assert [{:init, _, _}, {:handle_call, :req, _from}] = ctx[:callbacks].()
   end
 
   test "call with delayed reply", ctx do
-    ref = make_ref()
 
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_call, ^ref, from}, st ->
+      {:handle_call, :req, from}, st ->
         spawn(fn -> Session.reply(from, :got_it) end)
         {:noreply, st}
     end)
 
-    assert :got_it == Session.call(esme, ref)
+    assert :got_it == Session.call(esme, :req)
   end
 
   test "call with delayed reply and pdu", ctx do
-    ref = make_ref()
 
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_call, ^ref, from}, st ->
+      {:handle_call, :req, from}, st ->
         spawn(fn -> Session.reply(from, :got_it) end)
         {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
       {:handle_send_pdu_result, _, _}, st -> st
     end)
 
-    assert :got_it == Session.call(esme, ref)
+    assert :got_it == Session.call(esme, :req)
 
     Timer.sleep(50)
 
@@ -293,23 +287,21 @@ defmodule SMPPEX.SessionTest do
   test "call with delayed reply and stop", ctx do
     Process.flag(:trap_exit, true)
 
-    ref = make_ref()
-
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_call, ^ref, from}, st ->
+      {:handle_call, :req, from}, st ->
         spawn(fn -> Timer.sleep(20); Session.reply(from, :got_it) end)
         {:stop, :ooops, st}
       {:terminate, _, _}, _ -> :stop
     end)
 
-    spawn_link(fn -> Session.call(esme, ref) end)
+    spawn_link(fn -> Session.call(esme, :req) end)
 
     Timer.sleep(50)
 
     assert [
       {:init, _, _},
-      {:handle_call, ^ref, _from},
+      {:handle_call, :req, _from},
       {:terminate, :ooops, []}
     ] = ctx[:callbacks].()
 
@@ -337,29 +329,25 @@ defmodule SMPPEX.SessionTest do
   end
 
   test "info", ctx do
-    ref = make_ref()
-
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_info, ^ref}, st -> {:noreply, st}
+      {:handle_info, :req}, st -> {:noreply, st}
     end)
 
-    Kernel.send esme, ref
+    Kernel.send esme, :req
     Timer.sleep(50)
 
-    assert [{:init, _, _}, {:handle_info, ^ref}] = ctx[:callbacks].()
+    assert [{:init, _, _}, {:handle_info, :req}] = ctx[:callbacks].()
   end
 
   test "info with pdu", ctx do
-    ref = make_ref()
-
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_info, ^ref}, st -> {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
+      {:handle_info, :req}, st -> {:noreply, [SMPPEX.Pdu.Factory.enquire_link()], st}
       {:handle_send_pdu_result, _, _}, st -> st
     end)
 
-    Kernel.send(esme, ref)
+    Kernel.send(esme, :req)
 
     Timer.sleep(50)
 
@@ -370,21 +358,19 @@ defmodule SMPPEX.SessionTest do
   test "info with stop", ctx do
     Process.flag(:trap_exit, true)
 
-    ref = make_ref()
-
     esme = ctx[:esme].(fn
       {:init, _socket, _transport}, st -> {:ok, st}
-      {:handle_info, ^ref}, st -> {:stop, :ooops, st}
+      {:handle_info, :req}, st -> {:stop, :ooops, st}
       {:terminate, _, _}, _ -> :stop
     end)
 
-    Kernel.send(esme, ref)
+    Kernel.send(esme, :req)
 
     Timer.sleep(50)
 
     assert [
       {:init, _, _},
-      {:handle_info, ^ref},
+      {:handle_info, :req},
       {:terminate, :ooops, []}
     ] = ctx[:callbacks].()
 
