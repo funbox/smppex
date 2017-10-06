@@ -1,8 +1,8 @@
 defmodule SMPPEX.Protocol.OptionalFieldsParser do
   @moduledoc false
 
-  import SMPPEX.Protocol.Unpack
-  import SMPPEX.Protocol.TlvFormat
+  alias SMPPEX.Protocol.Unpack
+  alias SMPPEX.Protocol.TlvFormat
 
   @type parse_result :: {:ok, map} | {:error, reason :: term}
 
@@ -15,7 +15,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
   end
 
   defp parse(bin, parsed_fields) do
-    case tlv(bin) do
+    case Unpack.tlv(bin) do
       {:ok, {tag, value}, rest} ->
         case parse_format(tag, value) do
           {:ok, parsed} ->
@@ -27,7 +27,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
   end
 
   defp parse_format(tag, value) do
-    case format_by_id(tag) do
+    case TlvFormat.format_by_id(tag) do
       {:ok, format} -> parse_known_tlv(value, format)
       :unknown -> {:ok, value} # unknown tlvs are always valid
     end
@@ -42,7 +42,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
   end
 
   defp parse_known_tlv(value, {:c_octet_string, {:max, size}}) do
-    case c_octet_string(value, {:max, size}) do
+    case Unpack.c_octet_string(value, {:max, size}) do
       {:ok, str, ""} -> {:ok, str}
       _ -> {:error, "Invalid c_octet_string"}
     end

@@ -1,7 +1,7 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   @moduledoc false
 
-  import SMPPEX.Protocol.Pack
+  alias SMPPEX.Protocol.Pack
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
 
   @spec build(map, MandatoryFieldsSpecs.fields_spec) :: {:ok, iodata} | {:error, any}
@@ -68,13 +68,13 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
     end
   end
 
-  defp build_simple_value(value, {:c_octet_string, {:max, n}}), do: c_octet_string(value, {:max, n})
+  defp build_simple_value(value, {:c_octet_string, {:max, n}}), do: Pack.c_octet_string(value, {:max, n})
 
-  defp build_simple_value(value, {:c_octet_string, {:fixed, n}}), do: c_octet_string(value, {:fixed, n})
+  defp build_simple_value(value, {:c_octet_string, {:fixed, n}}), do: Pack.c_octet_string(value, {:fixed, n})
 
-  defp build_simple_value(value, {:octet_string, n}), do: octet_string(value, n)
+  defp build_simple_value(value, {:octet_string, n}), do: Pack.octet_string(value, n)
 
-  defp build_simple_value(value, {:integer, n}), do: integer(value, n)
+  defp build_simple_value(value, {:integer, n}), do: Pack.integer(value, n)
 
 end
 

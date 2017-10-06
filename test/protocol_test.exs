@@ -1,28 +1,28 @@
 defmodule SMPPEX.ProtocolTest do
   use ExUnit.Case
 
-  import SMPPEX.Protocol
+  alias SMPPEX.Protocol
   alias SMPPEX.Pdu
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.RawPdu
 
   test "parse: insufficient data" do
-    assert parse(<<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>) == {:ok, nil, <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>}
-    assert parse(<<1,2,3>>) == {:ok, nil, <<1,2,3>>}
+    assert Protocol.parse(<<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>) == {:ok, nil, <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5>>}
+    assert Protocol.parse(<<1,2,3>>) == {:ok, nil, <<1,2,3>>}
   end
 
   test "parse: bad command_length" do
-    assert {:error, _} = parse(<<00, 00, 00, 0x0F,   00, 00, 00, 00,   00, 00, 00, 00,   00, 00, 00, 00>>)
+    assert {:error, _} = Protocol.parse(<<00, 00, 00, 0x0F,   00, 00, 00, 00,   00, 00, 00, 00,   00, 00, 00, 00>>)
   end
 
   test "parse: bad command_id" do
-    parse_result = parse(<<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
+    parse_result = Protocol.parse(<<00, 00, 00, 0x10,   0x80, 00, 0x33, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0xAA, 0xBB, 0xCC>>)
 
     assert {:ok, {:unparsed_pdu, %RawPdu{command_id: 2147496706, command_status: 0, sequence_number: 1}, _}, <<0xAA, 0xBB, 0xCC>>} = parse_result
   end
 
   test "parse: bind_transmitter_resp" do
-    parse_result = parse(<<00, 00, 00, 0x11,   0x80, 00, 00, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0x00, 0xAA, 0xBB, 0xCC>>)
+    parse_result = Protocol.parse(<<00, 00, 00, 0x11,   0x80, 00, 00, 0x02,   00, 00, 00, 00,   00, 00, 00, 0x01,   0x00, 0xAA, 0xBB, 0xCC>>)
 
     assert {:ok, {:pdu, pdu}, tail} = parse_result
 
@@ -34,7 +34,7 @@ defmodule SMPPEX.ProtocolTest do
   end
 
   test "parse: bind_transmitter_resp, unsuccessful" do
-    parse_result = parse(<<0, 0, 0, 16, 128, 0, 0, 2, 0, 0, 0, 15, 0, 0, 0, 1>>)
+    parse_result = Protocol.parse(<<0, 0, 0, 16, 128, 0, 0, 2, 0, 0, 0, 15, 0, 0, 0, 1>>)
 
     assert {:ok, {:pdu, pdu}, tail} = parse_result
 
@@ -53,7 +53,7 @@ defmodule SMPPEX.ProtocolTest do
       0x6a, 0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x00, 0x7b, 0x01, 0x02, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x00
     >>
 
-    parse_result = parse(data)
+    parse_result = Protocol.parse(data)
 
     assert {:ok, {:pdu, pdu}, _} = parse_result
 
@@ -73,19 +73,19 @@ defmodule SMPPEX.ProtocolTest do
   test "parse: negative resp with nonempty body" do
     bin = <<0x00,0x00,0x00,0x21,0x80,0x00,0x00,0x04,0x00,0x00,0x00,0x0b,0x00,0x00,0x00,0x02,0x30,0x41,0x30,0x30,0x30,0x30,0x30,0x30,0x41,0x33,0x44,0x33,0x32,0x33,0x41,0x31,0x00>>
 
-    assert {:ok, {:pdu, %SMPPEX.Pdu{command_id: 2147483652, command_status: 11, sequence_number: 2}}, ""} = parse(bin)
+    assert {:ok, {:pdu, %SMPPEX.Pdu{command_id: 2147483652, command_status: 11, sequence_number: 2}}, ""} = Protocol.parse(bin)
   end
 
   test "parse: negative resp with nonempty malformed body" do
     bin = <<0x00,0x00,0x00,0x20,0x80,0x00,0x00,0x04,0x00,0x00,0x00,0x0b,0x00,0x00,0x00,0x02,0x30,0x41,0x30,0x30,0x30,0x30,0x30,0x30,0x41,0x33,0x44,0x33,0x32,0x33,0x41,0x31,0x00>>
 
-    assert {:ok, {:pdu, %SMPPEX.Pdu{command_id: 2147483652, command_status: 11, sequence_number: 2}}, <<0>>} = parse(bin)
+    assert {:ok, {:pdu, %SMPPEX.Pdu{command_id: 2147483652, command_status: 11, sequence_number: 2}}, <<0>>} = Protocol.parse(bin)
   end
 
   test "parse: negative resp with empty body" do
     bin = <<0x00,0x00,0x00,0x10,0x80,0x00,0x00,0x04,0x00,0x00,0x00,0x0b,0x00,0x00,0x00,0x02>>
 
-    assert {:ok, {:pdu, %SMPPEX.Pdu{command_id: 2147483652, command_status: 11, sequence_number: 2}}, <<>>} = parse(bin)
+    assert {:ok, {:pdu, %SMPPEX.Pdu{command_id: 2147483652, command_status: 11, sequence_number: 2}}, <<>>} = Protocol.parse(bin)
   end
 
 
@@ -97,7 +97,7 @@ defmodule SMPPEX.ProtocolTest do
     optional_fields = %{}
     pdu = Pdu.new(header, mandatory_fields, optional_fields)
 
-    assert {:ok, data} == build(pdu)
+    assert {:ok, data} == Protocol.build(pdu)
   end
 
   test "build: bind_transmitter_resp (unsuccessful)" do
@@ -108,7 +108,7 @@ defmodule SMPPEX.ProtocolTest do
     optional_fields = %{}
     pdu = Pdu.new(header, mandatory_fields, optional_fields)
 
-    assert {:ok, data} == build(pdu)
+    assert {:ok, data} == Protocol.build(pdu)
   end
 
   test "build: bind_transmitter" do
@@ -132,7 +132,7 @@ defmodule SMPPEX.ProtocolTest do
     optional_fields = %{}
     pdu = Pdu.new(header, mandatory_fields, optional_fields)
 
-    assert {:ok, data} == build(pdu)
+    assert {:ok, data} == Protocol.build(pdu)
 
   end
 
@@ -153,7 +153,7 @@ defmodule SMPPEX.ProtocolTest do
 
     pdu = SMPPEX.Pdu.Factory.delivery_report(message_id, source, dest, message, message_state)
 
-    assert {:ok, data} == build(pdu)
+    assert {:ok, data} == Protocol.build(pdu)
   end
 
   test "build failure (invalid optional field name)" do
@@ -173,7 +173,7 @@ defmodule SMPPEX.ProtocolTest do
     }
     pdu = Pdu.new(header, mandatory_fields, optional_fields)
 
-    assert {:error, _} = build(pdu)
+    assert {:error, _} = Protocol.build(pdu)
 
   end
 
@@ -197,7 +197,7 @@ defmodule SMPPEX.ProtocolTest do
       }
     )
 
-    assert {:ok, _} = build(pdu)
+    assert {:ok, _} = Protocol.build(pdu)
   end
 
 end

@@ -1,14 +1,14 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
   use ExUnit.Case
 
-  import SMPPEX.Protocol.MandatoryFieldsBuilder
+  alias SMPPEX.Protocol.MandatoryFieldsBuilder
 
   defp flatten(io_list) do
     [io_list] |> List.flatten |> Enum.join
   end
 
   defp build_(fields, spec) do
-    case build(fields, spec) do
+    case MandatoryFieldsBuilder.build(fields, spec) do
       {:ok, io_list} -> {:ok, flatten(io_list)}
       err -> err
     end

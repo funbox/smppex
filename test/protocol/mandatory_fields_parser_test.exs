@@ -1,7 +1,7 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
   use ExUnit.Case
 
-  import SMPPEX.Protocol.MandatoryFieldsParser
+  alias SMPPEX.Protocol.MandatoryFieldsParser
 
   test "parse: integer" do
     spec = [
@@ -9,7 +9,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02>>
-    assert {:ok, %{a: 1}, <<02>>} == parse(data, spec)
+    assert {:ok, %{a: 1}, <<02>>} == MandatoryFieldsParser.parse(data, spec)
   end
 
   test "parse: c_octet_string fixed" do
@@ -18,10 +18,10 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 00, 03>>
-    assert {:ok, %{a: <<01, 02>>}, <<03>>} == parse(data, spec)
+    assert {:ok, %{a: <<01, 02>>}, <<03>>} == MandatoryFieldsParser.parse(data, spec)
 
     data = <<00, 01, 02, 03>>
-    assert {:ok, %{a: ""}, <<01, 02, 03>>} == parse(data, spec)
+    assert {:ok, %{a: ""}, <<01, 02, 03>>} == MandatoryFieldsParser.parse(data, spec)
   end
 
   test "parse: c_octet_string var" do
@@ -30,10 +30,10 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 00, 03>>
-    assert {:ok, %{a: <<01, 02>>}, <<03>>} == parse(data, spec)
+    assert {:ok, %{a: <<01, 02>>}, <<03>>} == MandatoryFieldsParser.parse(data, spec)
 
     data = <<01, 00, 02, 03>>
-    assert {:ok, %{a: <<01>>}, <<02, 03>>} == parse(data, spec)
+    assert {:ok, %{a: <<01>>}, <<02, 03>>} == MandatoryFieldsParser.parse(data, spec)
   end
 
   test "parse: octet_string" do
@@ -42,7 +42,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 03, 04>>
-    assert {:ok, %{a: <<01, 02, 03>>}, <<04>>} == parse(data, spec)
+    assert {:ok, %{a: <<01, 02, 03>>}, <<04>>} == MandatoryFieldsParser.parse(data, spec)
   end
 
   test "parse: integer expanded" do
@@ -51,7 +51,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<00, 01, 02>>
-    assert {:ok, %{a: 1}, <<02>>} = parse(data, spec, %{b: 2})
+    assert {:ok, %{a: 1}, <<02>>} = MandatoryFieldsParser.parse(data, spec, %{b: 2})
   end
 
   test "parse: c_octet_string fixed expanded" do
@@ -60,10 +60,10 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 00, 03>>
-    assert {:ok, %{a: <<01, 02>>}, <<03>>} = parse(data, spec, %{b: 3})
+    assert {:ok, %{a: <<01, 02>>}, <<03>>} = MandatoryFieldsParser.parse(data, spec, %{b: 3})
 
     data = <<00, 01, 02, 03>>
-    assert {:ok, %{a: ""}, <<01, 02, 03>>} = parse(data, spec, %{b: 3})
+    assert {:ok, %{a: ""}, <<01, 02, 03>>} = MandatoryFieldsParser.parse(data, spec, %{b: 3})
   end
 
   test "parse: c_octet_string var expanded" do
@@ -72,10 +72,10 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 00, 03>>
-    assert {:ok, %{a: <<01, 02>>}, <<03>>} = parse(data, spec, %{b: 3})
+    assert {:ok, %{a: <<01, 02>>}, <<03>>} = MandatoryFieldsParser.parse(data, spec, %{b: 3})
 
     data = <<01, 00, 02, 03>>
-    assert {:ok, %{a: <<01>>}, <<02, 03>>} = parse(data, spec, %{b: 3})
+    assert {:ok, %{a: <<01>>}, <<02, 03>>} = MandatoryFieldsParser.parse(data, spec, %{b: 3})
   end
 
   test "parse: octet_string expanded" do
@@ -84,7 +84,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 03, 04>>
-    assert {:ok, %{a: <<01, 02, 03>>, b: 3}, <<04>>} == parse(data, spec, %{b: 3})
+    assert {:ok, %{a: <<01, 02, 03>>, b: 3}, <<04>>} == MandatoryFieldsParser.parse(data, spec, %{b: 3})
   end
 
   test "n-times parse" do
@@ -102,7 +102,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
       %{a: "c", b: 3}
     ]
 
-    parse_result = parse(data, spec)
+    parse_result = MandatoryFieldsParser.parse(data, spec)
 
     assert {:ok, %{array: array}, <<01, 02, 03>>} == parse_result
 
@@ -124,7 +124,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
       %{a: "c", b: 3}
     ]
 
-    parse_result = parse(data, spec, %{times: 3})
+    parse_result = MandatoryFieldsParser.parse(data, spec, %{times: 3})
 
     assert {:ok, %{array: array, times: 3}, <<01, 02, 03>>} == parse_result
   end
@@ -144,13 +144,13 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, ?z, 00>>
-    assert {:ok, %{a: 1, b: 2, x: "z"}, ""} == parse(data, spec)
+    assert {:ok, %{a: 1, b: 2, x: "z"}, ""} == MandatoryFieldsParser.parse(data, spec)
 
     data = <<02, 02, ?z, 00>>
-    assert {:ok, %{a: 2, b: 2, y: "z"}, ""} == parse(data, spec)
+    assert {:ok, %{a: 2, b: 2, y: "z"}, ""} == MandatoryFieldsParser.parse(data, spec)
 
     data = <<02, 03, ?z, 00>>
-    assert {:error, _} = parse(data, spec)
+    assert {:error, _} = MandatoryFieldsParser.parse(data, spec)
 
   end
 

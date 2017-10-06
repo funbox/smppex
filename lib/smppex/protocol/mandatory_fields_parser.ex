@@ -1,8 +1,7 @@
 defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   @moduledoc false
 
-  import SMPPEX.Protocol.Unpack
-
+  alias SMPPEX.Protocol.Unpack
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
 
   @spec parse(binary, MandatoryFieldsSpecs.fields_spec) :: {:ok, map, binary} | {:error, any}
@@ -37,19 +36,19 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   end
 
   defp read_value(bin, {:c_octet_string, {:max, n}}, parsed_fields) do
-    c_octet_string(bin, {:max, expand(n, parsed_fields)})
+    Unpack.c_octet_string(bin, {:max, expand(n, parsed_fields)})
   end
 
   defp read_value(bin, {:integer, n}, parsed_fields) do
-    integer(bin, expand(n, parsed_fields))
+    Unpack.integer(bin, expand(n, parsed_fields))
   end
 
   defp read_value(bin, {:c_octet_string, {:fixed, n}}, parsed_fields) do
-    c_octet_string(bin, {:fixed, expand(n, parsed_fields)})
+    Unpack.c_octet_string(bin, {:fixed, expand(n, parsed_fields)})
   end
 
   defp read_value(bin, {:octet_string, n}, parsed_fields) do
-    octet_string(bin, expand(n, parsed_fields))
+    Unpack.octet_string(bin, expand(n, parsed_fields))
   end
 
   defp read_value(bin, {:times, n, specs}, parsed_fields) do

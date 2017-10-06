@@ -1,8 +1,8 @@
 defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   @moduledoc false
 
-  import SMPPEX.Protocol.Pack
-  import SMPPEX.Protocol.TlvFormat
+  alias SMPPEX.Protocol.Pack
+  alias SMPPEX.Protocol.TlvFormat
 
   use Bitwise
 
@@ -15,7 +15,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   defp build([], built), do: {:ok, built}
 
   defp build([{name, value} | rest], built) when is_atom(name) do
-    case id_by_name(name) do
+    case TlvFormat.id_by_name(name) do
       {:ok, id} -> build([{id, value} | rest], built)
       :unknown -> {:error, "Can't find id for name #{inspect name}"}
     end
@@ -30,13 +30,13 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
 
   defp build_tlv(id, value) do
     case build_value(id, value) do
-      {:ok, bin} -> tlv(id, bin)
+      {:ok, bin} -> Pack.tlv(id, bin)
       {:error, error} -> {:error, {"Invalid value for Tag #{inspect id}", error}}
     end
   end
 
   defp build_value(id, value) do
-    format = format_by_id(id)
+    format = TlvFormat.format_by_id(id)
     case format do
       {:ok, format} -> build_value_with_format(value, format)
       :unknown -> build_value_without_format(value)
@@ -46,9 +46,9 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilder do
   @invalid_octet_string "TLV Octet String: invalid value"
   @invalid_unknown_tlv_value "TLV: value for unknown Tag is not binary"
 
-  defp build_value_with_format(value, {:integer, size}), do: integer(value, size)
-  defp build_value_with_format(value, {:c_octet_string, {:max, size}}), do: c_octet_string(value, {:max, size})
-  defp build_value_with_format(value, {:octet_string, size}) when is_integer(size), do: octet_string(value, size)
+  defp build_value_with_format(value, {:integer, size}), do: Pack.integer(value, size)
+  defp build_value_with_format(value, {:c_octet_string, {:max, size}}), do: Pack.c_octet_string(value, {:max, size})
+  defp build_value_with_format(value, {:octet_string, size}) when is_integer(size), do: Pack.octet_string(value, size)
   defp build_value_with_format(value, {:octet_string, {_from, _to}})
     when not is_binary(value) do
       {:error, @invalid_octet_string}
