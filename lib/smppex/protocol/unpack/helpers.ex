@@ -34,4 +34,3 @@ defmodule SMPPEX.Protocol.Unpack.Helpers do
   end
 
 end
-

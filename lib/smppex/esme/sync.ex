@@ -12,7 +12,7 @@ defmodule SMPPEX.ESME.Sync do
   alias SMPPEX.ESME
   alias SMPPEX.Pdu
   alias SMPPEX.Session
-  
+
   require Logger
 
   @default_timeout 5000
@@ -209,7 +209,7 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   defp waiting_for_pdu_resp?(pdu, st) do
-    st.pdu != nil and Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp  
+    st.pdu != nil and Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp
   end
 
   defp push_to_waiting(pdu_info, st) do

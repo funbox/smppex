@@ -174,7 +174,6 @@ defmodule SMPPEX do
   * Responds with OK status to all incoming binds.
   * Responds with incremental message ids to all incoming `submit_sm` packets (regardless of the bind state).
 
-
   ```elixir
 
   defmodule MC do
@@ -205,7 +204,6 @@ defmodule SMPPEX do
 
   end
   ```
-
 
   """
 end

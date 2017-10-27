@@ -48,7 +48,6 @@ defmodule SMPPEX.Pdu do
       mandatory: %{password: "pass", system_id: "sid"}, optional: %{},
       ref: #Reference<0.0.3.219>, sequence_number: 123}
 
-
   """
   def new(header, mandatory_fields \\ %{}, optional_fields \\ %{}) do
     case header do

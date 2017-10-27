@@ -10,7 +10,6 @@ defmodule SMPPEX.Protocol.Unpack do
   @invalid_fixed_c_octet_string "C-Octet String(fixed): invalid"
   @invalid_c_octet_string_no_terminator "C-Octet String(var): null terminator not found"
 
-
   @type unpack_error_result :: {:error, any}
 
   @type integer_size :: 1 | 2 | 4

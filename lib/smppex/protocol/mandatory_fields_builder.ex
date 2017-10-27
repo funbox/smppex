@@ -77,4 +77,3 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   defp build_simple_value(value, {:integer, n}), do: Pack.integer(value, n)
 
 end
-

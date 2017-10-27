@@ -27,7 +27,7 @@ defmodule SMPPEX.Session do
   alias SMPPEX.Session.Defaults
   alias SMPPEX.SMPPTimers
   alias SMPPEX.TransportSession
- 
+
   require Logger
 
   @behaviour TransportSession
@@ -207,7 +207,6 @@ defmodule SMPPEX.Session do
   @callback terminate(reason, lost_pdus :: [Pdu.t], state) ::
     :stop |
     {:stop, [Pdu.t], state}
-
 
   @doc """
   Invoked to change the state of the session when a different version of a module is loaded (hot code swapping) and the state’s term structure should be changed. The method has the same semantics as the original `GenServer.code_change/3` callback.
