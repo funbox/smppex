@@ -24,7 +24,7 @@ defmodule SMPPEX.Session.AutoPduHandler do
   @spec enquire_link(t, non_neg_integer, non_neg_integer) :: {Pdu.t, non_neg_integer}
 
   def enquire_link(handler, expire_time, sequence_number) do
-    pdu = %Pdu{ PduFactory.enquire_link | sequence_number: sequence_number}
+    pdu = %Pdu{PduFactory.enquire_link | sequence_number: sequence_number}
     ETS.insert_new(handler.by_ref, {Pdu.ref(pdu), true})
     ETS.insert_new(handler.by_sequence_number, {sequence_number, {expire_time, pdu}})
     {pdu, sequence_number + 1}
@@ -55,7 +55,7 @@ defmodule SMPPEX.Session.AutoPduHandler do
   @spec drop_expired(t, non_neg_integer) :: t
 
   def drop_expired(handler, now_time) do
-    ETS.select_delete(handler.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', now_time}], [true]}])
+    ETS.select_delete(handler.by_sequence_number, [{{:'_', {:'$1', :'$2'}}, [{:'<', :'$1', now_time}], [true]}])
   end
 
   defp handle_resp(handler, pdu, sequence_number) do

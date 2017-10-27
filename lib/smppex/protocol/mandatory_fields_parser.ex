@@ -63,7 +63,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParser do
   defp read_values(bin, {n, values}, specs, parsed_fields) do
     case parse(bin, specs, parsed_fields) do
       {:ok, parsed_fields_inner, rest} ->
-        read_values(rest, {n-1, [parsed_fields_inner | values]}, specs, parsed_fields)
+        read_values(rest, {n - 1, [parsed_fields_inner | values]}, specs, parsed_fields)
       {:error, _} = err -> err
     end
   end

@@ -72,7 +72,7 @@ defmodule SMPPEX.TransportSession do
   # Ranch handles this return type, but Dialyzer is not happy with it
 
   def start_link(ref, socket, transport, opts) do
-	  ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+    ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
   end
 
   # Manual start, without Ranch

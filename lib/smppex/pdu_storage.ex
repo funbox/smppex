@@ -42,9 +42,9 @@ defmodule SMPPEX.PduStorage do
   @spec fetch_expired(t, non_neg_integer) :: [Pdu.t]
 
   def fetch_expired(storage, expire_time) do
-    expired = ETS.select(storage.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2']}])
+    expired = ETS.select(storage.by_sequence_number, [{{:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [:'$2']}])
     expired_count = length(expired)
-    ^expired_count = ETS.select_delete(storage.by_sequence_number, [{ {:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [true]}])
+    ^expired_count = ETS.select_delete(storage.by_sequence_number, [{{:'_', {:'$1', :'$2'}}, [{:'<', :'$1', expire_time}], [true]}])
     expired
   end
 
