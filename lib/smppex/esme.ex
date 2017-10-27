@@ -29,6 +29,7 @@ defmodule SMPPEX.ESME do
 
   """
 
+  alias SMPPEX.Compat
   alias SMPPEX.Session.Defaults
   alias SMPPEX.Session
   alias SMPPEX.TransportSession
@@ -89,7 +90,7 @@ defmodule SMPPEX.ESME do
     end
   end
 
-  defp convert_host(host) when is_binary(host), do: SMPPEX.Compat.to_charlist(host)
+  defp convert_host(host) when is_binary(host), do: Compat.to_charlist(host)
   defp convert_host(host), do: host
 
 end

@@ -20,13 +20,14 @@ defmodule SMPPEX.Session do
   alias :erlang, as: Erlang
 
   alias __MODULE__, as: Session
-  alias SMPPEX.Session.Defaults
-  alias SMPPEX.Session.AutoPduHandler
+  alias SMPPEX.Compat
   alias SMPPEX.Pdu
   alias SMPPEX.PduStorage
-  alias SMPPEX.TransportSession
+  alias SMPPEX.Session.AutoPduHandler
+  alias SMPPEX.Session.Defaults
   alias SMPPEX.SMPPTimers
-
+  alias SMPPEX.TransportSession
+ 
   require Logger
 
   @behaviour TransportSession
@@ -354,7 +355,7 @@ defmodule SMPPEX.Session do
         inactivity_limit = Keyword.get(session_opts, :inactivity_limit, Defaults.inactivity_limit)
         session_init_limit = Keyword.get(session_opts, :session_init_limit, Defaults.session_init_limit)
 
-        time = SMPPEX.Compat.monotonic_time
+        time = Compat.monotonic_time
 
         timers = SMPPTimers.new(
           time,
@@ -436,7 +437,7 @@ defmodule SMPPEX.Session do
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
     new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
-    Kernel.send self(), {:tick, SMPPEX.Compat.monotonic_time}
+    Kernel.send self(), {:tick, Compat.monotonic_time}
     {:noreply, [], %Session{st | tick_timer_ref: new_tick_timer_ref}}
   end
 
