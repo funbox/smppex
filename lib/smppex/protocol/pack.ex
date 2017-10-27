@@ -93,8 +93,8 @@ defmodule SMPPEX.Protocol.Pack do
   def tlv(_tag, str) when not is_binary(str), do: {:error, @invalid_tlv_value}
   def tlv(tag, _str) when not is_integer(tag), do: {:error, @invalid_tlv_tag}
   def tlv(tag, _str) when tag < 0, do: {:error, @invalid_tlv_tag}
-  def tlv(tag, _str) when tag > 65535, do: {:error, @invalid_tlv_tag}
-  def tlv(_tag, str) when byte_size(str) >= 65536, do: {:error, @invalid_tlv_value}
+  def tlv(tag, _str) when tag > 65_535, do: {:error, @invalid_tlv_tag}
+  def tlv(_tag, str) when byte_size(str) >= 65_536, do: {:error, @invalid_tlv_value}
 
   def tlv(tag, str) do
     len = byte_size(str)

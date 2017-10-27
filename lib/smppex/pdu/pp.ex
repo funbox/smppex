@@ -9,7 +9,7 @@ defmodule SMPPEX.Pdu.PP do
 
   @pad ""
   @indent "  "
-  @field_inspect_limit 999999
+  @field_inspect_limit 999_999
 
   @spec format(pdu :: Pdu.t, indent :: String.t, pad :: String.t) :: iolist
 

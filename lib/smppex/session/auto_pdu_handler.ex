@@ -1,4 +1,5 @@
 defmodule SMPPEX.Session.AutoPduHandler do
+  @moduledoc false
 
   defstruct [
     :by_sequence_number,

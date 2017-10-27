@@ -153,7 +153,7 @@ defmodule SMPPEX.Pdu.Multipart do
       {:error, "#{@error_invalid_seq_num}"}
 
   """
-  def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65535, do: {:error, @error_invalid_ref_num}
+  def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65_535, do: {:error, @error_invalid_ref_num}
   def multipart_ie({_ref_num, count, _seq_num}) when count < 1 or count > 255, do: {:error, @error_invalid_count}
   def multipart_ie({_ref_num, _count, seq_num}) when seq_num < 1 or seq_num > 255, do: {:error, @error_invalid_seq_num}
 
@@ -222,7 +222,7 @@ defmodule SMPPEX.Pdu.Multipart do
 
   def split_message(_ref_num, message, _max_len) when not is_binary(message), do: {:error, @error_invalid_message}
   def split_message(ref_num, _message, _max_len) when ref_num < 0, do: {:error, @error_invalid_ref_num}
-  def split_message(ref_num, _message, _max_len) when ref_num > 65535, do: {:error, @error_invalid_ref_num}
+  def split_message(ref_num, _message, _max_len) when ref_num > 65_535, do: {:error, @error_invalid_ref_num}
   def split_message(_ref_num, _message, max_len) when max_len < 0, do: {:error, @error_invalid_max}
 
   def split_message(ref_num, message, max_len) do
@@ -257,7 +257,7 @@ defmodule SMPPEX.Pdu.Multipart do
 
   def split_message(_ref_num, message, _max_len, _max_split) when not is_binary(message), do: {:error, @error_invalid_message}
   def split_message(ref_num, _message, _max_len, _max_split) when ref_num < 0, do: {:error, @error_invalid_ref_num}
-  def split_message(ref_num, _message, _max_len, _max_split) when ref_num > 65535, do: {:error, @error_invalid_ref_num}
+  def split_message(ref_num, _message, _max_len, _max_split) when ref_num > 65_535, do: {:error, @error_invalid_ref_num}
   def split_message(_ref_num, _message, max_len, _max_split) when max_len < 0, do: {:error, @error_invalid_max}
   def split_message(_ref_num, _message, _max_len, max_split) when max_split < 0, do: {:error, @error_invalid_max}
 
