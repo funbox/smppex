@@ -1,10 +1,8 @@
 defmodule Support.SMPPSession do
   @moduledoc false
 
-  defstruct [
-    callbacks_received: nil,
-    pdu_handler: nil,
-  ]
+  defstruct callbacks_received: nil,
+            pdu_handler: nil
 
   @transport :ranch_tcp
   @timeout 1000
@@ -22,12 +20,10 @@ defmodule Support.SMPPSession do
   end
 
   defp save_callback(st, name, args) do
-    Agent.update(
-      st.callbacks_received,
-      fn(callbacks) ->
-        [{name, args} | callbacks]
-      end
-    )
+    Agent.update(st.callbacks_received, fn callbacks ->
+      [{name, args} | callbacks]
+    end)
+
     st
   end
 
@@ -49,14 +45,12 @@ defmodule Support.SMPPSession do
 
   def init(_socket, _transport, [pid]) do
     Process.flag(:trap_exit, true)
-    {:ok, %SMPPSession{pdu_handler: fn(_pdu) -> {:ok, []} end, callbacks_received: pid}}
+    {:ok, %SMPPSession{pdu_handler: fn _pdu -> {:ok, []} end, callbacks_received: pid}}
   end
 
   def handle_pdu(pdu_info, st) do
     new_st = save_callback(st, :handle_pdu, [pdu_info])
-    :erlang.list_to_tuple(
-      :erlang.tuple_to_list(st.pdu_handler.(pdu_info)) ++ [new_st]
-    )
+    :erlang.list_to_tuple(:erlang.tuple_to_list(st.pdu_handler.(pdu_info)) ++ [new_st])
   end
 
   def handle_send_pdu_result(pdu, result, st) do
@@ -111,5 +105,4 @@ defmodule Support.SMPPSession do
   def code_change(old_vsn, st, extra) do
     {:ok, save_callback(st, :code_change, [old_vsn, extra])}
   end
-
 end

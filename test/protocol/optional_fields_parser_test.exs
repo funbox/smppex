@@ -26,7 +26,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsParserTest do
     data = <<00, 0x1D, 00, 03, ?a, ?b, ?c>>
     assert {:error, _} = OptionalFieldsParser.parse(data)
 
-    data = <<0x02, 0x03, 00, 01, ?a >>
+    data = <<0x02, 0x03, 00, 01, ?a>>
     assert {:error, _} = OptionalFieldsParser.parse(data)
   end
 end

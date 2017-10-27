@@ -8,7 +8,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
 
   @spec parse(binary) :: parse_result
 
-  def parse(bin), do: parse(bin, Map.new)
+  def parse(bin), do: parse(bin, Map.new())
 
   defp parse(<<>>, parsed_fields) do
     {:ok, parsed_fields}
@@ -20,23 +20,32 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
         case parse_format(tag, value) do
           {:ok, parsed} ->
             parse(rest, Map.put(parsed_fields, tag, parsed))
-          {:error, error} -> {:error, {"Invalid format for tlv #{inspect tag}", error}}
+
+          {:error, error} ->
+            {:error, {"Invalid format for tlv #{inspect(tag)}", error}}
         end
-      {:error, _} = err -> err
+
+      {:error, _} = err ->
+        err
     end
   end
 
   defp parse_format(tag, value) do
     case TlvFormat.format_by_id(tag) do
-      {:ok, format} -> parse_known_tlv(value, format)
-      :unknown -> {:ok, value} # unknown tlvs are always valid
+      {:ok, format} ->
+        parse_known_tlv(value, format)
+
+      # unknown tlvs are always valid
+      :unknown ->
+        {:ok, value}
     end
   end
 
   defp parse_known_tlv(value, {:integer, size}) do
     bit_length = size * 8
+
     case value do
-      <<int :: big-unsigned-integer-size(bit_length)>> -> {:ok, int}
+      <<int::big-unsigned-integer-size(bit_length)>> -> {:ok, int}
       _ -> {:error, "Invalid integer"}
     end
   end
@@ -50,7 +59,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
 
   defp parse_known_tlv(value, {:octet_string, size}) when is_integer(size) do
     case value do
-      << _ :: binary-size(size) >> -> {:ok, value}
+      <<_::binary-size(size)>> -> {:ok, value}
       _ -> {:error, "Invalid octet_string"}
     end
   end
@@ -62,5 +71,4 @@ defmodule SMPPEX.Protocol.OptionalFieldsParser do
       {:error, "Invalid octet_string"}
     end
   end
-
 end

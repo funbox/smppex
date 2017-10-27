@@ -61,10 +61,10 @@ defmodule Support.Session do
   end
 
   defp register({pid, handler} = st, callback_info) do
-    Agent.update(pid, fn(callbacks) ->
+    Agent.update(pid, fn callbacks ->
       [callback_info | callbacks]
     end)
+
     handler.(callback_info, st)
   end
-
 end

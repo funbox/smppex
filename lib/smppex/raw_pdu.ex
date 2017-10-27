@@ -3,12 +3,10 @@ defmodule SMPPEX.RawPdu do
 
   alias SMPPEX.RawPdu
 
-  defstruct [
-    command_id: 0,
-    command_status: 0,
-    sequence_number: 0,
-    body: ""
-  ]
+  defstruct command_id: 0,
+            command_status: 0,
+            sequence_number: 0,
+            body: ""
 
   @type t :: %RawPdu{}
 
@@ -64,5 +62,4 @@ defmodule SMPPEX.RawPdu do
   def success_resp?(pdu) do
     resp?(pdu) and command_status(pdu) == 0
   end
-
 end

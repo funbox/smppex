@@ -3,19 +3,17 @@ defmodule SMPPEX.SMPPTimers do
 
   alias SMPPEX.SMPPTimers
 
-  defstruct [
-    connection_time: 0,
-    session_init_state: :established, # :established -> :bound
-    session_init_limit: 0,
-
-    last_peer_action_time: 0,
-    enquire_link_state: :active, # :active <-> :waiting_resp
-    enquire_link_limit: 0,
-    enquire_link_resp_limit: 0,
-
-    last_transaction_time: 0,
-    inactivity_limit: 0
-  ]
+  # :established -> :bound
+  # :active <-> :waiting_resp
+  defstruct connection_time: 0,
+            session_init_state: :established,
+            session_init_limit: 0,
+            last_peer_action_time: 0,
+            enquire_link_state: :active,
+            enquire_link_limit: 0,
+            enquire_link_resp_limit: 0,
+            last_transaction_time: 0,
+            inactivity_limit: 0
 
   @type t :: %SMPPTimers{}
 
@@ -46,10 +44,7 @@ defmodule SMPPEX.SMPPTimers do
   @spec handle_peer_action(t, non_neg_integer) :: t
 
   def handle_peer_action(timers, time) do
-    %SMPPTimers{timers |
-      last_peer_action_time: time,
-      enquire_link_state: :active,
-    }
+    %SMPPTimers{timers | last_peer_action_time: time, enquire_link_state: :active}
   end
 
   @type tick_result :: {:ok, t} | {:stop, reason :: term} | {:enquire_link, t}
@@ -92,10 +87,10 @@ defmodule SMPPEX.SMPPTimers do
   end
 
   defp check_waiting_enquire_link(timers, time) do
-    case time - timers.last_peer_action_time > timers.enquire_link_limit + timers.enquire_link_resp_limit do
+    case time - timers.last_peer_action_time >
+           timers.enquire_link_limit + timers.enquire_link_resp_limit do
       true -> {:stop, :enquire_link_timer}
       false -> {:ok, timers}
     end
   end
-
 end

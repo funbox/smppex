@@ -64,23 +64,33 @@ defmodule SMPPEX.Pdu.FactoryTest do
 
   test "delivery_report" do
     assert %Pdu{} = Factory.delivery_report("message_id", {"to", 0, 0}, {"from", 0, 0})
-    assert %Pdu{} = Factory.delivery_report("message_id", {"to", 0, 0}, {"from", 0, 0}, "hello", :UNDELIVERABLE)
+
+    assert %Pdu{} =
+             Factory.delivery_report(
+               "message_id",
+               {"to", 0, 0},
+               {"from", 0, 0},
+               "hello",
+               :UNDELIVERABLE
+             )
   end
 
   test "delivery_report_for_submit_sm" do
-    submit_sm = Factory.submit_sm(
-      {"from", 1, 2},
-      {"to", 3, 4},
-      "message",
-      1
-    )
+    submit_sm =
+      Factory.submit_sm(
+        {"from", 1, 2},
+        {"to", 3, 4},
+        "message",
+        1
+      )
 
-    delivery_report = Factory.delivery_report_for_submit_sm(
-      "message_id",
-      submit_sm,
-      "dlr message",
-      :DELIVERED
-    )
+    delivery_report =
+      Factory.delivery_report_for_submit_sm(
+        "message_id",
+        submit_sm,
+        "dlr message",
+        :DELIVERED
+      )
 
     [
       destination_addr: "from",
@@ -92,8 +102,9 @@ defmodule SMPPEX.Pdu.FactoryTest do
       short_message: "dlr message",
       message_state: MessageState.code_by_name(:DELIVERED),
       receipted_message_id: "message_id"
-    ] |> Enum.each(fn({field, value}) ->
-      assert Pdu.field(delivery_report, field) == value
-    end)
+    ]
+    |> Enum.each(fn {field, value} ->
+         assert Pdu.field(delivery_report, field) == value
+       end)
   end
 end

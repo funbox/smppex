@@ -38,9 +38,9 @@ defmodule SMPPEX.MC do
   @default_transport :ranch_tcp
   @default_acceptor_count 50
 
-  @spec start({module, args :: term}, opts :: Keyword.t) ::
-    {:ok, listener_ref :: Ranch.ref} |
-    {:error, reason :: term}
+  @spec start({module, args :: term}, opts :: Keyword.t()) ::
+          {:ok, listener_ref :: Ranch.ref()}
+          | {:error, reason :: term}
 
   @doc """
   Starts listener for MC entitiy.
@@ -52,12 +52,24 @@ defmodule SMPPEX.MC do
   * `:transport_opts` is a list of Ranch transport options. The major option is `{:port, port}`. The port is set to `0` by default, which means that the listener will accept connections on a random free port.
   * `:acceptor_count` is the number of Ranch listener acceptors, #{@default_acceptor_count} by default.
   * `:mc_opts` is a keyword list of MC options:
-      - `:timer_resolution` is interval of internal `ticks` on which time related events happen, like checking timeouts for pdus, checking SMPP timers, etc. The default is #{inspect Defaults.timer_resolution} ms;
-      - `:session_init_limit` is the maximum time for which a session waits an incoming bind request. If no bind request is received within this interval of time, the session stops. The default value is #{inspect Defaults.session_init_limit} ms;
-      - `:enquire_link_limit` is value for enquire_link SMPP timer, i.e. the interval of SMPP session inactivity after which enquire_link PDU is send to "ping" the connetion. The default value is #{inspect Defaults.enquire_link_limit} ms;
-      - `:enquire_link_resp_limit` is the maximum time for which a session waits for enquire_link PDU response. If the response is not received within this interval of time and no activity from the peer occurs, the session is then considered dead and the session stops. The default value is #{inspect Defaults.enquire_link_resp_limit} ms;
-      - `:inactivity_limit` is the maximum time for which a peer is allowed not to send PDUs (which are not response PDUs). If no such PDUs are received within this interval of time, the session stops. The default is #{inspect Defaults.inactivity_limit} ms;
-      - `:response_limit` is the maximum time to wait for a response for a previously sent PDU. If the response is not received within this interval, `handle_resp_timeout` callback is triggered for the original pdu. If the response is received later, it is discarded. The default value is #{inspect Defaults.response_limit} ms.
+      - `:timer_resolution` is interval of internal `ticks` on which time related events happen, like checking timeouts for pdus, checking SMPP timers, etc. The default is #{
+    inspect(Defaults.timer_resolution())
+  } ms;
+      - `:session_init_limit` is the maximum time for which a session waits an incoming bind request. If no bind request is received within this interval of time, the session stops. The default value is #{
+    inspect(Defaults.session_init_limit())
+  } ms;
+      - `:enquire_link_limit` is value for enquire_link SMPP timer, i.e. the interval of SMPP session inactivity after which enquire_link PDU is send to "ping" the connetion. The default value is #{
+    inspect(Defaults.enquire_link_limit())
+  } ms;
+      - `:enquire_link_resp_limit` is the maximum time for which a session waits for enquire_link PDU response. If the response is not received within this interval of time and no activity from the peer occurs, the session is then considered dead and the session stops. The default value is #{
+    inspect(Defaults.enquire_link_resp_limit())
+  } ms;
+      - `:inactivity_limit` is the maximum time for which a peer is allowed not to send PDUs (which are not response PDUs). If no such PDUs are received within this interval of time, the session stops. The default is #{
+    inspect(Defaults.inactivity_limit())
+  } ms;
+      - `:response_limit` is the maximum time to wait for a response for a previously sent PDU. If the response is not received within this interval, `handle_resp_timeout` callback is triggered for the original pdu. If the response is received later, it is discarded. The default value is #{
+    inspect(Defaults.response_limit())
+  } ms.
   If `:mc_opts` list of options is ommited, all options take their default values.
   The returned value is either `{:ok, ref}` or `{:error, reason}`. The `ref` can be later used
   to stop the whole MC listener and all sessions received by it.
@@ -69,24 +81,24 @@ defmodule SMPPEX.MC do
     mc_opts = Keyword.get(opts, :mc_opts, [])
     ref = make_ref()
 
-    start_result = Ranch.start_listener(
-      ref,
-      acceptor_count,
-      transport,
-      transport_opts,
-      SMPPEX.TransportSession,
-      {SMPPEX.Session, [mod_with_args, mc_opts]}
-    )
+    start_result =
+      Ranch.start_listener(
+        ref,
+        acceptor_count,
+        transport,
+        transport_opts,
+        SMPPEX.TransportSession,
+        {SMPPEX.Session, [mod_with_args, mc_opts]}
+      )
 
     case start_result do
       {:error, _} = error -> error
       {:ok, _, _} -> {:ok, ref}
       {:ok, _} -> {:ok, ref}
     end
-
   end
 
-  @spec stop(Ranch.ref) :: :ok
+  @spec stop(Ranch.ref()) :: :ok
 
   @doc """
   Stops MC listener and all its sessions.
@@ -95,5 +107,4 @@ defmodule SMPPEX.MC do
   def stop(listener) do
     Ranch.stop_listener(listener)
   end
-
 end

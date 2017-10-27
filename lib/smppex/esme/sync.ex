@@ -19,7 +19,8 @@ defmodule SMPPEX.ESME.Sync do
 
   # Public interface
 
-  @spec start_link(host :: term, port :: non_neg_integer, opts :: Keyword.t) :: GenServer.on_start
+  @spec start_link(host :: term, port :: non_neg_integer, opts :: Keyword.t()) ::
+          GenServer.on_start()
 
   @doc """
   Starts `SMPPEX.ESME.Sync`.
@@ -28,10 +29,16 @@ defmodule SMPPEX.ESME.Sync do
   the underlying `SMPPEX.ESME.start_link/4` call.
   """
   def start_link(host, port, opts \\ []) do
-    ESME.start_link(host, port, {__MODULE__, %{from: nil, pdu: nil, additional_pdus: [], state: :free}}, opts)
+    ESME.start_link(
+      host,
+      port,
+      {__MODULE__, %{from: nil, pdu: nil, additional_pdus: [], state: :free}},
+      opts
+    )
   end
 
-  @spec request(esme :: pid, pdu :: Pdu.t, timeout :: non_neg_integer) :: {:ok, resp :: Pdu.t} | :timeout | :stop | {:error, reason :: term}
+  @spec request(esme :: pid, pdu :: Pdu.t(), timeout :: non_neg_integer) ::
+          {:ok, resp :: Pdu.t()} | :timeout | :stop | {:error, reason :: term}
 
   @doc """
   Syncronously sends a PDU and wait for at most `timeout` ms for a response PDU.
@@ -49,7 +56,11 @@ defmodule SMPPEX.ESME.Sync do
     call(esme, {:request, pdu}, timeout)
   end
 
-  @type awaited :: {:pdu, pdu :: Pdu.t} | {:resp, resp_pdu :: Pdu.t, original_pdu :: Pdu.t} | {:timeout, pdu :: Pdu.t} | {:error, pdu :: Pdu.t, reason :: any}
+  @type awaited ::
+          {:pdu, pdu :: Pdu.t()}
+          | {:resp, resp_pdu :: Pdu.t(), original_pdu :: Pdu.t()}
+          | {:timeout, pdu :: Pdu.t()}
+          | {:error, pdu :: Pdu.t(), reason :: any}
 
   @spec wait_for_pdus(esme :: pid, timeout :: non_neg_integer) :: [awaited] | :timeout | :stop
 
@@ -121,14 +132,17 @@ defmodule SMPPEX.ESME.Sync do
 
   @impl true
   def handle_call({:call, :wait_for_pdus, from}, _from, st) do
-    new_st = case st.additional_pdus do
-      [_ | _] ->
-        pdus = Enum.reverse(st.additional_pdus)
-        reply(from, pdus)
-        %{st | additional_pdus: []}
-      [] ->
-        %{st | from: from, state: :wait_for_pdus}
-    end
+    new_st =
+      case st.additional_pdus do
+        [_ | _] ->
+          pdus = Enum.reverse(st.additional_pdus)
+          reply(from, pdus)
+          %{st | additional_pdus: []}
+
+        [] ->
+          %{st | from: from, state: :wait_for_pdus}
+      end
+
     {:reply, :ok, new_st}
   end
 
@@ -139,6 +153,7 @@ defmodule SMPPEX.ESME.Sync do
       true ->
         reply(st.from, {:ok, pdu})
         {:ok, set_free(st)}
+
       false ->
         {:ok, push_to_waiting({:resp, pdu, original_pdu}, st)}
     end
@@ -175,6 +190,7 @@ defmodule SMPPEX.ESME.Sync do
       nil -> :nop
       from -> reply(from, :stop)
     end
+
     :stop
   end
 
@@ -188,6 +204,7 @@ defmodule SMPPEX.ESME.Sync do
         else
           push_to_waiting({:ok, pdu}, st)
         end
+
       {:error, error} ->
         if waiting_for_pdu_resp?(pdu, st) do
           reply(st.from, {:error, error})
@@ -199,6 +216,7 @@ defmodule SMPPEX.ESME.Sync do
   end
 
   defp process_timeouts([], st), do: st
+
   defp process_timeouts([pdu | pdus], st) do
     if waiting_for_pdu_resp?(pdu, st) do
       reply(st.from, :timeout)
@@ -214,10 +232,12 @@ defmodule SMPPEX.ESME.Sync do
 
   defp push_to_waiting(pdu_info, st) do
     pdus = [pdu_info | st.additional_pdus]
+
     case st.state == :wait_for_pdus do
       true ->
         reply(st.from, pdus)
         %{set_free(st) | additional_pdus: []}
+
       false ->
         %{st | additional_pdus: pdus}
     end
@@ -229,14 +249,15 @@ defmodule SMPPEX.ESME.Sync do
     ref = make_ref()
     from = {ref, self()}
     :ok = Session.call(pid, {:call, request, from})
+
     receive do
       {^ref, response} -> response
-    after timeout -> :timeout
+    after
+      timeout -> :timeout
     end
   end
 
   defp reply({ref, pid} = _from, response) do
     send(pid, {ref, response})
   end
-
 end

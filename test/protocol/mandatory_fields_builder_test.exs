@@ -4,7 +4,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
   alias SMPPEX.Protocol.MandatoryFieldsBuilder
 
   defp flatten(io_list) do
-    [io_list] |> List.flatten |> Enum.join
+    [io_list] |> List.flatten() |> Enum.join()
   end
 
   defp build_(fields, spec) do
@@ -64,18 +64,25 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
   test "n-times build" do
     spec = [
       {:cnt, {:integer, 1}},
-      {:array, {:times, :cnt, [
-        {:a, {:c_octet_string, {:max, 3}}},
-        {:b, {:integer, 1}}
-      ]}}
+      {
+        :array,
+        {:times, :cnt, [
+          {:a, {:c_octet_string, {:max, 3}}},
+          {:b, {:integer, 1}}
+        ]}
+      }
     ]
 
     data = <<03, ?a, 00, 01, ?b, 00, 02, ?c, 00, 03>>
-    fields = %{array: [
-      %{a: "a", b: 1},
-      %{a: "b", b: 2},
-      %{a: "c", b: 3}
-    ]}
+
+    fields = %{
+      array: [
+        %{a: "a", b: 1},
+        %{a: "b", b: 2},
+        %{a: "c", b: 3}
+      ]
+    }
+
     assert {:ok, data} == build_(fields, spec)
   end
 
@@ -83,14 +90,14 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
     spec = [
       {:a, {:integer, 1}},
       {:b, {:integer, 1}},
-      {:case,
-        [{:a, 1, [
+      {:case, [
+        {:a, 1, [
           {:x, {:octet_string, 1}}
         ]},
         {:b, 2, [
           {:y, {:c_octet_string, {:max, 2}}}
-        ]}]
-      }
+        ]}
+      ]}
     ]
 
     data = <<01, 02, ?z>>
@@ -101,7 +108,4 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
 
     assert {:error, _} = build_(%{a: 2, b: 3, y: "z"}, spec)
   end
-
 end
-
-

@@ -5,10 +5,9 @@ defmodule SMPPEX.CompatTest do
   alias :timer, as: Timer
 
   test "monotonic_time" do
-
-    t1 = SMPPEX.Compat.monotonic_time
+    t1 = SMPPEX.Compat.monotonic_time()
     Timer.sleep(1)
-    t2 = SMPPEX.Compat.monotonic_time
+    t2 = SMPPEX.Compat.monotonic_time()
 
     assert t1 < t2
   end
@@ -16,5 +15,4 @@ defmodule SMPPEX.CompatTest do
   test "to_charlist" do
     assert 'abc' = Compat.to_charlist("abc")
   end
-
 end

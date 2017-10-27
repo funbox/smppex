@@ -8,7 +8,7 @@ defmodule Support.TCP.Helpers do
     {:ok, socket} = GenTCP.listen(0, [])
     {:ok, port} = INET.port(socket)
     :ok = GenTCP.close(socket)
-    port # assume no one will immediately take this port
+    # assume no one will immediately take this port
+    port
   end
-
 end

@@ -5,7 +5,7 @@ defmodule SMPPEX.Protocol.Pack do
   alias SMPPEX.Protocol.Unpack.Helpers
 
   @null 0
-  @null_str << @null >>
+  @null_str <<@null>>
 
   @invalid_integer "Integer: invalid value"
   @invalid_c_octet_string_value "C-Octet String: invalid value"
@@ -25,10 +25,11 @@ defmodule SMPPEX.Protocol.Pack do
   def integer(nil, size), do: integer(0, size)
   def integer(int, _size) when not is_integer(int), do: {:error, @invalid_integer}
 
-  def integer(int, size) when (size == 1 or size == 2 or size == 4) do
+  def integer(int, size) when size == 1 or size == 2 or size == 4 do
     integer_bit_size = size * 8
-    if int >= 0 and (int < (1 <<< integer_bit_size)) do
-      {:ok, <<int :: big-unsigned-integer-size(integer_bit_size)>>}
+
+    if int >= 0 and int < 1 <<< integer_bit_size do
+      {:ok, <<int::big-unsigned-integer-size(integer_bit_size)>>}
     else
       {:error, @invalid_integer}
     end
@@ -44,7 +45,9 @@ defmodule SMPPEX.Protocol.Pack do
 
   @spec c_octet_string(any, length_spec, kind) :: pack_result
 
-  def c_octet_string(str, _spec, _kind) when not is_binary(str), do: {:error, @invalid_c_octet_string_value}
+  def c_octet_string(str, _spec, _kind) when not is_binary(str),
+    do: {:error, @invalid_c_octet_string_value}
+
   def c_octet_string(nil, length_spec, kind), do: c_octet_string("", length_spec, kind)
 
   def c_octet_string(str, {:fixed, len}, kind) when is_integer(len) and len >= 1 do
@@ -59,15 +62,20 @@ defmodule SMPPEX.Protocol.Pack do
 
   defp c_octet_string_with_general_check(str, check, kind) when is_function(check) do
     str_length = byte_size(str)
+
     cond do
-      str == "" -> {:ok, @null_str}
+      str == "" ->
+        {:ok, @null_str}
+
       check.(str_length + 1) ->
         if valid_kind?(str, kind) do
-          {:ok,  str <> @null_str}
+          {:ok, str <> @null_str}
         else
           {:error, @invalid_c_octet_string_format}
         end
-      true -> {:error, @invalid_c_octet_string_value}
+
+      true ->
+        {:error, @invalid_c_octet_string_value}
     end
   end
 
@@ -80,6 +88,7 @@ defmodule SMPPEX.Protocol.Pack do
   @spec octet_string(binary, non_neg_integer) :: pack_result
 
   def octet_string(str, _len) when not is_binary(str), do: {:error, @invalid_octet_string}
+
   def octet_string(str, len) when is_integer(len) and len >= 0 do
     if byte_size(str) == len do
       {:ok, str}
@@ -98,7 +107,6 @@ defmodule SMPPEX.Protocol.Pack do
 
   def tlv(tag, str) do
     len = byte_size(str)
-    {:ok, <<tag :: big-unsigned-integer-size(16), len :: big-unsigned-integer-size(16), str :: binary >>}
+    {:ok, <<tag::big-unsigned-integer-size(16), len::big-unsigned-integer-size(16), str::binary>>}
   end
-
 end

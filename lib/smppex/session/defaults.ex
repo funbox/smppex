@@ -15,5 +15,4 @@ defmodule SMPPEX.Session.Defaults do
       unquote(value)
     end
   end
-
 end

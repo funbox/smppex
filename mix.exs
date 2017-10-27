@@ -6,15 +6,15 @@ defmodule Smppex.Mixfile do
       app: :smppex,
       version: "2.2.3",
       elixir: "~> 1.1",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       source_url: "https://github.com/savonarola/smppex",
       deps: deps(),
       description: description(),
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
-        "coveralls": :test,
+        coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
@@ -24,8 +24,8 @@ defmodule Smppex.Mixfile do
         plt_file: ".local.plt",
         plt_add_deps: true,
         plt_add_apps: [:ssl],
-        flags: ["-Werror_handling", "-Wrace_conditions"],
-      ],
+        flags: ["-Werror_handling", "-Wrace_conditions"]
+      ]
     ]
   end
 
@@ -41,7 +41,6 @@ defmodule Smppex.Mixfile do
       {:ex_doc, "~> 0.11", only: :dev},
       {:inch_ex, "~> 0.5.6", only: :docs},
       {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
-
       {:ranch, "~> 1.3"}
     ]
   end
@@ -64,6 +63,4 @@ defmodule Smppex.Mixfile do
       }
     ]
   end
-
-
 end

@@ -4,7 +4,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilderTest do
   alias SMPPEX.Protocol.OptionalFieldsBuilder
 
   defp flat_bin({:ok, io_list}) do
-    io_list |> List.flatten |> Enum.join
+    io_list |> List.flatten() |> Enum.join()
   end
 
   test "build unknown valid" do
@@ -14,7 +14,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilderTest do
   end
 
   test "build unknown invalid" do
-    big_bin = [0] |> Stream.cycle |> Enum.take(65536) |> to_string
+    big_bin = [0] |> Stream.cycle() |> Enum.take(65536) |> to_string
     res = OptionalFieldsBuilder.build(%{0x01 => big_bin})
     assert {:error, _} = res
 
@@ -56,8 +56,8 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilderTest do
     res = OptionalFieldsBuilder.build(%{0x1D => 123})
     assert {:error, _} = res
 
-    s = <<1>> |> List.duplicate(65) |> Enum.join
-    res = OptionalFieldsBuilder.build(%{0x1E => << s :: binary, 0 >>})
+    s = <<1>> |> List.duplicate(65) |> Enum.join()
+    res = OptionalFieldsBuilder.build(%{0x1E => <<s::binary, 0>>})
     assert {:error, _} = res
   end
 
@@ -65,5 +65,4 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilderTest do
     res = OptionalFieldsBuilder.build(%{0x0423 => "test"})
     assert {:error, _} = res
   end
-
 end

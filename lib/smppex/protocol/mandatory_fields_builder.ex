@@ -4,7 +4,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   alias SMPPEX.Protocol.Pack
   alias SMPPEX.Protocol.MandatoryFieldsSpecs
 
-  @spec build(map, MandatoryFieldsSpecs.fields_spec) :: {:ok, iodata} | {:error, any}
+  @spec build(map, MandatoryFieldsSpecs.fields_spec()) :: {:ok, iodata} | {:error, any}
 
   def build(fields, spec) when is_map(fields) do
     build(fields, Enum.reverse(spec), [])
@@ -33,7 +33,9 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
           {:ok, bins} -> {:ok, Map.put(fields, times, length(values)), bins}
           {:error, error} -> {:error, error}
         end
-      _ -> {:error, "Field #{name} is not a list"}
+
+      _ ->
+        {:error, "Field #{name} is not a list"}
     end
   end
 
@@ -49,6 +51,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   end
 
   defp build_subfields([], _specs, built), do: {:ok, Enum.reverse(built)}
+
   defp build_subfields([value | values], specs, built) do
     case build(value, specs) do
       {:ok, bin} -> build_subfields(values, specs, [bin | built])
@@ -57,6 +60,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
   end
 
   defp build_cases(_fields, []), do: {:error, "No case matched given fields"}
+
   defp build_cases(fields, [{cond_name, cond_value, specs} | other_cases]) do
     if fields[cond_name] == cond_value do
       case build(fields, specs) do
@@ -68,12 +72,13 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilder do
     end
   end
 
-  defp build_simple_value(value, {:c_octet_string, {:max, n}}), do: Pack.c_octet_string(value, {:max, n})
+  defp build_simple_value(value, {:c_octet_string, {:max, n}}),
+    do: Pack.c_octet_string(value, {:max, n})
 
-  defp build_simple_value(value, {:c_octet_string, {:fixed, n}}), do: Pack.c_octet_string(value, {:fixed, n})
+  defp build_simple_value(value, {:c_octet_string, {:fixed, n}}),
+    do: Pack.c_octet_string(value, {:fixed, n})
 
   defp build_simple_value(value, {:octet_string, n}), do: Pack.octet_string(value, n)
 
   defp build_simple_value(value, {:integer, n}), do: Pack.integer(value, n)
-
 end

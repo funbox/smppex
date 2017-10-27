@@ -30,7 +30,7 @@ defmodule SMPPEX.Pdu.MessageState do
   """
   def code_by_name(state_name)
 
-  @spec format(state) :: String.t
+  @spec format(state) :: String.t()
 
   @doc """
   Converts integer message state value to string representation.
@@ -52,5 +52,4 @@ defmodule SMPPEX.Pdu.MessageState do
   end
 
   def format(code) when is_integer(code), do: to_string(code)
-
 end

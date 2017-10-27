@@ -23,10 +23,11 @@ defmodule SMPPEX.Pdu.Multipart do
   @error_invalid_max "Invalid limits for splitting message"
   @error_invalid_message "Invalid message"
 
-  @type actual_part_info :: {ref_num :: non_neg_integer, count :: non_neg_integer, seq_num :: non_neg_integer}
+  @type actual_part_info ::
+          {ref_num :: non_neg_integer, count :: non_neg_integer, seq_num :: non_neg_integer}
   @type part_info :: :single | actual_part_info
   @type extract_result :: {:ok, part_info, binary} | {:error, term}
-  @type extract_source :: Pdu.t | binary
+  @type extract_source :: Pdu.t() | binary
 
   @spec extract(extract_source) :: extract_result
 
@@ -66,12 +67,15 @@ defmodule SMPPEX.Pdu.Multipart do
           {:ok, part_info} -> {:ok, part_info, message}
           {:error, _} = err -> err
         end
-      {:error, _} = err -> err
+
+      {:error, _} = err ->
+        err
     end
   end
 
   def extract(pdu) do
     message = Pdu.field(pdu, :message_payload) || Pdu.field(pdu, :short_message)
+
     if message do
       if UDH.has_udh?(pdu) do
         extract(message)
@@ -83,7 +87,7 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
-  @spec extract_from_ies(list(UDH.ie)) :: {:ok, part_info} | {:error, any}
+  @spec extract_from_ies(list(UDH.ie())) :: {:ok, part_info} | {:error, any}
 
   @doc """
   Extracts multipart information from already parsed list of UDH IEs.
@@ -120,23 +124,36 @@ defmodule SMPPEX.Pdu.Multipart do
     cond do
       Proplists.is_defined(@concateneated_8bit_ref_ie_id, ies) ->
         @concateneated_8bit_ref_ie_id |> Proplists.get_value(ies) |> parse_8bit
+
       Proplists.is_defined(@concateneated_16bit_ref_ie_id, ies) ->
         @concateneated_16bit_ref_ie_id |> Proplists.get_value(ies) |> parse_16bit
-      true -> {:ok, :single}
+
+      true ->
+        {:ok, :single}
     end
   end
 
-  defp parse_8bit(<< ref_num :: integer-unsigned-size(8), count :: integer-unsigned-size(8), seq_num :: integer-unsigned-size(8) >>) do
+  defp parse_8bit(<<
+         ref_num::integer-unsigned-size(8),
+         count::integer-unsigned-size(8),
+         seq_num::integer-unsigned-size(8)
+       >>) do
     {:ok, {ref_num, count, seq_num}}
   end
+
   defp parse_8bit(_), do: {:error, @error_invalid_8bit_ie}
 
-  defp parse_16bit(<< ref_num :: integer-big-unsigned-size(16), count :: integer-unsigned-size(8), seq_num :: integer-unsigned-size(8) >>) do
+  defp parse_16bit(<<
+         ref_num::integer-big-unsigned-size(16),
+         count::integer-unsigned-size(8),
+         seq_num::integer-unsigned-size(8)
+       >>) do
     {:ok, {ref_num, count, seq_num}}
   end
+
   defp parse_16bit(_), do: {:error, @error_invalid_16bit_ie}
 
-  @spec multipart_ie(actual_part_info) :: {:error, term} | {:ok, UDH.ie}
+  @spec multipart_ie(actual_part_info) :: {:error, term} | {:ok, UDH.ie()}
 
   @doc """
   Generates IE encoding multipart information.
@@ -153,18 +170,32 @@ defmodule SMPPEX.Pdu.Multipart do
       {:error, "#{@error_invalid_seq_num}"}
 
   """
-  def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65_535, do: {:error, @error_invalid_ref_num}
-  def multipart_ie({_ref_num, count, _seq_num}) when count < 1 or count > 255, do: {:error, @error_invalid_count}
-  def multipart_ie({_ref_num, _count, seq_num}) when seq_num < 1 or seq_num > 255, do: {:error, @error_invalid_seq_num}
+  def multipart_ie({ref_num, _count, _seq_num}) when ref_num < 0 or ref_num > 65_535,
+    do: {:error, @error_invalid_ref_num}
+
+  def multipart_ie({_ref_num, count, _seq_num}) when count < 1 or count > 255,
+    do: {:error, @error_invalid_count}
+
+  def multipart_ie({_ref_num, _count, seq_num}) when seq_num < 1 or seq_num > 255,
+    do: {:error, @error_invalid_seq_num}
 
   def multipart_ie({ref_num, count, seq_num}) do
-    {:ok, if ref_num > 255 do
-      {@concateneated_16bit_ref_ie_id,
-        <<ref_num :: integer-big-unsigned-size(16), count :: integer-unsigned-size(8), seq_num :: integer-unsigned-size(8) >>}
-    else
-      {@concateneated_8bit_ref_ie_id,
-        <<ref_num :: integer-unsigned-size(8), count :: integer-unsigned-size(8), seq_num :: integer-unsigned-size(8) >>}
-    end}
+    {
+      :ok,
+      if ref_num > 255 do
+        {@concateneated_16bit_ref_ie_id, <<
+          ref_num::integer-big-unsigned-size(16),
+          count::integer-unsigned-size(8),
+          seq_num::integer-unsigned-size(8)
+        >>}
+      else
+        {@concateneated_8bit_ref_ie_id, <<
+          ref_num::integer-unsigned-size(8),
+          count::integer-unsigned-size(8),
+          seq_num::integer-unsigned-size(8)
+        >>}
+      end
+    }
   end
 
   @spec prepend_message_with_part_info(actual_part_info, binary) :: {:error, term} | {:ok, binary}
@@ -220,21 +251,35 @@ defmodule SMPPEX.Pdu.Multipart do
 
   """
 
-  def split_message(_ref_num, message, _max_len) when not is_binary(message), do: {:error, @error_invalid_message}
-  def split_message(ref_num, _message, _max_len) when ref_num < 0, do: {:error, @error_invalid_ref_num}
-  def split_message(ref_num, _message, _max_len) when ref_num > 65_535, do: {:error, @error_invalid_ref_num}
-  def split_message(_ref_num, _message, max_len) when max_len < 0, do: {:error, @error_invalid_max}
+  def split_message(_ref_num, message, _max_len) when not is_binary(message),
+    do: {:error, @error_invalid_message}
+
+  def split_message(ref_num, _message, _max_len) when ref_num < 0,
+    do: {:error, @error_invalid_ref_num}
+
+  def split_message(ref_num, _message, _max_len) when ref_num > 65_535,
+    do: {:error, @error_invalid_ref_num}
+
+  def split_message(_ref_num, _message, max_len) when max_len < 0,
+    do: {:error, @error_invalid_max}
 
   def split_message(ref_num, message, max_len) do
     case prepend_message_with_part_info({ref_num, 1, 1}, <<>>) do
       {:ok, bin} ->
         max_split = if max_len >= byte_size(bin), do: max_len - byte_size(bin), else: 0
         split_message(ref_num, message, max_len, max_split)
-      {:error, _} = err -> err
+
+      {:error, _} = err ->
+        err
     end
   end
 
-  @spec split_message(ref_num :: integer, message :: binary, max_len :: integer, max_split :: integer) :: split_result
+  @spec split_message(
+          ref_num :: integer,
+          message :: binary,
+          max_len :: integer,
+          max_split :: integer
+        ) :: split_result
 
   @doc """
   Splits message into parts not exceeding `max_split` bytes and prepending each part with multipart information UDH.
@@ -255,14 +300,24 @@ defmodule SMPPEX.Pdu.Multipart do
 
   """
 
-  def split_message(_ref_num, message, _max_len, _max_split) when not is_binary(message), do: {:error, @error_invalid_message}
-  def split_message(ref_num, _message, _max_len, _max_split) when ref_num < 0, do: {:error, @error_invalid_ref_num}
-  def split_message(ref_num, _message, _max_len, _max_split) when ref_num > 65_535, do: {:error, @error_invalid_ref_num}
-  def split_message(_ref_num, _message, max_len, _max_split) when max_len < 0, do: {:error, @error_invalid_max}
-  def split_message(_ref_num, _message, _max_len, max_split) when max_split < 0, do: {:error, @error_invalid_max}
+  def split_message(_ref_num, message, _max_len, _max_split) when not is_binary(message),
+    do: {:error, @error_invalid_message}
+
+  def split_message(ref_num, _message, _max_len, _max_split) when ref_num < 0,
+    do: {:error, @error_invalid_ref_num}
+
+  def split_message(ref_num, _message, _max_len, _max_split) when ref_num > 65_535,
+    do: {:error, @error_invalid_ref_num}
+
+  def split_message(_ref_num, _message, max_len, _max_split) when max_len < 0,
+    do: {:error, @error_invalid_max}
+
+  def split_message(_ref_num, _message, _max_len, max_split) when max_split < 0,
+    do: {:error, @error_invalid_max}
 
   def split_message(ref_num, message, max_len, max_split) do
     message_size = byte_size(message)
+
     if message_size <= max_len do
       {:ok, :unsplit}
     else
@@ -283,18 +338,22 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
-  defp split_message_into_parts({_ref_num, count, n}, <<>>, _max_len, parts) when n > count, do: {:ok, :split, Enum.reverse(parts)}
+  defp split_message_into_parts({_ref_num, count, n}, <<>>, _max_len, parts) when n > count,
+    do: {:ok, :split, Enum.reverse(parts)}
+
   defp split_message_into_parts({ref_num, count, n} = part_info, message, max_len, parts) do
-    {part, rest} = case message do
-      << part :: binary-size(max_len), rest :: binary >> -> {part, rest}
-      last_part -> {last_part, <<>>}
-    end
+    {part, rest} =
+      case message do
+        <<part::binary-size(max_len), rest::binary>> -> {part, rest}
+        last_part -> {last_part, <<>>}
+      end
 
     case prepend_message_with_part_info(part_info, part) do
       {:ok, part_with_info} ->
         split_message_into_parts({ref_num, count, n + 1}, rest, max_len, [part_with_info | parts])
-      {:error, _} = err -> err
+
+      {:error, _} = err ->
+        err
     end
   end
-
 end

@@ -6,5 +6,4 @@ defmodule Support.StoppingESME do
   def init(_socket, _transport, stop_reason) do
     {:stop, stop_reason}
   end
-
 end

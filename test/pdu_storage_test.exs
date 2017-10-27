@@ -5,7 +5,7 @@ defmodule SMPPEX.PduStorageTest do
   alias SMPPEX.Pdu
 
   test "store" do
-    storage = PduStorage.new
+    storage = PduStorage.new()
     pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1") | sequence_number: 123}
     pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass2") | sequence_number: 123}
 
@@ -18,7 +18,7 @@ defmodule SMPPEX.PduStorageTest do
   end
 
   test "fetch" do
-    storage = PduStorage.new
+    storage = PduStorage.new()
     pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id", "pass") | sequence_number: 123}
 
     assert true == PduStorage.store(storage, pdu, 321)
@@ -28,7 +28,7 @@ defmodule SMPPEX.PduStorageTest do
   end
 
   test "expire" do
-    storage = PduStorage.new
+    storage = PduStorage.new()
     pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass") | sequence_number: 123}
     pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass") | sequence_number: 124}
 
@@ -41,7 +41,7 @@ defmodule SMPPEX.PduStorageTest do
   end
 
   test "stop && lost_pdus" do
-    storage = PduStorage.new
+    storage = PduStorage.new()
     pdu1 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass") | sequence_number: 123}
     pdu2 = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter("system_id2", "pass") | sequence_number: 124}
 
@@ -50,5 +50,4 @@ defmodule SMPPEX.PduStorageTest do
 
     assert Enum.sort([pdu1, pdu2]) == Enum.sort(PduStorage.fetch_all(storage))
   end
-
 end

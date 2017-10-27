@@ -1,5 +1,4 @@
 defmodule SMPPEX.Protocol.TlvFormatTest do
-
   use ExUnit.Case
   alias SMPPEX.Protocol.TlvFormat
 

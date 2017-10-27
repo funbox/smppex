@@ -84,18 +84,24 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     ]
 
     data = <<01, 02, 03, 04>>
-    assert {:ok, %{a: <<01, 02, 03>>, b: 3}, <<04>>} == MandatoryFieldsParser.parse(data, spec, %{b: 3})
+
+    assert {:ok, %{a: <<01, 02, 03>>, b: 3}, <<04>>} ==
+             MandatoryFieldsParser.parse(data, spec, %{b: 3})
   end
 
   test "n-times parse" do
     spec = [
-      {:array, {:times, 3, [
-        {:a, {:c_octet_string, {:max, 3}}},
-        {:b, {:integer, 1}}
-      ]}}
+      {
+        :array,
+        {:times, 3, [
+          {:a, {:c_octet_string, {:max, 3}}},
+          {:b, {:integer, 1}}
+        ]}
+      }
     ]
 
     data = <<?a, 00, 01, ?b, 00, 02, ?c, 00, 03, 01, 02, 03>>
+
     array = [
       %{a: "a", b: 1},
       %{a: "b", b: 2},
@@ -105,15 +111,17 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     parse_result = MandatoryFieldsParser.parse(data, spec)
 
     assert {:ok, %{array: array}, <<01, 02, 03>>} == parse_result
-
   end
 
   test "n-times parse expanded" do
     spec = [
-      {:array, {:times, :times, [
-        {:a, {:c_octet_string, {:max, 3}}},
-        {:b, {:integer, 1}}
-      ]}}
+      {
+        :array,
+        {:times, :times, [
+          {:a, {:c_octet_string, {:max, 3}}},
+          {:b, {:integer, 1}}
+        ]}
+      }
     ]
 
     data = <<?a, 00, 01, ?b, 00, 02, ?c, 00, 03, 01, 02, 03>>
@@ -133,14 +141,14 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     spec = [
       {:a, {:integer, 1}},
       {:b, {:integer, 1}},
-      {:case,
-        [{:a, 1, [
+      {:case, [
+        {:a, 1, [
           {:x, {:c_octet_string, {:max, 2}}}
         ]},
         {:b, 2, [
           {:y, {:c_octet_string, {:max, 2}}}
-        ]}]
-      }
+        ]}
+      ]}
     ]
 
     data = <<01, 02, ?z, 00>>
@@ -151,7 +159,5 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
 
     data = <<02, 03, ?z, 00>>
     assert {:error, _} = MandatoryFieldsParser.parse(data, spec)
-
   end
-
 end

@@ -8,22 +8,20 @@ defmodule SMPPEX.Pdu do
   alias SMPPEX.Pdu
 
   @type t :: %Pdu{
-    command_id: non_neg_integer,
-    command_status: non_neg_integer,
-    sequence_number: non_neg_integer,
-    ref: reference,
-    mandatory: map,
-    optional: map
-  }
+          command_id: non_neg_integer,
+          command_status: non_neg_integer,
+          sequence_number: non_neg_integer,
+          ref: reference,
+          mandatory: map,
+          optional: map
+        }
 
-  defstruct [
-    command_id: 0,
-    command_status: 0,
-    sequence_number: 0,
-    ref: nil,
-    mandatory: %{},
-    optional: %{},
-  ]
+  defstruct command_id: 0,
+            command_status: 0,
+            sequence_number: 0,
+            ref: nil,
+            mandatory: %{},
+            optional: %{}
 
   @type header :: {non_neg_integer, non_neg_integer, non_neg_integer} | non_neg_integer
 
@@ -58,6 +56,7 @@ defmodule SMPPEX.Pdu do
           mandatory: mandatory_fields,
           optional: optional_fields
         }
+
       {c_id, c_status, s_number} ->
         %Pdu{
           command_id: c_id,
@@ -219,21 +218,27 @@ defmodule SMPPEX.Pdu do
 
   def optional_field(pdu, id) when is_integer(id) do
     case Map.has_key?(pdu.optional, id) do
-      true -> pdu.optional[id]
-      false -> case TlvFormat.name_by_id(id) do
-        {:ok, name} -> pdu.optional[name]
-        :unknown -> nil
-      end
+      true ->
+        pdu.optional[id]
+
+      false ->
+        case TlvFormat.name_by_id(id) do
+          {:ok, name} -> pdu.optional[name]
+          :unknown -> nil
+        end
     end
   end
 
   def optional_field(pdu, name) when is_atom(name) do
     case Map.has_key?(pdu.optional, name) do
-      true -> pdu.optional[name]
-      false -> case TlvFormat.id_by_name(name) do
-        {:ok, id} -> pdu.optional[id]
-        :unknown -> nil
-      end
+      true ->
+        pdu.optional[name]
+
+      false ->
+        case TlvFormat.id_by_name(name) do
+          {:ok, id} -> pdu.optional[id]
+          :unknown -> nil
+        end
     end
   end
 
@@ -253,19 +258,25 @@ defmodule SMPPEX.Pdu do
 
   def set_optional_field(pdu, name, value) when is_atom(name) do
     optional = Map.delete(pdu.optional, name)
-    optional = case TlvFormat.id_by_name(name) do
-      {:ok, id} -> Map.delete(optional, id)
-      :unknown -> optional
-    end
+
+    optional =
+      case TlvFormat.id_by_name(name) do
+        {:ok, id} -> Map.delete(optional, id)
+        :unknown -> optional
+      end
+
     %Pdu{pdu | optional: Map.put(optional, name, value)}
   end
 
   def set_optional_field(pdu, id, value) when is_integer(id) do
     optional = Map.delete(pdu.optional, id)
-    optional = case TlvFormat.name_by_id(id) do
-      {:ok, name} -> Map.delete(optional, name)
-      :unknown -> optional
-    end
+
+    optional =
+      case TlvFormat.name_by_id(id) do
+        {:ok, name} -> Map.delete(optional, name)
+        :unknown -> optional
+      end
+
     %Pdu{pdu | optional: Map.put(optional, id, value)}
   end
 
@@ -292,6 +303,7 @@ defmodule SMPPEX.Pdu do
   def field(pdu, id) when is_integer(id) do
     optional_field(pdu, id)
   end
+
   def field(pdu, name) do
     mandatory_field(pdu, name) || optional_field(pdu, name)
   end
@@ -400,9 +412,14 @@ defmodule SMPPEX.Pdu do
 
   def bind?(pdu) do
     command_id = Pdu.command_id(pdu)
+
     case CommandNames.name_by_id(command_id) do
-      {:ok, command_name} -> command_name == :bind_receiver or command_name == :bind_transmitter or command_name == :bind_transceiver
-      :unknown -> false
+      {:ok, command_name} ->
+        command_name == :bind_receiver or command_name == :bind_transmitter or
+          command_name == :bind_transceiver
+
+      :unknown ->
+        false
     end
   end
 
@@ -424,13 +441,18 @@ defmodule SMPPEX.Pdu do
 
   def bind_resp?(pdu) do
     command_id = Pdu.command_id(pdu)
+
     case CommandNames.name_by_id(command_id) do
-      {:ok, command_name} -> command_name == :bind_receiver_resp or command_name == :bind_transmitter_resp or command_name == :bind_transceiver_resp
-      :unknown -> false
+      {:ok, command_name} ->
+        command_name == :bind_receiver_resp or command_name == :bind_transmitter_resp or
+          command_name == :bind_transceiver_resp
+
+      :unknown ->
+        false
     end
   end
 
-  @type addr :: {String.t, byte, byte}
+  @type addr :: {String.t(), byte, byte}
 
   @spec source(t) :: addr
 
@@ -468,7 +490,7 @@ defmodule SMPPEX.Pdu do
     fields_as_tuple(pdu, [:destination_addr, :dest_addr_ton, :dest_addr_npi])
   end
 
-  @spec as_reply_to(pdu :: Pdu.t, reply_to_pdu :: Pdu.t) :: Pdu.t
+  @spec as_reply_to(pdu :: Pdu.t(), reply_to_pdu :: Pdu.t()) :: Pdu.t()
 
   @doc """
   Makes `pdu` be reply to the `reply_to_pdu`, i.e. assigns `reply_to_pdu`'s
@@ -484,16 +506,15 @@ defmodule SMPPEX.Pdu do
   """
 
   def as_reply_to(pdu, reply_to_pdu) do
-     %Pdu{pdu | sequence_number: reply_to_pdu.sequence_number}
+    %Pdu{pdu | sequence_number: reply_to_pdu.sequence_number}
   end
 
   defp fields_as_tuple(pdu, fields) do
     fields
     |> Enum.map(fn field_name -> Pdu.field(pdu, field_name) end)
-    |> List.to_tuple
+    |> List.to_tuple()
   end
 
   defp to_int(val) when is_integer(val), do: val
   defp to_int(_), do: 0
-
 end
