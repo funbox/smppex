@@ -268,7 +268,7 @@ defmodule SMPPEX.Pdu.Multipart do
     else
       if max_split > 0 do
         part_count = message_part_count(message_size, max_split)
-        split_message_into_parts(ref_num, part_count, message, max_split, [], 1)
+        split_message_into_parts({ref_num, part_count, 1}, message, max_split, [])
       else
         {:error, @error_invalid_max}
       end
@@ -283,16 +283,16 @@ defmodule SMPPEX.Pdu.Multipart do
     end
   end
 
-  defp split_message_into_parts(_ref_num, count, <<>>, _max_len, parts, n) when n > count, do: {:ok, :split, Enum.reverse(parts)}
-  defp split_message_into_parts(ref_num, count, message, max_len, parts, n) do
+  defp split_message_into_parts({_ref_num, count, n}, <<>>, _max_len, parts) when n > count, do: {:ok, :split, Enum.reverse(parts)}
+  defp split_message_into_parts({ref_num, count, n} = part_info, message, max_len, parts) do
     {part, rest} = case message do
       << part :: binary-size(max_len), rest :: binary >> -> {part, rest}
       last_part -> {last_part, <<>>}
     end
 
-    case prepend_message_with_part_info({ref_num, count, n}, part) do
+    case prepend_message_with_part_info(part_info, part) do
       {:ok, part_with_info} ->
-        split_message_into_parts(ref_num, count, rest, max_len, [part_with_info | parts], n + 1)
+        split_message_into_parts({ref_num, count, n + 1}, rest, max_len, [part_with_info | parts])
       {:error, _} = err -> err
     end
   end
