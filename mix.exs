@@ -21,7 +21,6 @@ defmodule Smppex.Mixfile do
       ],
       package: package(),
       dialyzer: [
-        plt_file: ".local.plt",
         plt_add_deps: true,
         plt_add_apps: [:ssl],
         flags: ["-Werror_handling", "-Wrace_conditions"]
