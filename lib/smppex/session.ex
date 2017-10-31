@@ -23,6 +23,7 @@ defmodule SMPPEX.Session do
   alias SMPPEX.Compat
   alias SMPPEX.Pdu
   alias SMPPEX.PduStorage
+  alias SMPPEX.RawPdu
   alias SMPPEX.Session.AutoPduHandler
   alias SMPPEX.Session.Defaults
   alias SMPPEX.SMPPTimers

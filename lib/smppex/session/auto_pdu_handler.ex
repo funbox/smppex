@@ -55,7 +55,7 @@ defmodule SMPPEX.Session.AutoPduHandler do
     end
   end
 
-  @spec drop_expired(t, non_neg_integer) :: t
+  @spec drop_expired(t, non_neg_integer) :: non_neg_integer
 
   def drop_expired(handler, now_time) do
     ETS.select_delete(handler.by_sequence_number, [

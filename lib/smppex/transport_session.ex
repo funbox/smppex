@@ -31,7 +31,7 @@ defmodule SMPPEX.TransportSession do
   @type state :: term
   @type reply :: term
   @type send_pdu_result :: :ok | {:error, term}
-  @type opts :: {module, module_opts :: term}
+  @type opts :: term
   @type from :: GenServer.from()
   @type request :: term
 
