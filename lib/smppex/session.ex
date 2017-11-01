@@ -205,9 +205,9 @@ defmodule SMPPEX.Session do
 
   `lost_pdus` contain a list of nonresp `pdus` sent by the session to the peer and which have not yet received a response.
 
-  The returned value is ignored.
+  The returned value is either `:stop` or `{:stop, last_pdus, state}`, where `last_pdus` is a list of PDUs which will be sent to the peer before socket close, and `state` is the new state. For example, an ESME can send an unbind PDU or an MC can send negative resps for pending `submit_sm`s if needed.
 
-  This callback is called from the underlying `GenServer` `terminate` callbacks, so it has all the corresponding caveats, see [`GenServer.terminate/2` docs](https://hexdocs.pm/elixir/GenServer.html#c:terminate/2).
+  This callback is called from the underlying `GenServer` `terminate` callbacks, so it has all the corresponding caveats, for example, sometimes it may not be called, see [`GenServer.terminate/2` docs](https://hexdocs.pm/elixir/GenServer.html#c:terminate/2).
   """
   @callback terminate(reason, lost_pdus :: [Pdu.t()], state) ::
               :stop
