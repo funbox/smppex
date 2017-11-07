@@ -2,6 +2,7 @@ defmodule Support.TCP.Server do
   @moduledoc false
 
   alias :gen_tcp, as: GenTCP
+  alias :timer, as: Timer
   alias Support.TCP.Server
 
   defstruct [
@@ -46,6 +47,7 @@ defmodule Support.TCP.Server do
     {:ok, sock} = GenTCP.accept(listen_sock)
     :ok = GenTCP.close(listen_sock)
     loop(received_data_pid, sock)
+    wait_for_shutdown()
   end
 
   defp loop(received_data_pid, sock) do
@@ -82,4 +84,9 @@ defmodule Support.TCP.Server do
         GenTCP.close(sock)
     end
   end
+
+  defp wait_for_shutdown do
+    Timer.sleep(1_000)
+  end
+
 end
