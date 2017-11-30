@@ -51,6 +51,10 @@ defmodule SMPPEX.Pdu.Multipart do
       iex> SMPPEX.Pdu.Multipart.extract(data)
       {:ok, {3,2,1}, "message"}
 
+      iex> data = <<0, 104, 0, 105>> # "hi" in utf16
+      iex> SMPPEX.Pdu.Multipart.extract(data)
+      {:ok, :single, <<0, 104, 0, 105>>}
+
       iex> pdu = Pdu.new({1,0,1}, %{esm_class: 0b01000000, short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>})
       iex> SMPPEX.Pdu.Multipart.extract(pdu)
       {:ok, {3,2,1}, "message"}
