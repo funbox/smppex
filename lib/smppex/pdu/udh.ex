@@ -80,12 +80,17 @@ defmodule SMPPEX.Pdu.UDH do
   def extract(data) do
     case data do
       <<udh_length::integer-unsigned-size(8), rest::binary>> ->
-        case rest do
-          <<ies_data::binary-size(udh_length), message::binary>> ->
-            parse_ies(ies_data, message)
+        case udh_length do
+          0 -> {:ok, [], data}
 
           _ ->
-            {:error, @error_invalid_udh_length}
+            case rest do
+              <<ies_data::binary-size(udh_length), message::binary>> ->
+                parse_ies(ies_data, message)
+
+              _ ->
+                {:error, @error_invalid_udh_length}
+            end
         end
 
       _ ->
