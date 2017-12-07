@@ -88,5 +88,4 @@ defmodule Support.TCP.Server do
   defp wait_for_shutdown do
     Timer.sleep(1_000)
   end
-
 end

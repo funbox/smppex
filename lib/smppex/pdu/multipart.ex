@@ -27,14 +27,86 @@ defmodule SMPPEX.Pdu.Multipart do
           {ref_num :: non_neg_integer, count :: non_neg_integer, seq_num :: non_neg_integer}
   @type part_info :: :single | actual_part_info
   @type extract_result :: {:ok, part_info, binary} | {:error, term}
-  @type extract_source :: Pdu.t() | binary
 
-  @spec extract(extract_source) :: extract_result
+  @spec extract_from_message(binary) :: extract_result
 
   @doc """
-  Extracts multipart information from PDU or directly from binary message.
+  Extracts multipart information from binary message.
 
-  Return one of the following:
+  Returns one of the following:
+  * `{:ok, :single, message}` if the `message` does not contain any multipart information and represents a
+  single message. The outcoming `message` is cleared from UDH bytes.
+  * `{:ok, {ref_num, count, seq_num}, message}` if the original message contains multipart information in
+  UDH fields. The outcoming `message` is cleared from UDH bytes.
+  * `{:error, reason}`
+
+  ## Example
+
+      iex> data = <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>
+      iex> SMPPEX.Pdu.Multipart.extract_from_message(data)
+      {:ok, {3,2,1}, "message"}
+
+      iex> data = <<0x06, 0x08, 0x04, 0x00, 0x03, 0x02, 0x01, "message">>
+      iex> SMPPEX.Pdu.Multipart.extract_from_message(data)
+      {:ok, {3,2,1}, "message"}
+
+  """
+  def extract_from_message(message) when is_binary(message) do
+    case UDH.extract(message) do
+      {:ok, ies, message} ->
+        case extract_from_ies(ies) do
+          {:ok, part_info} -> {:ok, part_info, message}
+          {:error, _} = err -> err
+        end
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  @spec extract_from_pdu(Pdu.t()) :: extract_result
+
+  @doc """
+  Extracts multipart information from PDU.
+
+  Returns one of the following:
+  * `{:ok, :single, message}` if the `message` does not contain any multipart information and represents a
+  single message. The outcoming `message` is cleared from UDH bytes.
+  * `{:ok, {ref_num, count, seq_num}, message}` if the original message contains multipart information in
+  UDH fields. The outcoming `message` is cleared from UDH bytes.
+  * `{:error, reason}`
+
+  ## Example
+
+      iex> pdu = Pdu.new({1,0,1}, %{esm_class: 0b01000000, short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>})
+      iex> SMPPEX.Pdu.Multipart.extract_from_pdu(pdu)
+      {:ok, {3,2,1}, "message"}
+
+      iex> pdu = Pdu.new({1,0,1}, %{short_message: <<0x05, 0x00, 0x03, 0x03, 0x02, 0x01, "message">>})
+      iex> SMPPEX.Pdu.Multipart.extract_from_pdu(pdu)
+      {:error, "#{@error_not_a_multipart_message}"}
+
+  """
+  def extract_from_pdu(%Pdu{} = pdu) do
+    message = Pdu.field(pdu, :message_payload) || Pdu.field(pdu, :short_message)
+
+    if message do
+      if UDH.has_udh?(pdu) do
+        extract_from_message(message)
+      else
+        {:error, @error_not_a_multipart_message}
+      end
+    else
+      {:error, @error_invalid_pdu}
+    end
+  end
+
+  @spec extract(Pdu.t() | binary) :: extract_result
+
+  @doc """
+  Extracts multipart information from PDU or directly from binary message. This function is deprecated. Use `extract_from_pdu/1` or `extract_from_message/1` instead.
+
+  Returns one of the following:
   * `{:ok, :single, message}` if the `message` does not contain any multipart information and represents a
   single message;
   * `{:ok, {ref_num, count, seq_num}, message}` if the original message contains multipart information in
@@ -61,30 +133,11 @@ defmodule SMPPEX.Pdu.Multipart do
 
   """
   def extract(message) when is_binary(message) do
-    case UDH.extract(message) do
-      {:ok, ies, message} ->
-        case extract_from_ies(ies) do
-          {:ok, part_info} -> {:ok, part_info, message}
-          {:error, _} = err -> err
-        end
-
-      {:error, _} = err ->
-        err
-    end
+    extract_from_message(message)
   end
 
   def extract(pdu) do
-    message = Pdu.field(pdu, :message_payload) || Pdu.field(pdu, :short_message)
-
-    if message do
-      if UDH.has_udh?(pdu) do
-        extract(message)
-      else
-        {:error, @error_not_a_multipart_message}
-      end
-    else
-      {:error, @error_invalid_pdu}
-    end
+    extract_from_pdu(pdu)
   end
 
   @spec extract_from_ies(list(UDH.ie())) :: {:ok, part_info} | {:error, any}
