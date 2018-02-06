@@ -107,12 +107,21 @@ defmodule SMPPEX.TransportSession do
   end
 
   def init(ref, socket, transport, opts) do
-    {module, module_opts} = opts
+    {module, module_opts, type} = opts
 
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
         :ok = ProcLib.init_ack({:ok, self()})
-        Ranch.accept_ack(ref)
+
+        # HAXX: only run accept_ack if we're actually in acceptor mode (smsc)
+        if type == :smsc do
+          Ranch.accept_ack(ref)
+        else
+          # otherwise just noop that :shoot that makes sure we don't run too soon
+          receive do
+            {:shoot, ^ref, transport, socket, ack_timeout} -> :ok
+          end
+        end
 
         state = %TransportSession{
           ref: ref,

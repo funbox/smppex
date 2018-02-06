@@ -89,7 +89,7 @@ defmodule SMPPEX.ESME do
 
     case transport.connect(convert_host(host), port, sock_opts, timeout) do
       {:ok, socket} ->
-        session_opts = {Session, [mod_with_args, esme_opts]}
+        session_opts = {Session, [mod_with_args, esme_opts], :esme}
 
         case TransportSession.start_link(socket, transport, session_opts) do
           {:ok, pid} ->
