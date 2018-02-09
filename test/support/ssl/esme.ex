@@ -15,7 +15,7 @@ defmodule Support.SSL.ESME do
       {__MODULE__, %{pid: self()}},
       transport: :ranch_ssl,
       transport_opts: [
-        port:  port,
+        port: port,
         certfile: 'test/support/ssl/host.crt',
         keyfile: 'test/support/ssl/host.key'
       ]
@@ -39,5 +39,4 @@ defmodule Support.SSL.ESME do
     send(st.pid, {resp, original_pdu})
     {:stop, :normal, st}
   end
-
 end

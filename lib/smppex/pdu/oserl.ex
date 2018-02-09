@@ -8,13 +8,12 @@ defmodule SMPPEX.Pdu.Oserl do
   alias SMPPEX.Pdu.Oserl, as: OserlPdu
   alias SMPPEX.Protocol.TlvFormat
 
-  @type t ::
-          {
-            command_id :: non_neg_integer,
-            command_status :: non_neg_integer,
-            sequence_number :: non_neg_integer,
-            [{field_name :: atom, field_value :: term}]
-          }
+  @type t :: {
+          command_id :: non_neg_integer,
+          command_status :: non_neg_integer,
+          sequence_number :: non_neg_integer,
+          [{field_name :: atom, field_value :: term}]
+        }
 
   @spec to(pdu :: Pdu.t()) :: OserlPdu.t()
 

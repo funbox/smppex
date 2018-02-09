@@ -132,6 +132,7 @@ defmodule SMPPEX.TransportSession do
   end
 
   defp accept_ack(ref, :mc), do: Ranch.accept_ack(ref)
+
   defp accept_ack(ref, :esme) do
     receive do
       {:shoot, ^ref, _transport, _socket, _ack_timeout} -> :ok

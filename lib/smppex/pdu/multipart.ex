@@ -236,17 +236,19 @@ defmodule SMPPEX.Pdu.Multipart do
     {
       :ok,
       if ref_num > 255 do
-        {@concateneated_16bit_ref_ie_id, <<
-          ref_num::integer-big-unsigned-size(16),
-          count::integer-unsigned-size(8),
-          seq_num::integer-unsigned-size(8)
-        >>}
+        {@concateneated_16bit_ref_ie_id,
+         <<
+           ref_num::integer-big-unsigned-size(16),
+           count::integer-unsigned-size(8),
+           seq_num::integer-unsigned-size(8)
+         >>}
       else
-        {@concateneated_8bit_ref_ie_id, <<
-          ref_num::integer-unsigned-size(8),
-          count::integer-unsigned-size(8),
-          seq_num::integer-unsigned-size(8)
-        >>}
+        {@concateneated_8bit_ref_ie_id,
+         <<
+           ref_num::integer-unsigned-size(8),
+           count::integer-unsigned-size(8),
+           seq_num::integer-unsigned-size(8)
+         >>}
       end
     }
   end

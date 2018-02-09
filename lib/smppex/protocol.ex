@@ -126,20 +126,20 @@ defmodule SMPPEX.Protocol do
   end
 
   defp build_header(pdu) do
-    {command_id, command_status, sequence_number} =
-      {
-        Pdu.command_id(pdu),
-        Pdu.command_status(pdu),
-        Pdu.sequence_number(pdu)
-      }
+    {command_id, command_status, sequence_number} = {
+      Pdu.command_id(pdu),
+      Pdu.command_status(pdu),
+      Pdu.sequence_number(pdu)
+    }
 
     case CommandNames.name_by_id(command_id) do
       {:ok, name} ->
-        {:ok, MandatoryFieldsSpecs.spec_for(name), <<
-          command_id::big-unsigned-integer-size(32),
-          command_status::big-unsigned-integer-size(32),
-          sequence_number::big-unsigned-integer-size(32)
-        >>}
+        {:ok, MandatoryFieldsSpecs.spec_for(name),
+         <<
+           command_id::big-unsigned-integer-size(32),
+           command_status::big-unsigned-integer-size(32),
+           sequence_number::big-unsigned-integer-size(32)
+         >>}
 
       :unknown ->
         {:error, "Unknown command_id #{inspect(command_id)}"}

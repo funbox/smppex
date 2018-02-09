@@ -104,7 +104,7 @@ defmodule SMPPEX.Pdu.FactoryTest do
       receipted_message_id: "message_id"
     ]
     |> Enum.each(fn {field, value} ->
-         assert Pdu.field(delivery_report, field) == value
-       end)
+      assert Pdu.field(delivery_report, field) == value
+    end)
   end
 end

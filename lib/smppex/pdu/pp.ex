@@ -52,16 +52,16 @@ defmodule SMPPEX.Pdu.PP do
       pdu
       |> pdu_lines
       |> Enum.map(fn [section_head | section_lines] ->
-           [
-             pad,
-             section_head,
-             "\n",
-             section_lines
-             |> Enum.map(fn line ->
-                  [pad, indent, line, "\n"]
-                end)
-           ]
-         end)
+        [
+          pad,
+          section_head,
+          "\n",
+          section_lines
+          |> Enum.map(fn line ->
+            [pad, indent, line, "\n"]
+          end)
+        ]
+      end)
     ]
   end
 
@@ -128,12 +128,12 @@ defmodule SMPPEX.Pdu.PP do
     fields
     |> Enum.sort()
     |> Enum.map(fn {key, val} ->
-         [
-           key |> to_string |> pp_field_name,
-           ": ",
-           val |> inspect(limit: @field_inspect_limit) |> pp_val
-         ]
-       end)
+      [
+        key |> to_string |> pp_field_name,
+        ": ",
+        val |> inspect(limit: @field_inspect_limit) |> pp_val
+      ]
+    end)
   end
 
   defp pp_command_name(pdu) do

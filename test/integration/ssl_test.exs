@@ -15,11 +15,11 @@ defmodule SMPPEX.Integration.SSLTest do
       {bind_resp, bind} ->
         assert :bind_transceiver_resp == Pdu.command_name(bind_resp)
         assert :bind_transceiver == Pdu.command_name(bind)
-    after 1000 ->
-      assert false
+    after
+      1000 ->
+        assert false
     end
 
     MC.stop(ref)
   end
-
 end

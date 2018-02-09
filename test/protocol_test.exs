@@ -207,7 +207,8 @@ defmodule SMPPEX.ProtocolTest do
 
     assert {
              :ok,
-             {:pdu, %SMPPEX.Pdu{command_id: 2_147_483_652, command_status: 11, sequence_number: 2}},
+             {:pdu,
+              %SMPPEX.Pdu{command_id: 2_147_483_652, command_status: 11, sequence_number: 2}},
              ""
            } = Protocol.parse(bin)
   end
@@ -251,7 +252,8 @@ defmodule SMPPEX.ProtocolTest do
 
     assert {
              :ok,
-             {:pdu, %SMPPEX.Pdu{command_id: 2_147_483_652, command_status: 11, sequence_number: 2}},
+             {:pdu,
+              %SMPPEX.Pdu{command_id: 2_147_483_652, command_status: 11, sequence_number: 2}},
              <<0>>
            } = Protocol.parse(bin)
   end
@@ -278,7 +280,8 @@ defmodule SMPPEX.ProtocolTest do
 
     assert {
              :ok,
-             {:pdu, %SMPPEX.Pdu{command_id: 2_147_483_652, command_status: 11, sequence_number: 2}},
+             {:pdu,
+              %SMPPEX.Pdu{command_id: 2_147_483_652, command_status: 11, sequence_number: 2}},
              <<>>
            } = Protocol.parse(bin)
   end

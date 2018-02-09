@@ -66,10 +66,11 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
       {:cnt, {:integer, 1}},
       {
         :array,
-        {:times, :cnt, [
-          {:a, {:c_octet_string, {:max, 3}}},
-          {:b, {:integer, 1}}
-        ]}
+        {:times, :cnt,
+         [
+           {:a, {:c_octet_string, {:max, 3}}},
+           {:b, {:integer, 1}}
+         ]}
       }
     ]
 
@@ -90,14 +91,17 @@ defmodule SMPPEX.Protocol.MandatoryFieldsBuilderTest do
     spec = [
       {:a, {:integer, 1}},
       {:b, {:integer, 1}},
-      {:case, [
-        {:a, 1, [
-          {:x, {:octet_string, 1}}
-        ]},
-        {:b, 2, [
-          {:y, {:c_octet_string, {:max, 2}}}
-        ]}
-      ]}
+      {:case,
+       [
+         {:a, 1,
+          [
+            {:x, {:octet_string, 1}}
+          ]},
+         {:b, 2,
+          [
+            {:y, {:c_octet_string, {:max, 2}}}
+          ]}
+       ]}
     ]
 
     data = <<01, 02, ?z>>

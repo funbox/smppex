@@ -96,19 +96,23 @@ defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
         {:number_of_dests, {:integer, 1}},
         {
           :dest_addresses,
-          {:times, :number_of_dests, [
-            {:dest_flag, {:integer, 1}},
-            {:case, [
-              {:dest_flag, 1, [
-                {:dest_addr_ton, {:integer, 1}},
-                {:dest_addr_npi, {:integer, 1}},
-                {:destination_addr, {:c_octet_string, {:max, 21}}}
-              ]},
-              {:dest_flag, 2, [
-                {:dl_name, {:c_octet_string, {:max, 21}}}
+          {:times, :number_of_dests,
+           [
+             {:dest_flag, {:integer, 1}},
+             {:case,
+              [
+                {:dest_flag, 1,
+                 [
+                   {:dest_addr_ton, {:integer, 1}},
+                   {:dest_addr_npi, {:integer, 1}},
+                   {:destination_addr, {:c_octet_string, {:max, 21}}}
+                 ]},
+                {:dest_flag, 2,
+                 [
+                   {:dl_name, {:c_octet_string, {:max, 21}}}
+                 ]}
               ]}
-            ]}
-          ]}
+           ]}
         },
         {:esm_class, {:integer, 1}},
         {:protocol_id, {:integer, 1}},
@@ -125,12 +129,13 @@ defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
       submit_multi_resp: [
         {:message_id, {:c_octet_string, {:max, 65}}},
         {:no_unsuccess, {:integer, 1}},
-        {:unsuccess_smes, {:times, :no_unsuccess}, [
-          {:dest_addr_ton, {:integer, 1}},
-          {:dest_addr_npi, {:integer, 1}},
-          {:destination_addr, {:c_octet_string, {:max, 21}}},
-          {:error_status_code, {:integer, 4}}
-        ]}
+        {:unsuccess_smes, {:times, :no_unsuccess},
+         [
+           {:dest_addr_ton, {:integer, 1}},
+           {:dest_addr_npi, {:integer, 1}},
+           {:destination_addr, {:c_octet_string, {:max, 21}}},
+           {:error_status_code, {:integer, 4}}
+         ]}
       ],
       deliver_sm: [
         {:service_type, {:c_octet_string, {:max, 6}}},

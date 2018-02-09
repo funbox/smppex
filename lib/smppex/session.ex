@@ -387,18 +387,19 @@ defmodule SMPPEX.Session do
 
         auto_pdu_handler = AutoPduHandler.new()
 
-        {:ok, %Session{
-          module: module,
-          module_state: state,
-          timers: timers,
-          pdus: pdu_storage,
-          auto_pdu_handler: auto_pdu_handler,
-          response_limit: response_limit,
-          sequence_number: 0,
-          time: time,
-          timer_resolution: timer_resolution,
-          tick_timer_ref: timer_ref
-        }}
+        {:ok,
+         %Session{
+           module: module,
+           module_state: state,
+           timers: timers,
+           pdus: pdu_storage,
+           auto_pdu_handler: auto_pdu_handler,
+           response_limit: response_limit,
+           sequence_number: 0,
+           time: time,
+           timer_resolution: timer_resolution,
+           tick_timer_ref: timer_ref
+         }}
 
       {:stop, _} = stop ->
         stop
@@ -616,11 +617,12 @@ defmodule SMPPEX.Session do
             st.sequence_number
           )
 
-        {:noreply, [enquire_link], %Session{
-          st
-          | sequence_number: new_sequence_number,
-            timers: new_timers
-        }}
+        {:noreply, [enquire_link],
+         %Session{
+           st
+           | sequence_number: new_sequence_number,
+             timers: new_timers
+         }}
     end
   end
 

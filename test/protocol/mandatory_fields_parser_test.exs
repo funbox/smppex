@@ -93,10 +93,11 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     spec = [
       {
         :array,
-        {:times, 3, [
-          {:a, {:c_octet_string, {:max, 3}}},
-          {:b, {:integer, 1}}
-        ]}
+        {:times, 3,
+         [
+           {:a, {:c_octet_string, {:max, 3}}},
+           {:b, {:integer, 1}}
+         ]}
       }
     ]
 
@@ -117,10 +118,11 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     spec = [
       {
         :array,
-        {:times, :times, [
-          {:a, {:c_octet_string, {:max, 3}}},
-          {:b, {:integer, 1}}
-        ]}
+        {:times, :times,
+         [
+           {:a, {:c_octet_string, {:max, 3}}},
+           {:b, {:integer, 1}}
+         ]}
       }
     ]
 
@@ -141,14 +143,17 @@ defmodule SMPPEX.Protocol.MandatoryFieldsParserTest do
     spec = [
       {:a, {:integer, 1}},
       {:b, {:integer, 1}},
-      {:case, [
-        {:a, 1, [
-          {:x, {:c_octet_string, {:max, 2}}}
-        ]},
-        {:b, 2, [
-          {:y, {:c_octet_string, {:max, 2}}}
-        ]}
-      ]}
+      {:case,
+       [
+         {:a, 1,
+          [
+            {:x, {:c_octet_string, {:max, 2}}}
+          ]},
+         {:b, 2,
+          [
+            {:y, {:c_octet_string, {:max, 2}}}
+          ]}
+       ]}
     ]
 
     data = <<01, 02, ?z, 00>>

@@ -22,11 +22,12 @@ defmodule SMPPEX.Pdu.OserlTest do
 
   test "from" do
     oserl_pdu =
-      {1, 2, 3, [
-        {:message_payload, 'message payload'},
-        {:short_message, 'message'},
-        {5156, "any tlv field"}
-      ]}
+      {1, 2, 3,
+       [
+         {:message_payload, 'message payload'},
+         {:short_message, 'message'},
+         {5156, "any tlv field"}
+       ]}
 
     pdu = Oserl.from(oserl_pdu)
 
