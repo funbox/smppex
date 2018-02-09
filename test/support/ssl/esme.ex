@@ -18,7 +18,7 @@ defmodule Support.SSL.ESME do
         port:  port,
         certfile: 'test/support/ssl/host.crt',
         keyfile: 'test/support/ssl/host.key'
-      ],
+      ]
     )
   end
 
