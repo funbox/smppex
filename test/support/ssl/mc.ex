@@ -9,12 +9,12 @@ defmodule Support.SSL.MC do
 
   def start(port) do
     MC.start({__MODULE__, []}, [
+      transport: :ranch_ssl,
       transport_opts: [
-        port:  port,
-        # certfile: 'host.crt',
-        # keyfile: 'host.key'
-      ],
-      transport: :ranch_tcp
+        port: port,
+        certfile: 'test/support/ssl/host.crt',
+        keyfile: 'test/support/ssl/host.key'
+      ]
     ])
   end
 

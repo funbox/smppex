@@ -88,7 +88,7 @@ defmodule SMPPEX.MC do
         transport,
         transport_opts,
         SMPPEX.TransportSession,
-        {SMPPEX.Session, [mod_with_args, mc_opts]}
+        {SMPPEX.Session, [mod_with_args, mc_opts], :mc}
       )
 
     case start_result do

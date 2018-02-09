@@ -13,11 +13,11 @@ defmodule Support.SSL.ESME do
       @host,
       port,
       {__MODULE__, %{pid: self()}},
-      transport: :ranch_tcp,
+      transport: :ranch_ssl,
       transport_opts: [
         port:  port,
-        # certfile: 'host.crt',
-        # keyfile: 'host.key'
+        certfile: 'test/support/ssl/host.crt',
+        keyfile: 'test/support/ssl/host.key'
       ],
     )
   end

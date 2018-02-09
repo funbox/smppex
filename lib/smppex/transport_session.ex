@@ -107,12 +107,12 @@ defmodule SMPPEX.TransportSession do
   end
 
   def init(ref, socket, transport, opts) do
-    {module, module_opts} = opts
+    {module, module_opts, mode} = opts
 
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
         :ok = ProcLib.init_ack({:ok, self()})
-        Ranch.accept_ack(ref)
+        accept_ack(ref, mode)
 
         state = %TransportSession{
           ref: ref,
@@ -128,6 +128,13 @@ defmodule SMPPEX.TransportSession do
 
       {:stop, reason} ->
         :ok = ProcLib.init_ack({:error, reason})
+    end
+  end
+
+  defp accept_ack(ref, :mc), do: Ranch.accept_ack(ref)
+  defp accept_ack(ref, :esme) do
+    receive do
+      {:shoot, ^ref, _transport, _socket, _ack_timeout} -> :ok
     end
   end
 
