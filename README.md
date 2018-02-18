@@ -5,7 +5,7 @@
 [![Inline docs](http://inch-ci.org/github/savonarola/smppex.svg?branch=master)](http://inch-ci.org/github/savonarola/smppex)
 
 <a href="https://funbox.ru">
-  <img src="http://funbox.ru/badges/sponsored_by_funbox.svg" alt="Sponsored by FunBox" width=250 />
+  <img src="http://funbox.ru/badges/sponsored_by_funbox_compact.svg" alt="Sponsored by FunBox" width=250 />
 </a>
 
 # Smppex
