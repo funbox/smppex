@@ -3,12 +3,9 @@ defmodule SMPPEX.Pdu.TONNPIDefaults do
   Module for automatic TON/NPI detection
   """
 
-  alias SMPPEX.Compat
-
-  @digits ?0..?9
-
-  @short_code 3..8
-  @long_code 10..15
+  @short_code_re ~r/\A\d{3,8}\z/
+  @long_code_lengths 10..15
+  @numeric_re ~r/\A\+?(?<digits>\d+)\z/
 
   def ton_npi(address) when is_binary(address) do
     address
@@ -17,23 +14,21 @@ defmodule SMPPEX.Pdu.TONNPIDefaults do
   end
 
   defp address_type(address) do
-    if has_only_digits?(address) do
-      length = String.length(address)
-
-      cond do
-        length in @short_code -> :short_code
-        length in @long_code -> :long_code
-        true -> :unknown
-      end
+    if address =~ @short_code_re do
+      :short_code
     else
-      :alphanumeric
-    end
-  end
+      case Regex.named_captures(@numeric_re, address) do
+        nil ->
+          :alphanumeric
 
-  defp has_only_digits?(address) do
-    address
-    |> Compat.to_charlist()
-    |> Enum.all?(&(&1 in @digits))
+        %{"digits" => digits} ->
+          if String.length(digits) in @long_code_lengths do
+            :long_code
+          else
+            :unknown
+          end
+      end
+    end
   end
 
   defp ton_npi_by_type(:short_code), do: {3, 0}
