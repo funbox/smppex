@@ -3,6 +3,8 @@ defmodule SMPPEX.Pdu.TONNPIDefaults do
   Module for automatic TON/NPI detection
   """
 
+  alias SMPPEX.Compat
+
   @digits ?0..?9
 
   @short_code 3..8
@@ -30,7 +32,7 @@ defmodule SMPPEX.Pdu.TONNPIDefaults do
 
   defp has_only_digits?(address) do
     address
-    |> to_charlist()
+    |> Compat.to_charlist()
     |> Enum.all?(&(&1 in @digits))
   end
 
