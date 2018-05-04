@@ -35,7 +35,7 @@ defmodule Smppex.Mixfile do
   defp deps do
     [
       {:excoveralls, "~> 0.5", only: :test},
-      {:dialyxir, "~> 0.4.4", only: :dev},
+      {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:earmark, "~> 1.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
       {:inch_ex, "~> 0.5.6", only: :docs},

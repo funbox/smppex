@@ -47,6 +47,12 @@ defmodule SMPPEX.Pdu.FactoryTest do
 
   test "submit_sm" do
     assert %Pdu{} = Factory.submit_sm({"from", 0, 0}, {"to", 0, 0}, "hello", 1)
+    assert %Pdu{} = Factory.submit_sm("from", {"to", 0, 0}, "hello", 1)
+    assert %Pdu{} = Factory.submit_sm({"from", 0, 0}, "to", "hello", 1)
+
+    assert 5 == Factory.submit_sm({"from", 0, 0}, "to", "hello", 1) |> Pdu.field(:dest_addr_ton)
+    assert 0 == Factory.submit_sm({"from", 0, 0}, "to", "hello", 1) |> Pdu.field(:dest_addr_npi)
+    assert 0 == Factory.submit_sm({"from", 0, 0}, "to", "hello", 1) |> Pdu.field(:data_coding)
   end
 
   test "submit_sm_resp" do

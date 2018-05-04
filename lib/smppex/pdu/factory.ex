@@ -6,6 +6,7 @@ defmodule SMPPEX.Pdu.Factory do
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.MessageState
+  alias SMPPEX.Pdu.TONNPIDefaults
 
   @spec bind_transmitter(String.t(), String.t(), map) :: Pdu.t()
 
@@ -109,9 +110,20 @@ defmodule SMPPEX.Pdu.Factory do
   end
 
   @type message :: String.t() | {data_coding :: non_neg_integer, String.t()}
-  @spec submit_sm(Pdu.addr(), Pdu.addr(), message, non_neg_integer) :: Pdu.t()
+  @spec submit_sm(Pdu.addr() | String.t(), Pdu.addr() | String.t(), message, non_neg_integer) ::
+          Pdu.t()
 
   def submit_sm(source, dest, message, registered_delivery \\ 0)
+
+  def submit_sm(source, dest, message, registered_delivery) when is_binary(source) do
+    {ton, npi} = TONNPIDefaults.ton_npi(source)
+    submit_sm({source, ton, npi}, dest, message, registered_delivery)
+  end
+
+  def submit_sm(source, dest, message, registered_delivery) when is_binary(dest) do
+    {ton, npi} = TONNPIDefaults.ton_npi(dest)
+    submit_sm(source, {dest, ton, npi}, message, registered_delivery)
+  end
 
   def submit_sm(
         {source_addr, source_addr_ton, source_addr_npi},
