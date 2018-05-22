@@ -17,6 +17,14 @@ defmodule SMPPEX.ESME.Sync do
 
   @default_timeout 5000
 
+  defmodule St do
+    @moduledoc false
+
+    defstruct resp_waiters: %{},
+              pdu_waiter: nil,
+              additional_pdus: []
+  end
+
   # Public interface
 
   @spec start_link(host :: term, port :: non_neg_integer, opts :: Keyword.t()) ::
@@ -32,7 +40,7 @@ defmodule SMPPEX.ESME.Sync do
     ESME.start_link(
       host,
       port,
-      {__MODULE__, %{from: nil, pdu: nil, additional_pdus: [], state: :free}},
+      {__MODULE__, %St{}},
       opts
     )
   end
@@ -119,14 +127,13 @@ defmodule SMPPEX.ESME.Sync do
   @doc false
   @impl true
   def handle_call({:call, {:request, pdu}, from}, _from, st) do
-    new_st = %{st | from: from, pdu: pdu, state: :wait_for_resp}
-    {:reply, :ok, [pdu], new_st}
+    {:reply, :ok, [pdu], add_resp_waiter(st, pdu, from)}
   end
 
   @impl true
   def handle_call(:pdus, _from, st) do
     pdus = Enum.reverse(st.additional_pdus)
-    new_st = %{st | additional_pdus: []}
+    new_st = %St{st | additional_pdus: []}
     {:reply, pdus, new_st}
   end
 
@@ -137,10 +144,14 @@ defmodule SMPPEX.ESME.Sync do
         [_ | _] ->
           pdus = Enum.reverse(st.additional_pdus)
           reply(from, pdus)
-          %{st | additional_pdus: []}
+          %St{st | additional_pdus: []}
 
         [] ->
-          %{st | from: from, state: :wait_for_pdus}
+          if st.pdu_waiter do
+            reply(st.pdu_waiter, [])
+          end
+
+          %St{st | pdu_waiter: from}
       end
 
     {:reply, :ok, new_st}
@@ -149,13 +160,12 @@ defmodule SMPPEX.ESME.Sync do
   @doc false
   @impl true
   def handle_resp(pdu, original_pdu, st) do
-    case waiting_for_pdu_resp?(original_pdu, st) do
-      true ->
-        reply(st.from, {:ok, pdu})
-        {:ok, set_free(st)}
-
-      false ->
-        {:ok, push_to_waiting({:resp, pdu, original_pdu}, st)}
+    if has_resp_waiter?(st, original_pdu) do
+      resp_waiter = get_resp_waiter(st, original_pdu)
+      reply(resp_waiter, {:ok, pdu})
+      {:ok, delete_resp_waiter(st, original_pdu)}
+    else
+      {:ok, push_to_waiting({:resp, pdu, original_pdu}, st)}
     end
   end
 
@@ -186,9 +196,13 @@ defmodule SMPPEX.ESME.Sync do
   @doc false
   @impl true
   def terminate(_reason, _los_pdus, st) do
-    case st.from do
+    case st.pdu_waiter do
       nil -> :nop
       from -> reply(from, :stop)
+    end
+
+    for from <- Map.values(st.resp_waiters) do
+      reply(from, :stop)
     end
 
     :stop
@@ -199,16 +213,17 @@ defmodule SMPPEX.ESME.Sync do
   def handle_send_pdu_result(pdu, result, st) do
     case result do
       :ok ->
-        if waiting_for_pdu_resp?(pdu, st) do
+        if has_resp_waiter?(st, pdu) do
           st
         else
           push_to_waiting({:ok, pdu}, st)
         end
 
-      {:error, error} ->
-        if waiting_for_pdu_resp?(pdu, st) do
-          reply(st.from, {:error, error})
-          set_free(st)
+      {:error, error} = err ->
+        if has_resp_waiter?(st, pdu) do
+          resp_waiter = get_resp_waiter(st, pdu)
+          reply(resp_waiter, err)
+          delete_resp_waiter(st, pdu)
         else
           push_to_waiting({:error, pdu, error}, st)
         end
@@ -218,32 +233,39 @@ defmodule SMPPEX.ESME.Sync do
   defp process_timeouts([], st), do: st
 
   defp process_timeouts([pdu | pdus], st) do
-    if waiting_for_pdu_resp?(pdu, st) do
-      reply(st.from, :timeout)
-      process_timeouts(pdus, set_free(st))
+    if has_resp_waiter?(st, pdu) do
+      resp_waiter = get_resp_waiter(st, pdu)
+      reply(resp_waiter, :timeout)
+      process_timeouts(pdus, delete_resp_waiter(st, pdu))
     else
       process_timeouts(pdus, push_to_waiting({:timeout, pdu}, st))
     end
   end
 
-  defp waiting_for_pdu_resp?(pdu, st) do
-    st.pdu != nil and Pdu.same?(pdu, st.pdu) and st.state == :wait_for_resp
+  defp has_resp_waiter?(st, pdu), do: Map.has_key?(st.resp_waiters, pdu.ref)
+
+  defp add_resp_waiter(st, pdu, from) do
+    %St{st | resp_waiters: Map.put(st.resp_waiters, Pdu.ref(pdu), from)}
+  end
+
+  defp get_resp_waiter(st, pdu) do
+    Map.get(st.resp_waiters, Pdu.ref(pdu))
+  end
+
+  defp delete_resp_waiter(st, pdu) do
+    %St{st | resp_waiters: Map.delete(st.resp_waiters, Pdu.ref(pdu))}
   end
 
   defp push_to_waiting(pdu_info, st) do
     pdus = [pdu_info | st.additional_pdus]
 
-    case st.state == :wait_for_pdus do
-      true ->
-        reply(st.from, pdus)
-        %{set_free(st) | additional_pdus: []}
-
-      false ->
-        %{st | additional_pdus: pdus}
+    if st.pdu_waiter do
+      reply(st.pdu_waiter, Enum.reverse(pdus))
+      %St{st | pdu_waiter: nil, additional_pdus: []}
+    else
+      %St{st | additional_pdus: pdus}
     end
   end
-
-  defp set_free(st), do: %{st | from: nil, pdu: nil, state: :free}
 
   defp call(pid, request, timeout) do
     ref = make_ref()

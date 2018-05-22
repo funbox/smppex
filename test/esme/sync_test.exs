@@ -22,7 +22,7 @@ defmodule SMPPEX.ESME.SyncTest do
       enquire_link_limit: 1000,
       session_init_limit: :infinity,
       enquire_link_resp_limit: 1000,
-      inactivity_limit: 10000,
+      inactivity_limit: 10_000,
       response_limit: 2000,
       timer_resolution: 100_000
     ]
@@ -73,9 +73,18 @@ defmodule SMPPEX.ESME.SyncTest do
     end)
 
     esme = ctx[:esme].()
-    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
-    assert {:ok, resp} = ESMESync.request(esme, pdu)
-    assert :bind_transmitter_resp == Pdu.command_name(resp)
+
+    1..100
+    |> Enum.map(fn _ ->
+      Task.async(fn ->
+        pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id", "password")
+        assert {:ok, resp} = ESMESync.request(esme, pdu)
+        assert :bind_transmitter_resp == Pdu.command_name(resp)
+      end)
+    end)
+    |> Enum.each(fn task ->
+      Task.await(task)
+    end)
   end
 
   test "request and stop", ctx do
