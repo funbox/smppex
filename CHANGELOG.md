@@ -5,11 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.2.5] - 2018-05-23
+
 ### Added
 - `submit_sm` factory methods with automatic TON/NPI detection.
 
 ### Changed
 - Dropped Elixir 1.1.1 and OTP 17 support.
+- Made `SMPPEX.ESME.Sync` be safe for making requestd from multiple processes.
 
 ## [2.2.4] - 2018-02-12
 
