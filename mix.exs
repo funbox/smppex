@@ -4,7 +4,7 @@ defmodule Smppex.Mixfile do
   def project do
     [
       app: :smppex,
-      version: "2.2.4",
+      version: "2.2.5",
       elixir: "~> 1.1",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
