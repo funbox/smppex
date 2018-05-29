@@ -453,9 +453,31 @@ defmodule SMPPEX.Session do
     |> process_handle_call_reply()
   end
 
+  def handle_call(request, from, st) do
+    case :erlang.function_exported(st.module, :handle_gen_call, 3) do
+      true ->
+        {st.module.handle_gen_call(request, from, st.module_state), st}
+        |> process_handle_call_reply()
+      false ->
+        Logger.warn("Unknown handle_call message: #{inspect request}, from: #{inspect from}")
+        {:noreply, st}
+    end
+  end
+
   def handle_cast({:cast, request}, st) do
     {st.module.handle_cast(request, st.module_state), st}
     |> process_handle_cast_reply()
+  end
+
+  def handle_cast(request, st) do
+    case :erlang.function_exported(st.module, :handle_gen_cast, 2) do
+      true ->
+        {st.module.handle_gen_cast(request, st.module_state), st}
+        |> process_handle_cast_reply()
+      false ->
+        Logger.warn("Unknown handle_cast message: #{inspect request}")
+        {:noreply, st}
+    end
   end
 
   @doc false
