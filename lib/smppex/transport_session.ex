@@ -55,6 +55,16 @@ defmodule SMPPEX.TransportSession do
               {:noreply, [Pdu.t()], state}
               | {:stop, reason, [Pdu.t()], state}
 
+  @callback handle_gen_call(request, from, state) ::
+              {:reply, reply, [Pdu.t()], state}
+              | {:noreply, [Pdu.t()], state}
+              | {:stop, reason, reply, [Pdu.t()], state}
+                | {:stop, reason, [Pdu.t()], state}
+
+  @callback handle_gen_cast(request, state) ::
+              {:noreply, [Pdu.t()], state}
+              | {:stop, reason, [Pdu.t()], state}
+
   @callback handle_info(request, state) ::
               {:noreply, [Pdu.t()], state}
               | {:stop, reason, [Pdu.t()], state}
@@ -67,6 +77,8 @@ defmodule SMPPEX.TransportSession do
   @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
               {:ok, state}
               | {:error, reason}
+
+  @optional_callbacks handle_gen_call: 3, handle_gen_cast: 2
 
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
   # Ranch handles this return type, but Dialyzer is not happy with it
@@ -196,6 +208,12 @@ defmodule SMPPEX.TransportSession do
         {:stop, reason, send_pdus(module_state, state, pdus)}
     end
   end
+  def handle_call(request, from, state) do
+    case :erlang.function_exported(state.module, :handle_gen_call, 3) do
+      true -> state.module.handle_gen_call(request, from, state.module_state)
+      false -> {:noreply, send_pdus(state.module_state, state, [])}
+    end
+  end
 
   def handle_cast({:cast, request}, state) do
     case state.module.handle_cast(request, state.module_state) do
@@ -204,6 +222,12 @@ defmodule SMPPEX.TransportSession do
 
       {:stop, reason, pdus, module_state} ->
         {:stop, reason, send_pdus(module_state, state, pdus)}
+    end
+  end
+  def handle_cast(request, state) do
+    case :erlang.function_exported(state.module, :handle_gen_cast, 2) do
+      true -> state.module.handle_cast(request, state.module_state)
+      false -> {:noreply, send_pdus(state.module_state, state, [])}
     end
   end
 
