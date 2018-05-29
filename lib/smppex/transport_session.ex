@@ -55,6 +55,16 @@ defmodule SMPPEX.TransportSession do
               {:noreply, [Pdu.t()], state}
               | {:stop, reason, [Pdu.t()], state}
 
+  @callback handle_gen_call(request, from, state) ::
+              {:reply, reply, [Pdu.t()], state}
+              | {:noreply, [Pdu.t()], state}
+              | {:stop, reason, reply, [Pdu.t()], state}
+                | {:stop, reason, [Pdu.t()], state}
+
+  @callback handle_gen_cast(request, state) ::
+              {:noreply, [Pdu.t()], state}
+              | {:stop, reason, [Pdu.t()], state}
+
   @callback handle_info(request, state) ::
               {:noreply, [Pdu.t()], state}
               | {:stop, reason, [Pdu.t()], state}
@@ -67,6 +77,8 @@ defmodule SMPPEX.TransportSession do
   @callback code_change(old_vsn :: term | {:down, term}, state, extra :: term) ::
               {:ok, state}
               | {:error, reason}
+
+  @optional_callbacks handle_gen_call: 3, handle_gen_cast: 2
 
   # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
   # Ranch handles this return type, but Dialyzer is not happy with it
