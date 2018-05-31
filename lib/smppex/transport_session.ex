@@ -196,6 +196,9 @@ defmodule SMPPEX.TransportSession do
         {:stop, reason, send_pdus(module_state, state, pdus)}
     end
   end
+  def handle_call(request, from, state) do
+    handle_call({:call, request}, from, state)
+  end
 
   def handle_cast({:cast, request}, state) do
     case state.module.handle_cast(request, state.module_state) do
@@ -205,6 +208,9 @@ defmodule SMPPEX.TransportSession do
       {:stop, reason, pdus, module_state} ->
         {:stop, reason, send_pdus(module_state, state, pdus)}
     end
+  end
+  def handle_cast(request, state) do
+    handle_cast({:cast, request}, state)
   end
 
   defp send_binary(state, bin) do

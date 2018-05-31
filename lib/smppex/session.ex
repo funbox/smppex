@@ -452,10 +452,16 @@ defmodule SMPPEX.Session do
     {st.module.handle_call(request, from, st.module_state), st}
     |> process_handle_call_reply()
   end
+  def handle_call(request, from, st) do
+    handle_call({:call, request}, from, st)
+  end
 
   def handle_cast({:cast, request}, st) do
     {st.module.handle_cast(request, st.module_state), st}
     |> process_handle_cast_reply()
+  end
+  def handle_cast(request, st) do
+    handle_cast({:cast, request}, st)
   end
 
   @doc false
