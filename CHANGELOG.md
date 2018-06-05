@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Handling of generic `GenServer` `call` and `cast` messages.
+
+### Changed
+- Fixed handling of PDUs with negative `send_pde_result` status: they do not appear 
+in `handle_resp_timeout` callack anymore.
+
 ## [2.2.5] - 2018-05-23
 
 ### Added

@@ -426,6 +426,10 @@ defmodule SMPPEX.Session do
   def handle_send_pdu_result(pdu, send_pdu_result, st) do
     new_st = update_timers_with_outgoing_pdu(pdu, send_pdu_result, st)
 
+    if match?({:error, _}, send_pdu_result) do
+      _ = PduStorage.fetch(new_st.pdus, Pdu.sequence_number(pdu))
+    end
+
     case AutoPduHandler.handle_send_pdu_result(new_st.auto_pdu_handler, pdu) do
       :proceed ->
         new_module_state =

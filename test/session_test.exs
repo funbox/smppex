@@ -785,6 +785,35 @@ defmodule SMPPEX.SessionTest do
     assert Pdu.mandatory_field(timeout_pdu, :system_id) == "system_id1"
   end
 
+  test "handle_resp_timeout with invalid pdu", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "too_long_password")
+
+    esme =
+      ctx[:esme].(fn
+        {:init, _socket, _transport}, st -> {:ok, st}
+        {:handle_send_pdu_result, _pdu, _result}, st -> st
+        {:handle_resp_timeout, _pdu}, st -> {:ok, st}
+      end)
+
+    Session.send_pdu(esme, pdu)
+    time = SMPPEX.Compat.monotonic_time()
+    Timer.sleep(50)
+
+    Kernel.send(esme, {:check_expired_pdus, time + 2050})
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+
+    Timer.sleep(50)
+
+    assert [
+             {:init, _, _},
+             {:handle_send_pdu_result, invalid_pdu, {:error, _}},
+           ] = ctx[:callbacks].()
+
+    assert Pdu.mandatory_field(invalid_pdu, :system_id) == "system_id1"
+  end
+
   test "handle_resp_timeout with ok and pdus", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
 
