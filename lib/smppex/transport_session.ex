@@ -106,6 +106,12 @@ defmodule SMPPEX.TransportSession do
     {:ok, pid}
   end
 
+  # This `init/1` is never actually called, it's here just to please `GenServer` so that it does not swear
+  
+  def init(args) do
+    {:ok, args}
+  end
+
   def init(ref, socket, transport, opts) do
     {module, module_opts, mode} = opts
 
