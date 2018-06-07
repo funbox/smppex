@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.2.7] - 2018-06-08
+
+### Added
+
+- Parsing mudule for `network_error_code` field.
+- `network_error_code` field support in `oserl` converter.
+
 ## [2.2.6] - 2018-06-05
 
 ### Added
