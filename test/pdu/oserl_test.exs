@@ -38,4 +38,14 @@ defmodule SMPPEX.Pdu.OserlTest do
     assert "message payload" == Pdu.optional_field(pdu, :message_payload)
     assert "any tlv field" == Pdu.optional_field(pdu, 0x1424)
   end
+
+  test "empty network_error_code" do
+    pdu = Oserl.from({1, 2, 3, [{:network_error_code, []}]})
+    assert nil == Pdu.optional_field(pdu, :network_error_code)
+  end
+
+  test "oserl network_error_code record" do
+    pdu = Oserl.from({1, 2, 3, [{:network_error_code, {:network_error_code, 1, 2}}]})
+    assert <<1, 0, 2>> == Pdu.optional_field(pdu, :network_error_code)
+  end
 end

@@ -6,7 +6,11 @@ defmodule SMPPEX.Pdu.Oserl do
 
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Oserl, as: OserlPdu
+  alias SMPPEX.Pdu.NetworkErrorCode
   alias SMPPEX.Protocol.TlvFormat
+
+  require Record
+  Record.defrecord :network_error_code, type: 0, error: 0
 
   @type t :: {
           command_id :: non_neg_integer,
@@ -37,7 +41,12 @@ defmodule SMPPEX.Pdu.Oserl do
   Converts PDU from Oserl format to SMPPEX Pdu.
   """
   def from({command_id, command_status, sequence_number, field_list} = _oserl_pdu) do
-    converted_field_list = Enum.map(field_list, &list_to_string(&1))
+    converted_field_list =
+      field_list
+      |> Enum.map(&preprocess/1)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&list_to_string/1)
+
     {mandatory, optional} = list_to_fields(converted_field_list, %{}, %{})
 
     Pdu.new(
@@ -91,4 +100,10 @@ defmodule SMPPEX.Pdu.Oserl do
     do: {key, :erlang.binary_to_list(value)}
 
   defp string_to_list({key, value}), do: {key, value}
+
+  defp preprocess({:network_error_code, network_error_code(type: type_code, error: error_code)}),
+    do: {:network_error_code, NetworkErrorCode.encode(type_code, error_code)}
+
+  defp preprocess({:network_error_code, []}), do: nil
+  defp preprocess({key, value}), do: {key, value}
 end
