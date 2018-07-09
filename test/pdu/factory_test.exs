@@ -62,6 +62,8 @@ defmodule SMPPEX.Pdu.FactoryTest do
 
   test "deliver_sm" do
     assert %Pdu{} = Factory.deliver_sm({"from", 0, 0}, {"to", 0, 0}, "hello")
+    assert %Pdu{} = Factory.deliver_sm("from", {"to", 0, 0}, "hello")
+    assert %Pdu{} = Factory.deliver_sm({"from", 0, 0}, "to", "hello")
   end
 
   test "deliver_sm_resp" do
