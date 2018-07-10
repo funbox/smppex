@@ -808,7 +808,7 @@ defmodule SMPPEX.SessionTest do
 
     assert [
              {:init, _, _},
-             {:handle_send_pdu_result, invalid_pdu, {:error, _}},
+             {:handle_send_pdu_result, invalid_pdu, {:error, _}}
            ] = ctx[:callbacks].()
 
     assert Pdu.mandatory_field(invalid_pdu, :system_id) == "system_id1"

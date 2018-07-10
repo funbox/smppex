@@ -10,7 +10,7 @@ defmodule SMPPEX.Pdu.Oserl do
   alias SMPPEX.Protocol.TlvFormat
 
   require Record
-  Record.defrecord :network_error_code, type: 0, error: 0
+  Record.defrecord(:network_error_code, type: 0, error: 0)
 
   @type t :: {
           command_id :: non_neg_integer,

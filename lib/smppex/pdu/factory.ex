@@ -171,7 +171,7 @@ defmodule SMPPEX.Pdu.Factory do
     })
   end
 
-  @spec deliver_sm(Pdu.addr(), Pdu.addr(), message) :: Pdu.t()
+  @spec deliver_sm(Pdu.addr() | String.t(), Pdu.addr() | String.t(), message) :: Pdu.t()
 
   def deliver_sm(
         {source_addr, source_addr_ton, source_addr_npi},
@@ -203,6 +203,16 @@ defmodule SMPPEX.Pdu.Factory do
       {dest_addr, dest_addr_ton, dest_addr_npi},
       {0, message}
     )
+  end
+
+  def deliver_sm(source, dest, message) when is_binary(source) do
+    {ton, npi} = TONNPIDefaults.ton_npi(source)
+    deliver_sm({source, ton, npi}, dest, message)
+  end
+
+  def deliver_sm(source, dest, message) when is_binary(dest) do
+    {ton, npi} = TONNPIDefaults.ton_npi(dest)
+    deliver_sm(source, {dest, ton, npi}, message)
   end
 
   @type message_state :: non_neg_integer | atom
