@@ -7,7 +7,7 @@ defmodule SMPPEX.Pdu.NetworkErrorCodeTest do
 
   test "decode" do
     assert_raise FunctionClauseError, fn ->
-      NetworkErrorCode.decode(<<1,2,3,4>>)
+      NetworkErrorCode.decode(<<1, 2, 3, 4>>)
     end
   end
 
@@ -15,6 +15,7 @@ defmodule SMPPEX.Pdu.NetworkErrorCodeTest do
     assert_raise FunctionClauseError, fn ->
       NetworkErrorCode.encode(256, 1)
     end
+
     assert_raise FunctionClauseError, fn ->
       NetworkErrorCode.encode(1, 65_536)
     end
