@@ -5,7 +5,7 @@ defmodule SMPPEX.Pdu.TONNPIDefaultsTest do
 
   test "ton_npi" do
     assert {5, 0} == TONNPIDefaults.ton_npi("alphanumeric0")
-    assert {5, 0} == TONNPIDefaults.ton_npi("00+0")
+    assert {0, 0} == TONNPIDefaults.ton_npi("00+0") # invalid
     assert {1, 1} == TONNPIDefaults.ton_npi("71234567890")
     assert {1, 1} == TONNPIDefaults.ton_npi("+012345678901234")
     assert {3, 0} == TONNPIDefaults.ton_npi("12345")
