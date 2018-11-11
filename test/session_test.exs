@@ -1118,6 +1118,40 @@ defmodule SMPPEX.SessionTest do
     assert {:ok, {:pdu, enquire_link}, _} = rest_data |> SMPPEX.Protocol.parse()
     assert Pdu.command_name(enquire_link) == :enquire_link
   end
+ 
+  test "enquire_link by timeout and consequent submit_sm", ctx do
+    pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
+
+    esme =
+      ctx[:esme].(fn
+        {:init, _socket, _transport}, st -> {:ok, st}
+        {:handle_send_pdu_result, _pdu, _result}, st -> st
+        {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+      end)
+
+    Session.send_pdu(esme, pdu)
+    time = SMPPEX.Compat.monotonic_time()
+    Timer.sleep(50)
+
+    reply_pdu = %Pdu{SMPPEX.Pdu.Factory.bind_transmitter_resp(0, "sid") | sequence_number: 1}
+    {:ok, reply_pdu_data} = SMPPEX.Protocol.build(reply_pdu)
+    Server.send(ctx[:server], reply_pdu_data)
+    Timer.sleep(50)
+
+    Kernel.send(esme, {:tick, time + 1050})
+    pdu = SMPPEX.Pdu.Factory.submit_sm({"from", 1, 2}, {"to", 1, 2}, "message")
+    Session.send_pdu(esme, pdu)
+
+    Timer.sleep(50)
+
+    assert {:ok, {:pdu, _}, rest_data0} =
+             Server.received_data(ctx[:server]) |> SMPPEX.Protocol.parse()
+
+    assert {:ok, {:pdu, enquire_link}, rest_data1} = rest_data0 |> SMPPEX.Protocol.parse()
+    assert {:ok, {:pdu, submit_sm}, _} = rest_data1 |> SMPPEX.Protocol.parse()
+
+    assert Pdu.sequence_number(enquire_link) < Pdu.sequence_number(submit_sm)
+  end
 
   test "enquire_link cancel by peer action", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
