@@ -25,10 +25,11 @@ defmodule SMPPEX.Session.AutoPduHandler do
   @spec enquire_link(t, non_neg_integer, non_neg_integer) :: {Pdu.t(), non_neg_integer}
 
   def enquire_link(handler, expire_time, sequence_number) do
+    sequence_number = sequence_number + 1 # increment before use
     pdu = %Pdu{PduFactory.enquire_link() | sequence_number: sequence_number}
     ETS.insert_new(handler.by_ref, {Pdu.ref(pdu), true})
     ETS.insert_new(handler.by_sequence_number, {sequence_number, {expire_time, pdu}})
-    {pdu, sequence_number + 1}
+    {pdu, sequence_number}
   end
 
   @spec handle_send_pdu_result(t, Pdu.t()) :: :proceed | :skip
@@ -72,11 +73,10 @@ defmodule SMPPEX.Session.AutoPduHandler do
 
   defp handle_enquire_link(handler, pdu, sequence_number) do
     resp =
-      %Pdu{PduFactory.enquire_link_resp() | sequence_number: sequence_number + 1}
-      |> Pdu.as_reply_to(pdu)
+      PduFactory.enquire_link_resp() |> Pdu.as_reply_to(pdu)
 
     ETS.insert_new(handler.by_ref, {Pdu.ref(resp), true})
 
-    {:skip, [resp], sequence_number + 1}
+    {:skip, [resp], sequence_number}
   end
 end

@@ -40,7 +40,7 @@ defmodule SMPPEX.Session do
     :pdus,
     :auto_pdu_handler,
     :response_limit,
-    :sequence_number,
+    :sequence_number, # increment before use
     :time,
     :timer_resolution,
     :tick_timer_ref
