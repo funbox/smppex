@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Fixed automatic `enquire_link` sequence id generation.
+
 ## [2.2.7] - 2018-06-08
 
 ### Added
