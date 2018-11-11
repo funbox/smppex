@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Fixed automatic `enquire_link` sequence id generation.
+- Fixed `ranch` to `< 1.6.0` due to its incompatible changes.
 
 ## [2.2.7] - 2018-06-08
 
