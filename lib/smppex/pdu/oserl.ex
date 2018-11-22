@@ -93,7 +93,7 @@ defmodule SMPPEX.Pdu.Oserl do
     end
   end
 
-  defp list_to_string({key, value}) when is_list(value), do: {key, List.to_string(value)}
+  defp list_to_string({key, value}) when is_list(value), do: {key, :erlang.list_to_binary(value)}
   defp list_to_string({key, value}), do: {key, value}
 
   defp string_to_list({key, value}) when is_binary(value),
