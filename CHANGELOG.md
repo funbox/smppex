@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.2.9] - 2018-11-22
+
+### Changed
+- Unfixed `ranch` from `< 1.6.0`, since its internal changes do not affect our code.
+
 ## [2.2.8] - 2018-11-11
 
 ### Changed
@@ -25,7 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Handling of generic `GenServer` `call` and `cast` messages.
 
 ### Changed
-- Fixed handling of PDUs with negative `send_pde_result` status: they do not appear 
+- Fixed handling of PDUs with negative `send_pde_result` status: they do not appear
 in `handle_resp_timeout` callack anymore.
 
 ## [2.2.5] - 2018-05-23

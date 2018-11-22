@@ -40,7 +40,7 @@ defmodule Smppex.Mixfile do
       {:ex_doc, "~> 0.11", only: :dev},
       {:inch_ex, "~> 0.5.6", only: :docs},
       {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
-      {:ranch, ">= 1.3.0 and < 1.6.0"}
+      {:ranch, "~> 1.3"}
     ]
   end
 
