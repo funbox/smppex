@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Elixir 1.8 builds in CI.
+
+### Removed
+- OTP 18 support.
+
 ## [2.2.9] - 2018-11-22
 
 ### Changed
