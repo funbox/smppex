@@ -8,23 +8,14 @@ matrix:
   # Elixir 1.2
 
   - elixir: 1.2.6
-    otp_release: 18.3
-
-  - elixir: 1.2.6
     otp_release: 19.3
 
   # Elixir 1.3
 
   - elixir: 1.3.4
-    otp_release: 18.3
-
-  - elixir: 1.3.4
     otp_release: 19.3
 
   # Elixir 1.4
-
-  - elixir: 1.4.5
-    otp_release: 18.3
 
   - elixir: 1.4.5
     otp_release: 19.3
@@ -35,18 +26,12 @@ matrix:
   # Elixir 1.5
 
   - elixir: 1.5.3
-    otp_release: 18.3
-
-  - elixir: 1.5.3
     otp_release: 19.3
 
   - elixir: 1.5.3
     otp_release: 20.3
 
   # Elixir 1.6
-
-  - elixir: 1.6.6
-    otp_release: 18.3
 
   - elixir: 1.6.6
     otp_release: 19.3
@@ -58,9 +43,6 @@ matrix:
     otp_release: 21.0
 
   # Elixir 1.7
-
-  - elixir: 1.7.1
-    otp_release: 18.3
 
   - elixir: 1.7.1
     otp_release: 19.3
