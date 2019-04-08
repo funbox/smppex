@@ -169,6 +169,7 @@ defmodule SMPPEX.Protocol.MandatoryFieldsSpecs do
         {:dest_addr_npi, {:integer, 1}},
         {:destination_addr, {:c_octet_string, {:max, 65}}},
         {:esm_class, {:integer, 1}},
+        {:registered_delivery, {:integer, 1}},
         {:data_coding, {:integer, 1}}
       ],
       data_sm_resp: [
