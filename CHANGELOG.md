@@ -6,11 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.3.0] - 2019-04-08
+
 ### Added
 - Elixir 1.8 builds in CI.
 
 ### Removed
 - OTP 18 support.
+
+### Changed
+- Fixed `data_sm` packet syntax.
 
 ## [2.2.9] - 2018-11-22
 
