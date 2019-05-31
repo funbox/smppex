@@ -282,8 +282,8 @@ defmodule SMPPEX.Pdu.Factory do
 
   @spec deliver_sm_resp(non_neg_integer) :: Pdu.t()
 
-  def deliver_sm_resp(command_status \\ 0) do
+  def deliver_sm_resp(command_status \\ 0, sequence_number \\ 0) do
     {:ok, command_id} = CommandNames.id_by_name(:deliver_sm_resp)
-    Pdu.new({command_id, command_status, 0})
+    Pdu.new({command_id, command_status, sequence_number})
   end
 end

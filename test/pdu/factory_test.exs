@@ -70,6 +70,10 @@ defmodule SMPPEX.Pdu.FactoryTest do
     assert %Pdu{} = Factory.deliver_sm_resp(0)
   end
 
+  test "deliver_sm_resp with sequence number" do
+    assert %Pdu{sequence_number: 10} = Factory.deliver_sm_resp(0, 10)
+  end
+
   test "delivery_report" do
     assert %Pdu{} = Factory.delivery_report("message_id", {"to", 0, 0}, {"from", 0, 0})
 
