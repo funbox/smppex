@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Elixir 1.9 builds in CI.
 - Updated `excoveralls` dependency.
 
+### Removed
+- Removed Elixir 1.2, 1.3 support and the corresponding builds from CI.
+
 ## [2.3.0] - 2019-04-08
 
 ### Added
