@@ -6,9 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.3.1] - 2019-09-19
+
 ### Added
 - Elixir 1.9 builds in CI.
 - Updated `excoveralls` dependency.
+- Added `SMPPEX.Pdu.ValidityPeriod` module for dealing with `validity_period` PDU field.
 
 ### Removed
 - Removed Elixir 1.2, 1.3 support and the corresponding builds from CI.
