@@ -46,7 +46,7 @@ defmodule SMPPEX.Session do
     :tick_timer_ref
   ]
 
-  @default_call_timeout 5000
+  @default_call_timeout Keyword.get(session_opts, :default_call_timeout, Defaults.())
 
   @type state :: term
   @type request :: term
@@ -299,8 +299,8 @@ defmodule SMPPEX.Session do
   @doc """
   Sends a PDU from the session to the peer.
   """
-  def send_pdu(pid, pdu) do
-    TransportSession.call(pid, {:send_pdu, pdu})
+  def send_pdu(pid, pdu, timeout \\ @default_call_timeou) do
+    TransportSession.call(pid, {:send_pdu, pdu}, timeout)
   end
 
   @spec stop(session) :: :ok
