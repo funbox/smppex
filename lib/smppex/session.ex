@@ -387,6 +387,8 @@ defmodule SMPPEX.Session do
 
         auto_pdu_handler = AutoPduHandler.new()
 
+        sequence_number = Keyword.get(session_opts, :sequence_number, 0)
+
         {:ok,
          %Session{
            module: module,
@@ -395,7 +397,7 @@ defmodule SMPPEX.Session do
            pdus: pdu_storage,
            auto_pdu_handler: auto_pdu_handler,
            response_limit: response_limit,
-           sequence_number: 0,
+           sequence_number: sequence_number,
            time: time,
            timer_resolution: timer_resolution,
            tick_timer_ref: timer_ref
