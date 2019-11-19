@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.3.2] - 2019-11-19
+
+### Added
+
+- Option to set arbitrary initial sequence number for SMPP sessions.
+
 ## [2.3.1] - 2019-09-19
 
 ### Added
