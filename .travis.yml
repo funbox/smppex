@@ -69,7 +69,7 @@ matrix:
     otp_release: 22.0
 
 env:
-- MIX_ENV=test COVERALLS_ELIXIR_VERSION=1.8.1 COVERALLS_OTP_RELEASE=21.0
+- MIX_ENV=test COVERALLS_ELIXIR_VERSION=1.8.2 COVERALLS_OTP_RELEASE=21.0
 script:
 - mix test
 after_script:
