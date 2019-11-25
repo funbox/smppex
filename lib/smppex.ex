@@ -17,7 +17,7 @@ defmodule SMPPEX do
     `ranch_protocol` behaviour.
     * The library includes an easy and ready to use SMPP client (`SMPP.ESME.Sync`) which
     has capabilities of synchronous SMS sending and do not require implementing ESME behavior.
-    There is also an SMPP testing tool [`smppsend`](https://github.com/savonarola/smppsend)
+    There is also an SMPP testing tool [`smppsend`](https://github.com/funbox/smppsend)
     based on this client.
 
   ## SMPPEX.ESME.Sync

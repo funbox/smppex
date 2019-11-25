@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Moved repo to [funbox](https://github.com/funbox) organization.
+
 ## [2.3.2] - 2019-11-19
 
 ### Added

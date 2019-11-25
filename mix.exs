@@ -8,7 +8,7 @@ defmodule Smppex.Mixfile do
       elixir: "~> 1.1",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      source_url: "https://github.com/savonarola/smppex",
+      source_url: "https://github.com/funbox/smppex",
       deps: deps(),
       description: description(),
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -58,7 +58,7 @@ defmodule Smppex.Mixfile do
       maintainers: ["Ilya Averyanov"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/savonarola/smppex"
+        "GitHub" => "https://github.com/funbox/smppex"
       }
     ]
   end
