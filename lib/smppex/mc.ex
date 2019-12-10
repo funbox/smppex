@@ -71,7 +71,7 @@ defmodule SMPPEX.MC do
     inspect(Defaults.response_limit())
   } ms.
       - `:default_call_timeout` is an integer greater than zero which specifies how many milliseconds to wait for a reply, or the atom :infinity to wait indefinitely.If no reply is received within the specified time, the function call fails and the caller exits. The default value is #{
-    inspect(Defaults.default_call_timeou())
+    inspect(Defaults.default_call_timeout())
   } ms.
   If `:mc_opts` list of options is ommited, all options take their default values.
   The returned value is either `{:ok, ref}` or `{:error, reason}`. The `ref` can be later used
