@@ -1,6 +1,6 @@
 defmodule SMPPEX.Pdu.Factory do
   @moduledoc """
-  Module for conveniet generation of the most common PDUs.
+  Module for convenient generation of the most common PDUs.
   """
 
   alias SMPPEX.Protocol.CommandNames
@@ -258,6 +258,7 @@ defmodule SMPPEX.Pdu.Factory do
         destination_addr: dest_addr,
         dest_addr_ton: dest_addr_ton,
         dest_addr_npi: dest_addr_npi,
+        esm_class: 0b00000100,
         short_message: message
       },
       %{
