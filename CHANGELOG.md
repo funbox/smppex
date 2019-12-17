@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Moved repo to [funbox](https://github.com/funbox) organization.
+- Set the `esm_class` field for a delivery report pdu created by factory.
 
 ## [2.3.2] - 2019-11-19
 
