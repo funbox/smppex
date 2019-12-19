@@ -151,6 +151,16 @@ defmodule SMPPEX.TransportSession do
 
   def handle_info(message, state) do
     {ok, closed, error} = state.transport.messages
+    case message do
+      {:check_timers, _} -> :ok
+      {:tick, _} -> :ok
+      {:check_expired_pdus, _} -> :ok
+      {:timeout, _ref, :emit_tick} -> :ok
+      _ ->
+        Logger.info("___1___")
+        Logger.info("handle_ranch_messages message: #{inspect(message)}")
+        Logger.info("handle_ranch_messages pid: #{inspect(self())}")
+    end
 
     case message do
       {^ok, _socket, data} ->
@@ -222,6 +232,8 @@ defmodule SMPPEX.TransportSession do
   end
 
   defp send_binary(state, bin) do
+    Logger.info("_______")
+    Logger.info("send_binary pid: #{inspect(self())}")
     state.transport.send(state.socket, bin)
   end
 
@@ -260,9 +272,13 @@ defmodule SMPPEX.TransportSession do
         {:noreply, new_state}
 
       {:ok, parse_result, rest_data} ->
+        Logger.info("___2___")
+        Logger.info("parsed_tcp_data parse_result: #{inspect(parse_result)}")
+        Logger.info("parsed_tcp_data rest_data: #{inspect(rest_data)}")
         handle_parse_result(state, parse_result, rest_data)
 
       {:error, error} ->
+        Logger.info("parsed_tcp_data error: #{inspect(error)}")
         handle_parse_error(state, error)
     end
   end
@@ -272,6 +288,9 @@ defmodule SMPPEX.TransportSession do
   end
 
   defp handle_parse_result(state, parse_result, rest_data) do
+    Logger.info("___3___")
+    Logger.info("handle_parse_result parse_result: #{inspect(parse_result)}")
+    Logger.info("handle_parse_result pid: #{inspect(self())}")
     case state.module.handle_pdu(parse_result, state.module_state) do
       {:ok, pdus, module_state} ->
         parse_pdus(send_pdus(module_state, state, pdus), rest_data)

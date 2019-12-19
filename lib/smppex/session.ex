@@ -493,6 +493,8 @@ defmodule SMPPEX.Session do
   end
 
   def handle_info(request, st) do
+    Logger.info("session_handle_info request: #{inspect(request)}")
+    Logger.info("session_handle_info module: #{inspect(st.module)}")
     {st.module.handle_info(request, st.module_state), st}
     |> process_handle_info_reply()
   end
