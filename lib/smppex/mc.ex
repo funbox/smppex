@@ -70,6 +70,9 @@ defmodule SMPPEX.MC do
       - `:response_limit` is the maximum time to wait for a response for a previously sent PDU. If the response is not received within this interval, `handle_resp_timeout` callback is triggered for the original pdu. If the response is received later, it is discarded. The default value is #{
     inspect(Defaults.response_limit())
   } ms.
+      - `:default_call_timeout` is an integer greater than zero which specifies how many milliseconds to wait for a reply, or the atom :infinity to wait indefinitely.If no reply is received within the specified time, the function call fails and the caller exits. The default value is #{
+    inspect(Defaults.default_call_timeout())
+  } ms.
   If `:mc_opts` list of options is ommited, all options take their default values.
   The returned value is either `{:ok, ref}` or `{:error, reason}`. The `ref` can be later used
   to stop the whole MC listener and all sessions received by it.
