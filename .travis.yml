@@ -1,7 +1,7 @@
 language: elixir
 matrix:
 
-  # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/Compatibility%20and%20Deprecations.md
+  # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/compatibility-and-deprecations.md
 
   include:
 
@@ -75,6 +75,10 @@ matrix:
 
   - elixir: 1.10.0
     otp_release: 22.0
+
+  - elixir: 1.10.3
+    otp_release: 23.0
+
 
 env:
 - MIX_ENV=test COVERALLS_ELIXIR_VERSION=1.8.2 COVERALLS_OTP_RELEASE=21.0
