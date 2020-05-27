@@ -66,8 +66,17 @@ defmodule SMPPEX.Session.AutoPduHandler do
 
   defp handle_resp(handler, pdu, sequence_number) do
     case Compat.ets_take(handler.by_sequence_number, Pdu.sequence_number(pdu)) do
-      [_] -> {:skip, [], sequence_number}
-      [] -> :proceed
+      [_] ->
+        :telemetry.execute(
+          [:smppex, :session, :handle_resp, Pdu.command_name(pdu)],
+          %{count: 1},
+          %{pdu: pdu}
+        )
+
+        {:skip, [], sequence_number}
+
+      [] ->
+        :proceed
     end
   end
 
