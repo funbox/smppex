@@ -9,8 +9,8 @@ defmodule SMPPEX.Pdu.UDH do
   @esm_class_gsm_udhi 0b01000000
 
   @error_invalid_udh_data "Invalid UDH data"
-  @error_invalid_udh_length "Invalid UDH lengh"
-  @error_invalid_udh_ie_length "Invalid UDH IE lengh"
+  @error_invalid_udh_length "Invalid UDH length"
+  @error_invalid_udh_ie_length "Invalid UDH IE length"
   @error_invalid_udh_ie_id "Invalid UDH IE id"
   @error_invalid_udh_ie_data "Invalid UDH IE data"
   @error_invalid_message_data "Invalid Message data"
