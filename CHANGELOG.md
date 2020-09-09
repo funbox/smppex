@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.3.3] - 2020-09-09
+
 ### Changed
+- Fixed submit_multi handling (@Menkir).
 - Moved repo to [funbox](https://github.com/funbox) organization.
 - Set the `esm_class` field for a delivery report pdu created by factory.
 
