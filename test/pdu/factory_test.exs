@@ -82,7 +82,9 @@ defmodule SMPPEX.Pdu.FactoryTest do
                :UNDELIVERABLE
              )
 
-    assert 4 = Factory.delivery_report("message_id", {"to", 0, 0}, {"from", 0, 0}) |> Pdu.mandatory_field(:esm_class)
+    assert 4 =
+             Factory.delivery_report("message_id", {"to", 0, 0}, {"from", 0, 0})
+             |> Pdu.mandatory_field(:esm_class)
   end
 
   test "delivery_report_for_submit_sm" do

@@ -1118,7 +1118,7 @@ defmodule SMPPEX.SessionTest do
     assert {:ok, {:pdu, enquire_link}, _} = rest_data |> SMPPEX.Protocol.parse()
     assert Pdu.command_name(enquire_link) == :enquire_link
   end
- 
+
   test "enquire_link by timeout and consequent submit_sm", ctx do
     pdu = SMPPEX.Pdu.Factory.bind_transmitter("system_id1", "pass1")
 
