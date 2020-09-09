@@ -129,6 +129,44 @@ defmodule SMPPEX.ProtocolTest do
            } = Protocol.parse(bin)
   end
 
+  test "parse: submit_multi" do
+    bin =
+      <<0, 0, 0, 65, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 1, 31, 0, 1, 1, 52, 52, 53, 53, 53, 53, 57,
+        57, 55, 48, 48, 49, 48, 0, 1, 1, 1, 1, 52, 52, 53, 53, 53, 53, 57, 57, 55, 48, 48, 49, 48,
+        0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 4, 84, 101, 115, 116>>
+
+    assert {
+             :ok,
+             {:pdu,
+              %SMPPEX.Pdu{
+                command_id: 0x21,
+                command_status: 0,
+                sequence_number: 287,
+                mandatory: %{dest_addresses: [%{}]}
+              }},
+             <<>>
+           } = Protocol.parse(bin)
+  end
+
+  test "parse: submit_multi_resp" do
+    bin =
+      <<0, 0, 0, 54, 128, 0, 0, 33, 0, 0, 0, 0, 0, 0, 1, 31, 49, 53, 98, 54, 99, 57, 50, 52, 45,
+        102, 50, 57, 57, 45, 49, 49, 101, 97, 45, 56, 51, 102, 99, 45, 102, 97, 49, 54, 51, 101,
+        48, 48, 52, 53, 57, 97, 0, 0>>
+
+    assert {
+             :ok,
+             {:pdu,
+              %SMPPEX.Pdu{
+                command_id: 0x80000021,
+                command_status: 0,
+                sequence_number: 287,
+                mandatory: %{}
+              }},
+             <<>>
+           } = Protocol.parse(bin)
+  end
+
   test "build: bind_transmitter_resp" do
     data = <<00, 00, 00, 0x11, 0x80, 00, 00, 0x02, 00, 00, 00, 00, 00, 00, 00, 0x01, 0x00>>
 
