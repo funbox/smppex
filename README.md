@@ -4,7 +4,6 @@
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](http://hexdocs.pm/smppex)
 [![Version](https://img.shields.io/hexpm/v/smppex.svg)](https://hex.pm/packages/smppex)
 [![Coverage Status](https://coveralls.io/repos/github/funbox/smppex/badge.svg?branch=master&1504538909)](https://coveralls.io/github/funbox/smppex?branch=master)
-[![Inline docs](http://inch-ci.org/github/funbox/smppex.svg?branch=master)](http://inch-ci.org/github/funbox/smppex)
 
 SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.org).
 
