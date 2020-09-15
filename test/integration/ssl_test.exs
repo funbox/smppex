@@ -24,10 +24,16 @@ defmodule SMPPEX.Integration.SSLTest do
   end
 
   test "ssl handshake fail" do
-    port = Helpers.find_free_port()
-    {:ok, ref} = MC.start(port, "badhost.crt")
-    {:error, {:tls_alert, _}} = ESME.start_link(port)
-    MC.stop(ref)
+    otp_release = :erlang.system_info(:otp_release)
+    case :string.to_integer(otp_release) do
+      {n, ''} when n >= 20 ->
+        port = Helpers.find_free_port()
+        {:ok, ref} = MC.start(port, "badhost.crt")
+        {:error, {:tls_alert, _}} = ESME.start_link(port)
+        MC.stop(ref)
+      _ ->
+        assert true
+      end
   end
 
 end
