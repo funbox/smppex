@@ -13,7 +13,11 @@ defmodule Support.SSL.ESME do
       @host,
       port,
       {__MODULE__, %{pid: self()}},
-      transport: :ranch_ssl
+      transport: :ranch_ssl,
+      socket_opts: [
+        cacertfile: 'test/support/ssl/ca.crt',
+        verify: :verify_peer,
+      ]
     )
   end
 

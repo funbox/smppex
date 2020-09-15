@@ -7,14 +7,14 @@ defmodule Support.SSL.MC do
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Factory, as: PduFactory
 
-  def start(port) do
+  def start(port, certname) do
     MC.start(
       {__MODULE__, []},
       transport: :ranch_ssl,
       transport_opts: [
         port: port,
-        certfile: 'test/support/ssl/host.crt',
-        keyfile: 'test/support/ssl/host.key'
+        certfile: 'test/support/ssl/#{certname}',
+        keyfile: 'test/support/ssl/cert.key'
       ]
     )
   end

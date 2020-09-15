@@ -8,7 +8,7 @@ defmodule SMPPEX.Integration.SSLTest do
 
   test "pdu exchange" do
     port = Helpers.find_free_port()
-    {:ok, ref} = MC.start(port)
+    {:ok, ref} = MC.start(port, "localhost.crt")
     {:ok, _pid} = ESME.start_link(port)
 
     receive do
@@ -22,4 +22,12 @@ defmodule SMPPEX.Integration.SSLTest do
 
     MC.stop(ref)
   end
+
+  test "ssl handshake fail" do
+    port = Helpers.find_free_port()
+    {:ok, ref} = MC.start(port, "badhost.crt")
+    {:error, {:tls_alert, _}} = ESME.start_link(port)
+    MC.stop(ref)
+  end
+
 end
