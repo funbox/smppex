@@ -77,6 +77,7 @@ defmodule SMPPEX.ESME do
       - `:session_init_limit` is the maximum time for the session to be unbound.
       If no bind request succeed within this interval of time, the session stops.
       The default value is #{inspect(Defaults.session_init_limit())} ms;
+  * `:socket_opts` is a keyword list of ranch socket options, see ranch's options for more information
   If `:esme_opts` list of options is ommited, all options take their default values.
   The whole `opts` argument may also be ommited in order to start ESME with the defaults.
   The returned value is either `{:ok, pid}` or `{:error, reason}`.
@@ -84,7 +85,12 @@ defmodule SMPPEX.ESME do
   def start_link(host, port, {_module, _args} = mod_with_args, opts \\ []) do
     transport = Keyword.get(opts, :transport, @default_transport)
     timeout = Keyword.get(opts, :timeout, @default_timeout)
-    sock_opts = [:binary, {:packet, 0}, {:active, :once}]
+    sock_opts = [
+                  :binary,
+                  {:packet, 0},
+                  {:active, :once}
+                  | Keyword.get(opts, :socket_opts, [])
+                ]
     esme_opts = Keyword.get(opts, :esme_opts, [])
 
     case transport.connect(convert_host(host), port, sock_opts, timeout) do
