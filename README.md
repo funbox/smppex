@@ -1,6 +1,6 @@
 # Smppex
 
-[![Build Status](https://travis-ci.org/funbox/smppex.svg?branch=master)](https://travis-ci.org/funbox/smppex)
+![Elixir CI](https://github.com/funbox/smppex/workflows/Elixir%20CI/badge.svg)
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](http://hexdocs.pm/smppex)
 [![Version](https://img.shields.io/hexpm/v/smppex.svg)](https://hex.pm/packages/smppex)
 [![Coverage Status](https://coveralls.io/repos/github/funbox/smppex/badge.svg?branch=master&1504538909)](https://coveralls.io/github/funbox/smppex?branch=master)
