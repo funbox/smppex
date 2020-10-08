@@ -11,6 +11,7 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
 
+    # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/compatibility-and-deprecations.md
     strategy:
       matrix:
         include:
@@ -85,6 +86,19 @@ jobs:
 
           - elixir: 1.10.3
             otp_release: 23.0
+          
+          # Elixir 1.11
+
+          - elixir: 1.11.0
+            otp_release: 21.0
+
+          - elixir: 1.11.0
+            otp_release: 22.0
+
+          - elixir: 1.11.0
+            otp_release: 23.0
+
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Elixir
