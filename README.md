@@ -1,5 +1,9 @@
 # Smppex
 
+<img align="right" width="192" height="192"
+     alt="Smppex avatar: Elixir logo with a chat bubble"
+     src="./logo.png">
+
 ![Elixir CI](https://github.com/funbox/smppex/workflows/Elixir%20CI/badge.svg)
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](http://hexdocs.pm/smppex)
 [![Version](https://img.shields.io/hexpm/v/smppex.svg)](https://hex.pm/packages/smppex)
@@ -40,5 +44,9 @@ To install and use the package:
 ## License
 
 This software is licensed under [MIT License](LICENSE).
+
+## Credits
+
+The picture for the project was made by [Igor Garybaldi](http://pandabanda.com/).
 
 [![Sponsored by FunBox](https://funbox.ru/badges/sponsored_by_funbox_centered.svg)](https://funbox.ru)
