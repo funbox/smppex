@@ -14,7 +14,7 @@ defmodule SMPPEX.Protocol.OptionalFieldsBuilderTest do
   end
 
   test "build unknown invalid" do
-    big_bin = [0] |> Stream.cycle() |> Enum.take(65536) |> to_string
+    big_bin = [0] |> Stream.cycle() |> Enum.take(65_536) |> to_string
     res = OptionalFieldsBuilder.build(%{0x01 => big_bin})
     assert {:error, _} = res
 

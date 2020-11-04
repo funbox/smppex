@@ -16,7 +16,7 @@ defmodule Support.SSL.ESME do
       transport: :ranch_ssl,
       socket_opts: [
         cacertfile: 'test/support/ssl/ca.crt',
-        verify: :verify_peer,
+        verify: :verify_peer
       ]
     )
   end

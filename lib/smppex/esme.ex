@@ -85,12 +85,14 @@ defmodule SMPPEX.ESME do
   def start_link(host, port, {_module, _args} = mod_with_args, opts \\ []) do
     transport = Keyword.get(opts, :transport, @default_transport)
     timeout = Keyword.get(opts, :timeout, @default_timeout)
+
     sock_opts = [
-                  :binary,
-                  {:packet, 0},
-                  {:active, :once}
-                  | Keyword.get(opts, :socket_opts, [])
-                ]
+      :binary,
+      {:packet, 0},
+      {:active, :once}
+      | Keyword.get(opts, :socket_opts, [])
+    ]
+
     esme_opts = Keyword.get(opts, :esme_opts, [])
 
     case transport.connect(convert_host(host), port, sock_opts, timeout) do

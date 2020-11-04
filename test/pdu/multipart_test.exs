@@ -8,7 +8,7 @@ defmodule SMPPEX.Pdu.MultipartTest do
 
   test "multipart_ie" do
     assert {:error, _} = Multipart.multipart_ie({-1, 1, 1})
-    assert {:error, _} = Multipart.multipart_ie({65536, 1, 1})
+    assert {:error, _} = Multipart.multipart_ie({65_536, 1, 1})
     assert {:error, _} = Multipart.multipart_ie({1, 0, 1})
     assert {:error, _} = Multipart.multipart_ie({1, 256, 1})
     assert {:error, _} = Multipart.multipart_ie({1, 1, 0})
