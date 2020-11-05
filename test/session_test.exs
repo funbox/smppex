@@ -1286,7 +1286,7 @@ defmodule SMPPEX.SessionTest do
     Server.send(ctx[:server], reply_pdu_data)
     Timer.sleep(50)
 
-    Kernel.send(esme, {:tick, time + 10050})
+    Kernel.send(esme, {:tick, time + 10_050})
     Timer.sleep(50)
 
     assert [

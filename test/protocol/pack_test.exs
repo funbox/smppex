@@ -9,7 +9,7 @@ defmodule SMPPEX.Protocol.PackTest do
     assert {:error, _} = Pack.integer(:bad_int, 1)
 
     assert {:error, _} = Pack.integer(256, 1)
-    assert {:error, _} = Pack.integer(65536, 1)
+    assert {:error, _} = Pack.integer(65_536, 1)
     assert {:error, _} = Pack.integer(4_294_967_296, 1)
 
     assert {:error, _} = Pack.integer(-1, 1)
@@ -17,7 +17,7 @@ defmodule SMPPEX.Protocol.PackTest do
     assert {:error, _} = Pack.integer(-1, 1)
 
     assert {:ok, <<0xFF>>} = Pack.integer(255, 1)
-    assert {:ok, <<0xFF, 0xFF>>} = Pack.integer(65535, 2)
+    assert {:ok, <<0xFF, 0xFF>>} = Pack.integer(65_535, 2)
     assert {:ok, <<0xFF, 0xFF, 0xFF, 0xFF>>} = Pack.integer(4_294_967_295, 4)
 
     assert {:ok, <<0x00>>} = Pack.integer(0, 1)
@@ -81,8 +81,8 @@ defmodule SMPPEX.Protocol.PackTest do
     assert {:error, _} = Pack.tlv(1, :not_a_string)
     assert {:error, _} = Pack.tlv(:not_an_int, "val")
     assert {:error, _} = Pack.tlv(-1, "val")
-    assert {:error, _} = Pack.tlv(65536, "val")
-    assert {:error, _} = Pack.tlv(1, [0] |> Stream.cycle() |> Enum.take(65536) |> to_string)
+    assert {:error, _} = Pack.tlv(65_536, "val")
+    assert {:error, _} = Pack.tlv(1, [0] |> Stream.cycle() |> Enum.take(65_536) |> to_string)
 
     assert {:ok, <<00, 01, 00, 03, ?a, ?b, ?c>>} = Pack.tlv(1, "abc")
   end
