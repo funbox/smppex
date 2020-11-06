@@ -447,15 +447,13 @@ defmodule SMPPEX.SessionTest do
 
   test "init", ctx do
     _esme = ctx[:esme].(fn {:init, _socket, _transport}, st -> {:ok, st} end)
+    Timer.sleep(50)
 
     assert [{:init, _, _}] = ctx[:callbacks].()
   end
 
   test "init, stop from init", ctx do
-    Process.flag(:trap_exit, true)
-
-    assert {:error, :oops} ==
-             ctx[:esme].(fn {:init, _socket, _transport}, _st -> {:stop, :oops} end)
+    assert {:error, :oops} = ctx[:esme].(fn {:init, _socket, _transport}, _st -> {:stop, :oops} end)
   end
 
   test "handle_pdu with ok", ctx do
@@ -1489,7 +1487,7 @@ defmodule SMPPEX.SessionTest do
         {:terminate, _reason, _los_pdus}, _st -> :stop
       end)
 
-    {_ok, _closed, error} = Support.Session.socket_messages()
+    {_ok, _closed, error, _passive} = Support.Session.socket_messages()
     Kernel.send(esme, {error, :socket, :wow_such_socket_error})
 
     Timer.sleep(50)

@@ -80,18 +80,21 @@ defmodule SMPPEX.MC do
   def start({_module, _args} = mod_with_args, opts \\ []) do
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
-    transport_opts = Keyword.get(opts, :transport_opts, [{:port, 0}])
+    transport_opts =
+      opts
+      |> Keyword.get(:transport_opts, [{:port, 0}])
+      |> normalize_transport_opts(acceptor_count)
+
     mc_opts = Keyword.get(opts, :mc_opts, [])
     ref = make_ref()
 
     start_result =
       Ranch.start_listener(
         ref,
-        acceptor_count,
         transport,
         transport_opts,
         SMPPEX.TransportSession,
-        {SMPPEX.Session, [mod_with_args, mc_opts], :mc}
+        {SMPPEX.Session, [mod_with_args, mc_opts]}
       )
 
     case start_result do
@@ -99,6 +102,14 @@ defmodule SMPPEX.MC do
       {:ok, _, _} -> {:ok, ref}
       {:ok, _} -> {:ok, ref}
     end
+  end
+
+  defp normalize_transport_opts(opts, acceptor_count) when is_list(opts) do
+    %{num_acceptors: acceptor_count, socket_opts: opts}
+  end
+
+  defp normalize_transport_opts(opts, acceptor_count) when is_map(opts) do
+    Map.put_new(opts, :num_acceptors, acceptor_count)
   end
 
   @spec stop(Ranch.ref()) :: :ok

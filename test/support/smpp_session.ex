@@ -15,7 +15,7 @@ defmodule Support.SMPPSession do
   def start_link(host, port, pid) do
     sock_opts = [:binary, {:packet, 0}, {:active, :once}]
     {:ok, socket} = @transport.connect(host, port, sock_opts, @timeout)
-    {:ok, session} = TransportSession.start_link(socket, @transport, {__MODULE__, [pid], :esme})
+    {:ok, session} = TransportSession.start_esme(socket, @transport, {__MODULE__, [pid]})
     session
   end
 

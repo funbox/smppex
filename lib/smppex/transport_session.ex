@@ -20,7 +20,9 @@ defmodule SMPPEX.TransportSession do
     :ref,
     :socket,
     :transport,
+    :mode,
     :module,
+    :module_opts,
     :module_state,
     :buffer
   ]
@@ -68,19 +70,22 @@ defmodule SMPPEX.TransportSession do
               {:ok, state}
               | {:error, reason}
 
-  # @spec start_link(Ranch.ref, term, module, Keyword.t) :: {:ok, pid} | {:error, term}
-  # Ranch handles this return type, but Dialyzer is not happy with it
+  # Ranch protocol behaviour
 
-  def start_link(ref, socket, transport, opts) do
-    ProcLib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+  def start_link(ref, transport, opts) do
+    start_link(:mc, {ref, transport, opts})
+  end
+
+  def start_link(mode, args) do
+    ProcLib.start_link(__MODULE__, :init, [{mode, args}])
   end
 
   # Manual start, without Ranch
 
-  def start_link(socket, transport, opts) do
+  def start_esme(socket, transport, opts) do
     ref = make_ref()
 
-    case start_link(ref, socket, transport, opts) do
+    case start_link(:esme, {socket, ref, transport, opts}) do
       {:ok, pid} -> grant_socket(pid, ref, transport, socket, @timeout)
       {:error, _err} = err -> err
     end
@@ -106,40 +111,57 @@ defmodule SMPPEX.TransportSession do
     {:ok, pid}
   end
 
-  # This `init/1` is never actually called, it's here just to please `GenServer` so that it does not swear
+  def init({:mc, {ref, transport, opts}}) do
+    :ok = ProcLib.init_ack({:ok, self()})
+    {:ok, socket} = Ranch.handshake(ref)
+    {module, module_opts} = opts
+    case module.init(socket, transport, module_opts) do
+      {:ok, module_state} ->
+        state = %TransportSession{
+          ref: ref,
+          socket: socket,
+          transport: transport,
+          mode: :mc,
+          module: module,
+          module_opts: module_opts,
+          module_state: module_state,
+          buffer: <<>>
+        }
+        wait_for_data(state)
+        GenServerErl.enter_loop(__MODULE__, [], state)
 
-  def init(args) do
-    {:ok, args}
+      {:stop, reason} ->
+        _ = transport.close(socket)
+        Process.exit(self(), reason)
+    end
   end
 
-  def init(ref, socket, transport, opts) do
-    {module, module_opts, mode} = opts
-
+  def init({:esme, {socket, ref, transport, opts}}) do
+    {module, module_opts} = opts
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
         :ok = ProcLib.init_ack({:ok, self()})
-        accept_ack(ref, mode)
+        :ok = accept_grant(ref)
 
         state = %TransportSession{
           ref: ref,
           socket: socket,
           transport: transport,
+          mode: :esme,
           module: module,
+          module_opts: module_opts,
           module_state: module_state,
           buffer: <<>>
         }
-
         wait_for_data(state)
         GenServerErl.enter_loop(__MODULE__, [], state)
 
       {:stop, reason} ->
-        :ok = ProcLib.init_ack({:error, reason})
+        ProcLib.init_ack({:error, reason})
     end
   end
 
-  defp accept_ack(ref, :mc), do: Ranch.accept_ack(ref)
-
-  defp accept_ack(ref, :esme) do
+  defp accept_grant(ref) do
     receive do
       {:shoot, ^ref, _transport, _socket, _ack_timeout} -> :ok
     end
@@ -150,7 +172,7 @@ defmodule SMPPEX.TransportSession do
   end
 
   def handle_info(message, state) do
-    {ok, closed, error} = state.transport.messages
+    {ok, closed, error, _passive} = state.transport.messages
 
     case message do
       {^ok, _socket, data} ->
