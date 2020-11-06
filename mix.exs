@@ -32,15 +32,16 @@ defmodule Smppex.Mixfile do
     [applications: [:logger, :ranch]]
   end
 
-  cond do
-    System.version() |> Version.match?(">= 1.10.0") ->
-      def ex_doc_version(), do: "~> 0.23"
-
-    System.version() |> Version.match?(">= 1.7.0") ->
-      def ex_doc_version(), do: "~> 0.22.0"
-
-    true ->
-      def ex_doc_version(), do: "~> 0.18.0"
+  def ex_doc_version() do
+    version = System.version()
+    cond do
+      version |> Version.match?(">= 1.10.0") ->
+        "~> 0.23"
+      version |> Version.match?(">= 1.7.0") ->
+        "~> 0.22.0"
+      true ->
+        "~> 0.18.0"
+    end
   end
 
   defp deps do

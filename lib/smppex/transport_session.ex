@@ -86,7 +86,7 @@ defmodule SMPPEX.TransportSession do
     ref = make_ref()
 
     case start_link(:esme, {socket, ref, transport, opts}) do
-      {:ok, pid} -> grant_socket(pid, ref, transport, socket, @timeout)
+      {:ok, pid} -> grant_socket(pid, ref, transport, socket)
       {:error, _err} = err -> err
     end
   end
@@ -105,9 +105,9 @@ defmodule SMPPEX.TransportSession do
 
   # Ranch'es granting reimplementation
 
-  defp grant_socket(pid, ref, transport, socket, timeout) do
+  defp grant_socket(pid, ref, transport, socket) do
     transport.controlling_process(socket, pid)
-    Kernel.send(pid, {:shoot, ref, transport, socket, timeout})
+    Kernel.send(pid, {:socket_granted, ref})
     {:ok, pid}
   end
 
@@ -163,7 +163,7 @@ defmodule SMPPEX.TransportSession do
 
   defp accept_grant(ref) do
     receive do
-      {:shoot, ^ref, _transport, _socket, _ack_timeout} -> :ok
+      {:socket_granted, ^ref} -> :ok
     end
   end
 
