@@ -49,7 +49,7 @@ defmodule SMPPEX.MC do
   `args` is the argument passed to the `init` callback each time a new connection is received.
   `opts` is a keyword list of different options:
   * `:transport` is Ranch transport used for TCP connections: either `ranch_tcp` (the default) or `ranch_ssl`;
-  * `:transport_opts` is a list of Ranch transport options. The major option is `{:port, port}`. The port is set to `0` by default, which means that the listener will accept connections on a random free port.
+  * `:transport_opts` is a map of Ranch transport options. The major key is `socket_opts` which contains a list of important options such as `{:port, port}`. The port is set to `0` by default, which means that the listener will accept connections on a random free port. For backward compatibility one can pass a list of socket options instead of `transport_opts` map (as in Ranch 1.x).
   * `:acceptor_count` is the number of Ranch listener acceptors, #{@default_acceptor_count} by default.
   * `:mc_opts` is a keyword list of MC options:
       - `:timer_resolution` is interval of internal `ticks` on which time related events happen, like checking timeouts for pdus, checking SMPP timers, etc. The default is #{

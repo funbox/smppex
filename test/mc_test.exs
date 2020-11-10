@@ -3,11 +3,18 @@ defmodule SMPPEX.MCTest do
 
   alias SMPPEX.MC
 
-  test "start" do
+  test "start, ranch 1.x transport_opts format" do
     {:ok, pid} = Agent.start_link(fn -> [] end)
     handler = fn {:init, _socket, _transport}, st -> {:ok, st} end
 
     assert {:ok, _} = MC.start({Support.Session, {pid, handler}}, transport_opts: [port: 0])
+  end
+
+  test "start" do
+    {:ok, pid} = Agent.start_link(fn -> [] end)
+    handler = fn {:init, _socket, _transport}, st -> {:ok, st} end
+
+    assert {:ok, _} = MC.start({Support.Session, {pid, handler}}, transport_opts: %{socket_opts: [port: 0]})
   end
 
   test "stop" do
@@ -15,7 +22,7 @@ defmodule SMPPEX.MCTest do
     handler = fn {:init, _socket, _transport}, st -> {:ok, st} end
 
     assert {:ok, mc_server} =
-             MC.start({Support.Session, {pid, handler}}, transport_opts: [port: 0])
+             MC.start({Support.Session, {pid, handler}}, transport_opts: %{socket_opts: [port: 0]})
 
     assert :ok == MC.stop(mc_server)
   end
