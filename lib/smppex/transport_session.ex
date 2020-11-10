@@ -103,8 +103,6 @@ defmodule SMPPEX.TransportSession do
     GenServer.reply(from, rep)
   end
 
-  # Ranch'es granting reimplementation
-
   defp grant_socket(pid, ref, transport, socket) do
     transport.controlling_process(socket, pid)
     Kernel.send(pid, {:socket_granted, ref})
@@ -127,8 +125,7 @@ defmodule SMPPEX.TransportSession do
           module_state: module_state,
           buffer: <<>>
         }
-        wait_for_data(state)
-        GenServerErl.enter_loop(__MODULE__, [], state)
+        enter_loop(state)
 
       {:stop, reason} ->
         _ = transport.close(socket)
@@ -153,8 +150,8 @@ defmodule SMPPEX.TransportSession do
           module_state: module_state,
           buffer: <<>>
         }
-        wait_for_data(state)
-        GenServerErl.enter_loop(__MODULE__, [], state)
+
+        enter_loop(state)
 
       {:stop, reason} ->
         ProcLib.init_ack({:error, reason})
@@ -167,8 +164,22 @@ defmodule SMPPEX.TransportSession do
     end
   end
 
+  defp enter_loop(state) do
+    case wait_for_data(state) do
+      {:noreply, new_state} ->
+        GenServerErl.enter_loop(__MODULE__, [], new_state)
+      {:stop, reason, _state} ->
+        Process.exit(self(), reason)
+    end
+  end
+
   defp wait_for_data(state) do
-    :ok = state.transport.setopts(state.socket, [{:active, :once}])
+    {_ok, closed, _error, _passive} = state.transport.messages
+    case state.transport.setopts(state.socket, [{:active, :once}]) do
+      :ok -> {:noreply, state}
+      {:error, ^closed} -> handle_socket_closed(state)
+      {:error, reason} -> handle_socket_error(state, reason)
+    end
   end
 
   def handle_info(message, state) do
@@ -278,8 +289,7 @@ defmodule SMPPEX.TransportSession do
     case SMPP.parse(data) do
       {:ok, nil, data} ->
         new_state = %{state | buffer: data}
-        wait_for_data(state)
-        {:noreply, new_state}
+        wait_for_data(new_state)
 
       {:ok, parse_result, rest_data} ->
         handle_parse_result(state, parse_result, rest_data)
