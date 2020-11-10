@@ -1,8 +1,6 @@
 defmodule Support.SSL.MC do
   @moduledoc false
 
-  alias :timer, as: Timer
-
   use SMPPEX.Session
 
   alias SMPPEX.MC
@@ -30,7 +28,6 @@ defmodule Support.SSL.MC do
     if accept do
       {:ok, 0}
     else
-      Timer.sleep(100)
       {:stop, :ooops}
     end
   end

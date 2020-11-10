@@ -160,6 +160,21 @@ defmodule SMPPEX.SessionTest do
     assert [{:init, _, _}, {:handle_cast, ^ref}] = ctx[:callbacks].()
   end
 
+  test "cast through GenServer.cast", ctx do
+    ref = make_ref()
+
+    esme =
+      ctx[:esme].(fn
+        {:init, _socket, _transport}, st -> {:ok, st}
+        {:handle_cast, _}, st -> {:noreply, st}
+      end)
+
+    GenServer.cast(esme, ref)
+    Timer.sleep(10)
+
+    assert [{:init, _, _}, {:handle_cast, ^ref}] = ctx[:callbacks].()
+  end
+
   test "cast with pdu", ctx do
     esme =
       ctx[:esme].(fn
@@ -272,6 +287,18 @@ defmodule SMPPEX.SessionTest do
       end)
 
     assert :got_it == Session.call(esme, :req)
+
+    assert [{:init, _, _}, {:handle_call, :req, _from}] = ctx[:callbacks].()
+  end
+
+  test "call through GenServer.call", ctx do
+    esme =
+      ctx[:esme].(fn
+        {:init, _socket, _transport}, st -> {:ok, st}
+        {:handle_call, :req, _from}, st -> {:reply, :got_it, st}
+      end)
+
+    assert :got_it == GenServer.call(esme, :req)
 
     assert [{:init, _, _}, {:handle_call, :req, _from}] = ctx[:callbacks].()
   end

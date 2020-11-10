@@ -1,6 +1,8 @@
 defmodule Support.SSL.ESME do
   @moduledoc false
 
+  alias :timer, as: Timer
+
   use SMPPEX.Session
 
   @host "localhost"
@@ -8,11 +10,11 @@ defmodule Support.SSL.ESME do
   @system_id "system_id"
   @password "password"
 
-  def start_link(port) do
+  def start_link(port, delay \\ nil) do
     SMPPEX.ESME.start_link(
       @host,
       port,
-      {__MODULE__, %{pid: self()}},
+      {__MODULE__, %{pid: self(), delay: delay}},
       transport: :ranch_ssl,
       socket_opts: [
         cacertfile: 'test/support/ssl/ca.crt',
@@ -23,6 +25,9 @@ defmodule Support.SSL.ESME do
 
   @impl true
   def init(_socket, _transport, st) do
+    if st.delay do
+      Timer.sleep(st.delay)
+    end
     send(self(), :bind)
     {:ok, st}
   end
