@@ -113,6 +113,7 @@ defmodule SMPPEX.TransportSession do
     :ok = ProcLib.init_ack({:ok, self()})
     {:ok, socket} = Ranch.handshake(ref)
     {module, module_opts} = opts
+
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
         state = %TransportSession{
@@ -125,6 +126,7 @@ defmodule SMPPEX.TransportSession do
           module_state: module_state,
           buffer: <<>>
         }
+
         enter_loop(state)
 
       {:stop, reason} ->
@@ -135,6 +137,7 @@ defmodule SMPPEX.TransportSession do
 
   def init({:esme, {socket, ref, transport, opts}}) do
     {module, module_opts} = opts
+
     case module.init(socket, transport, module_opts) do
       {:ok, module_state} ->
         :ok = ProcLib.init_ack({:ok, self()})
@@ -168,6 +171,7 @@ defmodule SMPPEX.TransportSession do
     case wait_for_data(state) do
       {:noreply, new_state} ->
         GenServerErl.enter_loop(__MODULE__, [], new_state)
+
       {:stop, reason, _state} ->
         Process.exit(self(), reason)
     end
@@ -175,6 +179,7 @@ defmodule SMPPEX.TransportSession do
 
   defp wait_for_data(state) do
     {_ok, closed, _error, _passive} = state.transport.messages
+
     case state.transport.setopts(state.socket, [{:active, :once}]) do
       :ok -> {:noreply, state}
       {:error, ^closed} -> handle_socket_closed(state)

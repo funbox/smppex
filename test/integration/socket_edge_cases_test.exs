@@ -40,5 +40,4 @@ defmodule SMPPEX.Integration.SocketEdgeCasesTest do
 
     MC.stop(ref)
   end
-
 end

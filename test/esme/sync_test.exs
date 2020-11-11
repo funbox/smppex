@@ -30,11 +30,13 @@ defmodule SMPPEX.ESME.SyncTest do
     port = Support.TCP.Helpers.find_free_port()
 
     mc_with_opts = fn handler, opts ->
-      {:ok, ref} = MC.start(
-        {Support.Session, {callback_agent, handler}},
-        transport_opts: [port: port],
-        mc_opts: opts
-      )
+      {:ok, ref} =
+        MC.start(
+          {Support.Session, {callback_agent, handler}},
+          transport_opts: [port: port],
+          mc_opts: opts
+        )
+
       ref
     end
 

@@ -28,6 +28,7 @@ defmodule Support.SSL.ESME do
     if st.delay do
       Timer.sleep(st.delay)
     end
+
     send(self(), :bind)
     {:ok, st}
   end

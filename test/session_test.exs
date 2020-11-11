@@ -480,7 +480,8 @@ defmodule SMPPEX.SessionTest do
   end
 
   test "init, stop from init", ctx do
-    assert {:error, :oops} = ctx[:esme].(fn {:init, _socket, _transport}, _st -> {:stop, :oops} end)
+    assert {:error, :oops} =
+             ctx[:esme].(fn {:init, _socket, _transport}, _st -> {:stop, :oops} end)
   end
 
   test "handle_pdu with ok", ctx do

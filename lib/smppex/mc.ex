@@ -80,6 +80,7 @@ defmodule SMPPEX.MC do
   def start({_module, _args} = mod_with_args, opts \\ []) do
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
+
     transport_opts =
       opts
       |> Keyword.get(:transport_opts, [{:port, 0}])

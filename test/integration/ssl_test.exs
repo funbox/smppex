@@ -37,5 +37,4 @@ defmodule SMPPEX.Integration.SSLTest do
         assert true
     end
   end
-
 end

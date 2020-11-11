@@ -34,11 +34,14 @@ defmodule Smppex.Mixfile do
 
   def ex_doc_version() do
     version = System.version()
+
     cond do
       version |> Version.match?(">= 1.10.0") ->
         "~> 0.23"
+
       version |> Version.match?(">= 1.7.0") ->
         "~> 0.22.0"
+
       true ->
         "~> 0.18.0"
     end
