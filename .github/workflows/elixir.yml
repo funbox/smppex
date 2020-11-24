@@ -81,7 +81,7 @@ jobs:
       run: mix test
 
   code_quality:
-    name: Send coveralls stats
+    name: Check or calculate code quality metrics
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
