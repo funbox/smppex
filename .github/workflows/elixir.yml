@@ -80,7 +80,7 @@ jobs:
     - name: Run tests
       run: mix test
 
-  send_coveralls:
+  code_quality:
     name: Send coveralls stats
     runs-on: ubuntu-latest
     env:
@@ -100,6 +100,8 @@ jobs:
         key: coveralls-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
     - name: Install dependencies
       run: mix deps.get
+    - name: Check formatting
+      run: mix format --check-formatted     
     - name: Send coveralls
       run: mix coveralls.github
 
