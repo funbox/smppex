@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Changed
+- Fixed callback flow while accepting connections in MC. `init` callbacks are now run
+after socket transport handshake (as it always should have been).
 - Updated Ranch to 2.0.
 - Dropped OTP < 21 support for Ranch 2.0 compatibility.
 

@@ -29,7 +29,7 @@ To install and use the package:
 
    ```elixir
    def deps do
-     [{:smppex, "~> 2.0"}]
+     [{:smppex, "~> 3.0"}]
    end
    ```
 
