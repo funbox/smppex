@@ -23,7 +23,7 @@ defmodule SMPPEX.Protocol.TlvFormat do
     {:receipted_message_id, 0x001E, quote(do: {:c_octet_string, {:max, 65}})},
     {:ms_msg_wait_facilities, 0x0030, quote(do: {:integer, 1})},
     {:privacy_indicator, 0x0201, quote(do: {:integer, 1})},
-    {:source_subaddress, 0x0202, quote(do: {:octet_string, {1, 23}})},
+    {:source_subaddress, 0x0202, quote(do: {:octet_string, {2, 23}})},
     {:dest_subaddress, 0x0203, quote(do: {:octet_string, {2, 23}})},
     {:user_message_reference, 0x0204, quote(do: {:integer, 2})},
     {:user_response_code, 0x0205, quote(do: {:integer, 1})},
