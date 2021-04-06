@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.2] - 2021-04-06
+
+### Changed
+- Removed `poison` from dev dependencies.
+
 ## [3.0.1] - 2020-12-13
 
 ### Changed
