@@ -1,6 +1,8 @@
 defmodule SMPPEX.Integration.SocketEdgeCasesTest do
   use ExUnit.Case
 
+  @moduletag :ssl
+
   alias Support.SSL.MC
   alias Support.SSL.ESME
   alias Support.TCP.Helpers

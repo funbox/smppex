@@ -1,6 +1,8 @@
 defmodule SMPPEX.Integration.SSLTest do
   use ExUnit.Case
 
+  @moduletag :ssl
+
   alias Support.SSL.MC
   alias Support.SSL.ESME
   alias Support.TCP.Helpers
@@ -9,6 +11,7 @@ defmodule SMPPEX.Integration.SSLTest do
   test "pdu exchange" do
     port = Helpers.find_free_port()
     {:ok, ref} = MC.start(port, "localhost.crt")
+
     {:ok, _pid} = ESME.start_link(port)
 
     receive do

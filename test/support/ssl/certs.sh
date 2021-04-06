@@ -1,6 +1,16 @@
 #!/bin/bash
 
 openssl req \
+    -x509 \
+    -new \
+    -nodes \
+    -key ca.key \
+    -subj "/C=RU/ST=Moscow/O=RubyBox/CN=rubybox.ru" \
+    -sha256 \
+    -days 10000 \
+    -out ca.crt
+
+openssl req \
     -batch \
     -new \
     -key cert.key \

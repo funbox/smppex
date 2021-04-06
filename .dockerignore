@@ -1,0 +1,10 @@
+_build
+deps
+erl_crash.dump
+cover
+doc
+.local.plt
+docs
+Dockerfile.test
+Dockerfile
+Makefile

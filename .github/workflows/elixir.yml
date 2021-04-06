@@ -2,12 +2,12 @@ name: Elixir CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, fix-tests ]
   pull_request:
     branches: [ master ]
 
 jobs:
-  build:
+  test:
     name: Build and test
     runs-on: ubuntu-latest
 
@@ -79,7 +79,27 @@ jobs:
     - name: Install dependencies
       run: mix deps.get
     - name: Run tests
-      run: mix test
+      run: mix test --exclude ssl
+
+  test-ssl:
+    # Github Actions environment has unreproducible issues with openssl, libcrypto,
+    # Erlang builds, etc. So we run in container to control everything.
+    name: Run SSL tests
+    runs-on: ubuntu-latest
+    container: elixir
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      MIX_ENV: test
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Hex
+      run: mix local.hex --force
+    - name: Install Rebar
+      run: mix local.rebar --force
+    - name: Install dependencies
+      run: mix deps.get
+    - name: Run tests
+      run: mix test --only ssl
 
   code_quality:
     name: Check or calculate code quality metrics
