@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
+## [3.0.3] - 2021-04-16
+
+### Added
+- `session_module` option for MC and ESME modules to provide alternative implementations
+of `SMPPEX.TransportSession` behavior.
+
 ## [3.0.2] - 2021-04-06
 
 ### Changed
