@@ -99,7 +99,7 @@ defmodule Support.SMPPSession do
   end
 
   def terminate(reason, st) do
-    save_callback(st, :terminate, [reason])
+    {[], save_callback(st, :terminate, [reason])}
   end
 
   def code_change(old_vsn, st, extra) do
