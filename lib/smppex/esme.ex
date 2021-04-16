@@ -31,7 +31,6 @@ defmodule SMPPEX.ESME do
 
   alias SMPPEX.Compat
   alias SMPPEX.Session.Defaults
-  alias SMPPEX.Session
   alias SMPPEX.TransportSession
 
   @default_transport :ranch_tcp
@@ -54,6 +53,7 @@ defmodule SMPPEX.ESME do
   `opts` is a keyword list of different options:
   * `:transport` is Ranch transport used for TCP connection: either `:ranch_tcp` (the default) or
   `:ranch_ssl`;
+  * `:session_module` is a module to use as an alternative to `SMPPEX.Session` for handling sessions (if needed). For example, `SMPPEX.TelemetrySession`.
   * `:timeout` is timeout for transport connect. The default is #{@default_timeout} ms;
   * `:esme_opts` is a keyword list of ESME options:
       - `:timer_resolution` is interval of internal `ticks` on which time related events happen, like checking timeouts
@@ -93,11 +93,13 @@ defmodule SMPPEX.ESME do
       | Keyword.get(opts, :socket_opts, [])
     ]
 
+    session_module = Keyword.get(opts, :session_module, SMPPEX.Session)
+
     esme_opts = Keyword.get(opts, :esme_opts, [])
 
     case transport.connect(convert_host(host), port, sock_opts, timeout) do
       {:ok, socket} ->
-        session_opts = {Session, [mod_with_args, esme_opts]}
+        session_opts = {session_module, [mod_with_args, esme_opts]}
 
         case TransportSession.start_esme(socket, transport, session_opts) do
           {:ok, pid} ->
