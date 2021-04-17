@@ -83,6 +83,7 @@ defmodule Smppex.Mixfile do
       main: "examples",
       extras: [
         "EXAMPLES.md",
+        "PROJECTS.md",
         "CHANGELOG.md",
         "LICENSE"
       ],
