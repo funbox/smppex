@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.4] - 2021-04-17
+
+### Added
+- Documentation of auxilary projects.
+
+### Changed
+- Organization of documents.
 
 ## [3.0.3] - 2021-04-16
 
