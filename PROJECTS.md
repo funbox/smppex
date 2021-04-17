@@ -19,7 +19,7 @@ A public installation is available online at:
 
 It is useful for manual preliminary testing of SMPP clients.
 
-One can connect to the demonstrational MC with the mensioned `smppssend` tool:
+One can connect to the demonstrational MC with the mentioned `smppssend` tool:
 
 ```
 ./smppsend --host smppex.rubybox.ru --port 2775 --system-id systemid --password pass --bind-mode trx --submit-sm --source-addr from123 --source-addr-npi 1 --source-addr-ton 5 --destination-addr 99999999999 --dest-addr-npi 1 --dest-addr-ton 1 --short-message  HelloHelloHelloHelloHelloHelloHelloHelloHello --data-coding 8 --split-max-bytes 30 --udh-ref 123 --ucs2 --registered-delivery 1 --wait
