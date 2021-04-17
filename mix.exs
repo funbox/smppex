@@ -24,7 +24,8 @@ defmodule Smppex.Mixfile do
         plt_add_deps: true,
         plt_add_apps: [:ssl],
         flags: ["-Werror_handling", "-Wrace_conditions"]
-      ]
+      ],
+      docs: docs()
     ]
   end
 
@@ -68,12 +69,24 @@ defmodule Smppex.Mixfile do
   defp package do
     [
       name: :smppex,
-      files: ["lib", "mix.exs", "README*", "LICENSE"],
+      files: ["lib", "mix.exs", "*.md", "LICENSE"],
       maintainers: ["Ilya Averyanov"],
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/funbox/smppex"
       }
+    ]
+  end
+
+  defp docs do
+    [
+      main: "examples",
+      extras: [
+        "EXAMPLES.md",
+        "CHANGELOG.md",
+        "LICENSE"
+      ],
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 end
