@@ -11,7 +11,7 @@
 
 SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.org).
 
-See [Examples](https://hexdocs.pm/smppex/SMPPEX.html) for details.
+See **[Examples](https://hexdocs.pm/smppex/examples.html)** for details.
 
 ## Documentation
 
