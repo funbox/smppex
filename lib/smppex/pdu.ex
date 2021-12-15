@@ -6,6 +6,7 @@ defmodule SMPPEX.Pdu do
   alias SMPPEX.Protocol.TlvFormat
   alias SMPPEX.Protocol.CommandNames
   alias SMPPEX.Pdu
+  alias SMPPEX.RawPdu
 
   @type t :: %Pdu{
           command_id: non_neg_integer,
@@ -490,7 +491,7 @@ defmodule SMPPEX.Pdu do
     fields_as_tuple(pdu, [:destination_addr, :dest_addr_ton, :dest_addr_npi])
   end
 
-  @spec as_reply_to(pdu :: Pdu.t(), reply_to_pdu :: Pdu.t()) :: Pdu.t()
+  @spec as_reply_to(pdu :: Pdu.t(), reply_to_pdu :: Pdu.t() | RawPdu.t()) :: Pdu.t()
 
   @doc """
   Makes `pdu` be reply to the `reply_to_pdu`, i.e. assigns `reply_to_pdu`'s
