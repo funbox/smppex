@@ -6,8 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.5] - 2021-12-22
+
 ### Added
+- Elixir 13 to CI matrix.
 - OTP 24 to CI matrix.
+
+### Changed
+- Fixed some typing issues ([Fyodor Parmanchukov](https://github.com/rezerbit)).
 
 ## [3.0.4] - 2021-04-17
 
