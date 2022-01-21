@@ -7,21 +7,25 @@ defmodule Support.SSL.MC do
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Factory, as: PduFactory
 
-  def start(port, certname, accept \\ true) do
-    MC.start(
-      {__MODULE__, [accept]},
-      transport: :ranch_ssl,
-      transport_opts: %{
-        socket_opts: [
-          port: port,
-          certfile: 'test/support/ssl/#{certname}',
-          keyfile: 'test/support/ssl/cert.key'
-        ]
-      }
+  def child_spec({port, certname}), do: child_spec({port, certname, true})
+
+  def child_spec({port, certname, accept}) do
+    Supervisor.child_spec(
+      {
+        MC,
+        session: {__MODULE__, [accept]},
+        transport: :ranch_ssl,
+        transport_opts: %{
+          socket_opts: [
+            port: port,
+            certfile: 'test/support/ssl/#{certname}',
+            keyfile: 'test/support/ssl/cert.key'
+          ]
+        }
+      },
+      []
     )
   end
-
-  def stop(ref), do: MC.stop(ref)
 
   @impl true
   def init(_socket, _transport, [accept]) do

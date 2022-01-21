@@ -10,7 +10,7 @@ defmodule SMPPEX.Integration.SSLTest do
 
   test "pdu exchange" do
     port = Helpers.find_free_port()
-    {:ok, ref} = MC.start(port, "localhost.crt")
+    start_supervised!({MC, {port, "localhost.crt"}})
 
     {:ok, _pid} = ESME.start_link(port)
 
@@ -22,8 +22,6 @@ defmodule SMPPEX.Integration.SSLTest do
       1000 ->
         assert false
     end
-
-    MC.stop(ref)
   end
 
   test "ssl handshake fail" do
@@ -32,9 +30,8 @@ defmodule SMPPEX.Integration.SSLTest do
     case :string.to_integer(otp_release) do
       {n, ''} when n >= 20 ->
         port = Helpers.find_free_port()
-        {:ok, ref} = MC.start(port, "badhost.crt")
+        start_supervised!({MC, {port, "badhost.crt"}})
         {:error, {:tls_alert, _}} = ESME.start_link(port)
-        MC.stop(ref)
 
       _ ->
         assert true

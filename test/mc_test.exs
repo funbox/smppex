@@ -27,4 +27,16 @@ defmodule SMPPEX.MCTest do
 
     assert :ok == MC.stop(mc_server)
   end
+
+  test "child_spec" do
+    {:ok, pid} = Agent.start_link(fn -> [] end)
+    handler = fn {:init, _socket, _transport}, st -> {:ok, st} end
+
+    assert {:ok, _pid} =
+             start_supervised({
+               MC,
+               session: {Support.Session, {pid, handler}},
+               transport_opts: %{socket_opts: [port: 0]}
+             })
+  end
 end
