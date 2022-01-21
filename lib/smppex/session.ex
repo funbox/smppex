@@ -235,48 +235,48 @@ defmodule SMPPEX.Session do
 
       require Logger
 
-      @doc false
+      @impl SMPPEX.Session
       def init(_socket, _transport, args) do
         {:ok, args}
       end
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_pdu(_pdu, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_unparsed_pdu(_pdu, _error, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_resp(_pdu, _original_pdu, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_resp_timeout(_pdus, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_timeout(reason, _state) do
         Logger.info("Session #{inspect(self())}, being stopped by timers(#{reason})")
         {:timers, reason}
       end
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_socket_error(error, state), do: {{:socket_error, error}, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_socket_closed(state), do: {:socket_closed, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_call(_request, _from, state), do: {:reply, :ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_cast(_request, state), do: {:noreply, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_info(_request, state), do: {:noreply, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def terminate(reason, lost_pdus, _state) do
         Logger.info(
           "Session #{inspect(self())} stopped with reason: #{inspect(reason)}, lost_pdus: #{
@@ -287,7 +287,7 @@ defmodule SMPPEX.Session do
         :stop
       end
 
-      @doc false
+      @impl SMPPEX.Session
       def code_change(_vsn, state, _extra), do: {:ok, state}
 
       defoverridable init: 3,
