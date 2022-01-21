@@ -28,6 +28,10 @@ defmodule Support.Session do
     register(st, {:handle_resp_timeout, pdus})
   end
 
+  def handle_timeout(reason, st) do
+    register(st, {:handle_timeout, reason})
+  end
+
   def handle_send_pdu_result(pdu, result, st) do
     register(st, {:handle_send_pdu_result, pdu, result})
   end

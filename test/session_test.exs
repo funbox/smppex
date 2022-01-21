@@ -1263,6 +1263,7 @@ defmodule SMPPEX.SessionTest do
         {:init, _socket, _transport}, st -> {:ok, st}
         {:handle_send_pdu_result, _pdu, _result}, st -> st
         {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+        {:handle_timeout, reason}, _st -> reason
         {:terminate, _reason, _los_pdus}, _st -> :stop
       end)
 
@@ -1284,7 +1285,8 @@ defmodule SMPPEX.SessionTest do
              # bind_transmitter sent
              {:handle_send_pdu_result, _, :ok},
              {:handle_resp, _, _},
-             {:terminate, {:timers, :enquire_link_timer}, _los_pdus}
+             {:handle_timeout, :enquire_link_timer},
+             {:terminate, :enquire_link_timer, _los_pdus}
            ] = ctx[:callbacks].()
 
     refute Process.alive?(esme)
@@ -1300,6 +1302,7 @@ defmodule SMPPEX.SessionTest do
         {:init, _socket, _transport}, st -> {:ok, st}
         {:handle_send_pdu_result, _pdu, _result}, st -> st
         {:handle_resp, _pdu, _original_pdu}, st -> {:ok, st}
+        {:handle_timeout, reason}, _st -> reason
         {:terminate, _reason, _los_pdus}, _st -> :stop
       end)
 
@@ -1320,7 +1323,8 @@ defmodule SMPPEX.SessionTest do
              # bind_transmitter sent
              {:handle_send_pdu_result, _, :ok},
              {:handle_resp, _, _},
-             {:terminate, {:timers, :inactivity_timer}, []}
+             {:handle_timeout, :inactivity_timer},
+             {:terminate, :inactivity_timer, []}
            ] = ctx[:callbacks].()
 
     refute Process.alive?(esme)
@@ -1333,6 +1337,7 @@ defmodule SMPPEX.SessionTest do
       ctx[:esme_with_opts].(
         fn
           {:init, _socket, _transport}, st -> {:ok, st}
+          {:handle_timeout, reason}, _st -> reason
           {:terminate, _reason, _los_pdus}, _st -> :stop
         end,
         session_init_limit: 1000
@@ -1345,7 +1350,8 @@ defmodule SMPPEX.SessionTest do
 
     assert [
              {:init, _, _},
-             {:terminate, {:timers, :session_init_timer}, []}
+             {:handle_timeout, :session_init_timer},
+             {:terminate, :session_init_timer, []}
            ] = ctx[:callbacks].()
 
     refute Process.alive?(esme)

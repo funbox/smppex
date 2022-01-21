@@ -131,6 +131,13 @@ defmodule SMPPEX.Session do
               | {:stop, reason, state}
 
   @doc """
+  Invoked when the session is about to be stopped due to a timeout.
+
+  The return value will be used as the exit reason of the session process. The default implementation returns `{:timers, reason}`.
+  """
+  @callback handle_timeout(timeout_reason :: term, state) :: exit_reason :: term
+
+  @doc """
   Invoked when the SMPP session successfully sent PDU to transport or failed to do this.
 
   `pdu` argument contains the PDU for which send status is reported. `send_pdu_result` can be
@@ -246,6 +253,12 @@ defmodule SMPPEX.Session do
       def handle_resp_timeout(_pdus, state), do: {:ok, state}
 
       @doc false
+      def handle_timeout(reason, _state) do
+        Logger.info("Session #{inspect(self())}, being stopped by timers(#{reason})")
+        {:timers, reason}
+      end
+
+      @doc false
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
       @doc false
@@ -282,6 +295,7 @@ defmodule SMPPEX.Session do
                      handle_unparsed_pdu: 3,
                      handle_resp: 3,
                      handle_resp_timeout: 2,
+                     handle_timeout: 2,
                      handle_send_pdu_result: 3,
                      handle_socket_error: 2,
                      handle_socket_closed: 1,
@@ -621,8 +635,8 @@ defmodule SMPPEX.Session do
         {:noreply, [], new_st}
 
       {:stop, reason} ->
-        Logger.info("Session #{inspect(self())}, being stopped by timers(#{reason})")
-        {:stop, {:timers, reason}, [], st}
+        exit_reason = st.module.handle_timeout(reason, st.module_state)
+        {:stop, exit_reason, [], st}
 
       {:enquire_link, new_timers} ->
         {enquire_link, new_sequence_number} =
