@@ -117,25 +117,25 @@ defmodule SMPPEX.ESME.Sync do
 
   # Session callbacks
 
-  @impl true
+  @impl SMPPEX.Session
   def init(_socket, _transport, st) do
     Process.flag(:trap_exit, true)
     {:ok, st}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_call({:call, {:request, pdu}, from}, _from, st) do
     {:reply, :ok, [pdu], add_resp_waiter(st, pdu, from)}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_call(:pdus, _from, st) do
     pdus = Enum.reverse(st.additional_pdus)
     new_st = %St{st | additional_pdus: []}
     {:reply, pdus, new_st}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_call({:call, :wait_for_pdus, from}, _from, st) do
     new_st =
       case st.additional_pdus do
@@ -155,7 +155,7 @@ defmodule SMPPEX.ESME.Sync do
     {:reply, :ok, new_st}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_resp(pdu, original_pdu, st) do
     if has_resp_waiter?(st, original_pdu) do
       resp_waiter = get_resp_waiter(st, original_pdu)
@@ -166,27 +166,27 @@ defmodule SMPPEX.ESME.Sync do
     end
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_resp_timeout(pdus, st) do
     {:ok, process_timeouts(pdus, st)}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_pdu(pdu, st) do
     {:ok, push_to_waiting({:pdu, pdu}, st)}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_socket_closed(st) do
     {:normal, st}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_socket_error(error, st) do
     {{:socket_error, error}, st}
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def terminate(_reason, _los_pdus, st) do
     case st.pdu_waiter do
       nil -> :nop
@@ -200,7 +200,7 @@ defmodule SMPPEX.ESME.Sync do
     :stop
   end
 
-  @impl true
+  @impl SMPPEX.Session
   def handle_send_pdu_result(pdu, result, st) do
     case result do
       :ok ->
