@@ -17,18 +17,23 @@ defmodule SMPPEX.MC do
 
   ```
 
-  2. Start a listener passing implemented behaviour as a callback module.
+  2. Pass the child specification to a supervisor, using implemented behaviour as a session module:
 
   ```elixir
-
-  {:ok, listener} = SMPPEX.MC.start({MyESMESession, some_args},
-                                    transport_opts: [port: 2775])
+  Supervisor.start_link(
+    [
+      {
+        SMPPEX.MC,
+        session: {MyESMESession, session_arg},
+        transport_opts: [port: 2775]
+      },
+      ...
+    ],
+    ...
+  )
   ```
 
-  The important things to note are:
-  * There is no `start_link` method, since started listener is not a standalone
-  `GenServer` but a pool of socket acceptors running under `Ranch` supervisor.
-  * Each received connection is served with its own process which uses passed callback module (`MyESMESession`) for handling connection events. Each process has his own state initialized by `init` callback receiving `socket`, `transport` and a copy of arguments (`some_args`).
+  Note that each received connection is served with its own process which uses passed callback module (`MyESMESession`) for handling connection events. Each process has his own state initialized by `init` callback receiving `socket`, `transport` and a copy of arguments (`session_arg`).
   """
 
   alias :ranch, as: Ranch
@@ -43,11 +48,45 @@ defmodule SMPPEX.MC do
           | {:error, reason :: term}
 
   @doc """
-  Starts listener for MC entitiy.
+  Starts listener for MC entity.
 
-  `module` is the callback module which should implement `SMPPEX.Session` behaviour.
-  `args` is the argument passed to the `init` callback each time a new connection is received.
-  `opts` is a keyword list of different options:
+  The listener is started in the supervision tree of the `:ranch` application.
+  Therefore, prefer `child_spec/1`, which allows you to start the MC in your own supervision tree.
+
+  The first argument must be a `{module, arg}` tuple, where `module` is the callback module which should implement `SMPPEX.Session` behaviour, while `arg` is the argument passed to the `init` callback each time a new connection is received.
+  For the list of other options see `child_spec/1`.
+  """
+  def start(mod_with_args, opts \\ []) do
+    {ref, transport, transport_opts, protocol, protocol_opts} =
+      ranch_start_args(mod_with_args, opts)
+
+    start_result = Ranch.start_listener(ref, transport, transport_opts, protocol, protocol_opts)
+
+    case start_result do
+      {:error, _} = error -> error
+      {:ok, _, _} -> {:ok, ref}
+      {:ok, _} -> {:ok, ref}
+    end
+  end
+
+  @doc """
+  Returns a supervisor child specification for starting listener for MC entity.
+
+  Starting under a supervisor:
+
+  ```elixir
+  Supervisor.start_link(
+    [
+      {SMPPEX.MC, session: {MyESMESession, session_arg}, ...},
+      ...
+    ],
+    ...
+  )
+  ```
+
+  Options:
+
+  * `:session` (required) a `{module, arg}` tuple, where `module` is the callback module which should implement `SMPPEX.Session` behaviour, while `arg` is the argument passed to the `init` callback each time a new connection is received.
   * `:transport` is Ranch transport used for TCP connections: either `ranch_tcp` (the default) or `ranch_ssl`;
   * `:transport_opts` is a map of Ranch transport options. The major key is `socket_opts` which contains a list of important options such as `{:port, port}`. The port is set to `0` by default, which means that the listener will accept connections on a random free port. For backward compatibility one can pass a list of socket options instead of `transport_opts` map (as in Ranch 1.x).
   * `:session_module` is a module to use as an alternative to `SMPPEX.Session` for handling sessions (if needed). For example, `SMPPEX.TelemetrySession`.
@@ -78,19 +117,6 @@ defmodule SMPPEX.MC do
   The returned value is either `{:ok, ref}` or `{:error, reason}`. The `ref` can be later used
   to stop the whole MC listener and all sessions received by it.
   """
-  def start(mod_with_args, opts \\ []) do
-    {ref, transport, transport_opts, protocol, protocol_opts} =
-      ranch_start_args(mod_with_args, opts)
-
-    start_result = Ranch.start_listener(ref, transport, transport_opts, protocol, protocol_opts)
-
-    case start_result do
-      {:error, _} = error -> error
-      {:ok, _, _} -> {:ok, ref}
-      {:ok, _} -> {:ok, ref}
-    end
-  end
-
   @spec child_spec(Keyword.t()) :: Supervisor.child_spec()
   def child_spec(opts) do
     {mod_with_args, opts} = Keyword.pop!(opts, :session)

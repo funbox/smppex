@@ -192,8 +192,15 @@ defmodule MC do
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Factory, as: PduFactory
 
-  def start(port) do
-    SMPPEX.MC.start({__MODULE__, []}, [transport_opts: [port: port]])
+  def child_spec(port) do
+    Supervisor.child_spec(
+      {
+        SMPPEX.MC,
+        session: {__MODULE__, []},
+        transport_opts: [port: port]
+      },
+      []
+    )
   end
 
   def init(_socket, _transport, []) do
@@ -213,4 +220,6 @@ defmodule MC do
 
 end
 ```
+
+This server can be started by providing `{MC, port}` as a child of some supervisor.
 
