@@ -91,6 +91,16 @@ defmodule SMPPEX.MC do
     end
   end
 
+  @spec child_spec(Keyword.t()) :: Supervisor.child_spec()
+  def child_spec(opts) do
+    {mod_with_args, opts} = Keyword.pop!(opts, :session)
+
+    {ref, transport, transport_opts, protocol, protocol_opts} =
+      ranch_start_args(mod_with_args, opts)
+
+    Ranch.child_spec(ref, transport, transport_opts, protocol, protocol_opts)
+  end
+
   defp ranch_start_args({_module, _args} = mod_with_args, opts) do
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
