@@ -78,7 +78,20 @@ defmodule SMPPEX.MC do
   The returned value is either `{:ok, ref}` or `{:error, reason}`. The `ref` can be later used
   to stop the whole MC listener and all sessions received by it.
   """
-  def start({_module, _args} = mod_with_args, opts \\ []) do
+  def start(mod_with_args, opts \\ []) do
+    {ref, transport, transport_opts, protocol, protocol_opts} =
+      ranch_start_args(mod_with_args, opts)
+
+    start_result = Ranch.start_listener(ref, transport, transport_opts, protocol, protocol_opts)
+
+    case start_result do
+      {:error, _} = error -> error
+      {:ok, _, _} -> {:ok, ref}
+      {:ok, _} -> {:ok, ref}
+    end
+  end
+
+  defp ranch_start_args({_module, _args} = mod_with_args, opts) do
     acceptor_count = Keyword.get(opts, :acceptor_count, @default_acceptor_count)
     transport = Keyword.get(opts, :transport, @default_transport)
 
@@ -92,20 +105,13 @@ defmodule SMPPEX.MC do
 
     session_module = Keyword.get(opts, :session_module, SMPPEX.Session)
 
-    start_result =
-      Ranch.start_listener(
-        ref,
-        transport,
-        transport_opts,
-        SMPPEX.TransportSession,
-        {session_module, [mod_with_args, mc_opts]}
-      )
-
-    case start_result do
-      {:error, _} = error -> error
-      {:ok, _, _} -> {:ok, ref}
-      {:ok, _} -> {:ok, ref}
-    end
+    {
+      ref,
+      transport,
+      transport_opts,
+      SMPPEX.TransportSession,
+      {session_module, [mod_with_args, mc_opts]}
+    }
   end
 
   defp normalize_transport_opts(opts, acceptor_count) when is_list(opts) do
