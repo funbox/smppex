@@ -119,7 +119,9 @@ defmodule SMPPEX.MC do
   """
   @spec child_spec(Keyword.t()) :: Supervisor.child_spec()
   def child_spec(opts) do
-    {mod_with_args, opts} = Keyword.pop!(opts, :session)
+    # TODO: using fetch! + delete since pop! is supported on 1.10+. Replace this with pop! once we require at least Elixir 1.10.
+    mod_with_args = Keyword.fetch!(opts, :session)
+    opts = Keyword.delete(opts, :session)
 
     {ref, transport, transport_opts, protocol, protocol_opts} =
       ranch_start_args(mod_with_args, opts)
