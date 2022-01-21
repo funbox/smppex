@@ -366,6 +366,7 @@ defmodule SMPPEX.Session do
 
   # SMPP.TransportSession callbacks
 
+  @impl TransportSession
   def init(socket, transport, [{module, args}, session_opts]) do
     case module.init(socket, transport, args) do
       {:ok, state} ->
@@ -423,6 +424,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def handle_pdu({:unparsed_pdu, raw_pdu, error}, st) do
     {st.module.handle_unparsed_pdu(raw_pdu, error, st.module_state), st}
     |> process_handle_unparsed_pdu_reply()
@@ -440,6 +442,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def handle_send_pdu_result(pdu, send_pdu_result, st) do
     new_st = update_timers_with_outgoing_pdu(pdu, send_pdu_result, st)
 
@@ -459,6 +462,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def handle_call({:send_pdu, pdu}, _from, st) do
     {{:reply, :ok, [pdu], st.module_state}, st}
     |> process_handle_call_reply()
@@ -478,6 +482,7 @@ defmodule SMPPEX.Session do
     handle_call({:call, request}, from, st)
   end
 
+  @impl TransportSession
   def handle_cast({:cast, request}, st) do
     {st.module.handle_cast(request, st.module_state), st}
     |> process_handle_cast_reply()
@@ -487,7 +492,7 @@ defmodule SMPPEX.Session do
     handle_cast({:cast, request}, st)
   end
 
-  @doc false
+  @impl TransportSession
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
     new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
@@ -514,16 +519,19 @@ defmodule SMPPEX.Session do
     |> process_handle_info_reply()
   end
 
+  @impl TransportSession
   def handle_socket_closed(st) do
     {reason, new_module_state} = st.module.handle_socket_closed(st.module_state)
     {reason, %Session{st | module_state: new_module_state}}
   end
 
+  @impl TransportSession
   def handle_socket_error(error, st) do
     {reason, new_module_state} = st.module.handle_socket_error(error, st.module_state)
     {reason, %Session{st | module_state: new_module_state}}
   end
 
+  @impl TransportSession
   def terminate(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
 
@@ -539,6 +547,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def code_change(old_vsn, st, extra) do
     case st.module.code_change(old_vsn, st.module_state, extra) do
       {:ok, new_module_state} ->
