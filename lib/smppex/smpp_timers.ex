@@ -17,6 +17,8 @@ defmodule SMPPEX.SMPPTimers do
 
   @type t :: %SMPPTimers{}
 
+  @type stop_reason :: :session_init_timer | :inactivity_timer | :enquire_link_timer
+
   @spec new(non_neg_integer, timeout, timeout, timeout, timeout) :: t
 
   def new(time, session_init_limit, enquire_link_limit, enquire_link_resp_limit, inactivity_limit) do
@@ -47,7 +49,7 @@ defmodule SMPPEX.SMPPTimers do
     %SMPPTimers{timers | last_peer_action_time: time, enquire_link_state: :active}
   end
 
-  @type tick_result :: {:ok, t} | {:stop, reason :: term} | {:enquire_link, t}
+  @type tick_result :: {:ok, t} | {:stop, reason :: stop_reason} | {:enquire_link, t}
 
   @spec handle_tick(t, non_neg_integer) :: tick_result
 
