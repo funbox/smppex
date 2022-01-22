@@ -131,6 +131,13 @@ defmodule SMPPEX.Session do
               | {:stop, reason, state}
 
   @doc """
+  Invoked when the session is about to be stopped due to a timeout.
+
+  The return value will be used as the exit reason of the session process. The default implementation returns `{:timers, reason}`.
+  """
+  @callback handle_timeout(SMPPEX.SMPPTimers.stop_reason(), state) :: exit_reason :: term
+
+  @doc """
   Invoked when the SMPP session successfully sent PDU to transport or failed to do this.
 
   `pdu` argument contains the PDU for which send status is reported. `send_pdu_result` can be
@@ -228,42 +235,48 @@ defmodule SMPPEX.Session do
 
       require Logger
 
-      @doc false
+      @impl SMPPEX.Session
       def init(_socket, _transport, args) do
         {:ok, args}
       end
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_pdu(_pdu, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_unparsed_pdu(_pdu, _error, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_resp(_pdu, _original_pdu, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_resp_timeout(_pdus, state), do: {:ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
+      def handle_timeout(reason, _state) do
+        Logger.info("Session #{inspect(self())}, being stopped by timers(#{reason})")
+        {:timers, reason}
+      end
+
+      @impl SMPPEX.Session
       def handle_send_pdu_result(_pdu, _result, state), do: state
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_socket_error(error, state), do: {{:socket_error, error}, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_socket_closed(state), do: {:socket_closed, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_call(_request, _from, state), do: {:reply, :ok, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_cast(_request, state), do: {:noreply, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def handle_info(_request, state), do: {:noreply, state}
 
-      @doc false
+      @impl SMPPEX.Session
       def terminate(reason, lost_pdus, _state) do
         Logger.info(
           "Session #{inspect(self())} stopped with reason: #{inspect(reason)}, lost_pdus: #{
@@ -274,7 +287,7 @@ defmodule SMPPEX.Session do
         :stop
       end
 
-      @doc false
+      @impl SMPPEX.Session
       def code_change(_vsn, state, _extra), do: {:ok, state}
 
       defoverridable init: 3,
@@ -282,6 +295,7 @@ defmodule SMPPEX.Session do
                      handle_unparsed_pdu: 3,
                      handle_resp: 3,
                      handle_resp_timeout: 2,
+                     handle_timeout: 2,
                      handle_send_pdu_result: 3,
                      handle_socket_error: 2,
                      handle_socket_closed: 1,
@@ -352,6 +366,7 @@ defmodule SMPPEX.Session do
 
   # SMPP.TransportSession callbacks
 
+  @impl TransportSession
   def init(socket, transport, [{module, args}, session_opts]) do
     case module.init(socket, transport, args) do
       {:ok, state} ->
@@ -409,6 +424,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def handle_pdu({:unparsed_pdu, raw_pdu, error}, st) do
     {st.module.handle_unparsed_pdu(raw_pdu, error, st.module_state), st}
     |> process_handle_unparsed_pdu_reply()
@@ -426,6 +442,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def handle_send_pdu_result(pdu, send_pdu_result, st) do
     new_st = update_timers_with_outgoing_pdu(pdu, send_pdu_result, st)
 
@@ -445,6 +462,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def handle_call({:send_pdu, pdu}, _from, st) do
     {{:reply, :ok, [pdu], st.module_state}, st}
     |> process_handle_call_reply()
@@ -464,6 +482,7 @@ defmodule SMPPEX.Session do
     handle_call({:call, request}, from, st)
   end
 
+  @impl TransportSession
   def handle_cast({:cast, request}, st) do
     {st.module.handle_cast(request, st.module_state), st}
     |> process_handle_cast_reply()
@@ -473,7 +492,7 @@ defmodule SMPPEX.Session do
     handle_cast({:cast, request}, st)
   end
 
-  @doc false
+  @impl TransportSession
   def handle_info({:timeout, _timer_ref, :emit_tick}, st) do
     new_tick_timer_ref = Erlang.start_timer(st.timer_resolution, self(), :emit_tick)
     Erlang.cancel_timer(st.tick_timer_ref)
@@ -500,16 +519,19 @@ defmodule SMPPEX.Session do
     |> process_handle_info_reply()
   end
 
+  @impl TransportSession
   def handle_socket_closed(st) do
     {reason, new_module_state} = st.module.handle_socket_closed(st.module_state)
     {reason, %Session{st | module_state: new_module_state}}
   end
 
+  @impl TransportSession
   def handle_socket_error(error, st) do
     {reason, new_module_state} = st.module.handle_socket_error(error, st.module_state)
     {reason, %Session{st | module_state: new_module_state}}
   end
 
+  @impl TransportSession
   def terminate(reason, st) do
     lost_pdus = PduStorage.fetch_all(st.pdus)
 
@@ -525,6 +547,7 @@ defmodule SMPPEX.Session do
     end
   end
 
+  @impl TransportSession
   def code_change(old_vsn, st, extra) do
     case st.module.code_change(old_vsn, st.module_state, extra) do
       {:ok, new_module_state} ->
@@ -621,8 +644,8 @@ defmodule SMPPEX.Session do
         {:noreply, [], new_st}
 
       {:stop, reason} ->
-        Logger.info("Session #{inspect(self())}, being stopped by timers(#{reason})")
-        {:stop, {:timers, reason}, [], st}
+        exit_reason = st.module.handle_timeout(reason, st.module_state)
+        {:stop, exit_reason, [], st}
 
       {:enquire_link, new_timers} ->
         {enquire_link, new_sequence_number} =
