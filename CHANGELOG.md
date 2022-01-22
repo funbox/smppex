@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.6] - 2022-01-22
+
+### Added
+- Embedded mode for MC, i.e. a way to start it as a part of custom supervision tree ([sasa1977](https://github.com/sasa1977)).
+- Optional `SMPP.Session` callback (`handle_timeout`) for customizing SMPP session
+exit reason in case of timeouts ([sasa1977](https://github.com/sasa1977)).
+
 ## [3.0.5] - 2021-12-22
 
 ### Added
