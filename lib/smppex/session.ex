@@ -135,7 +135,7 @@ defmodule SMPPEX.Session do
 
   The return value will be used as the exit reason of the session process. The default implementation returns `{:timers, reason}`.
   """
-  @callback handle_timeout(timeout_reason :: term, state) :: exit_reason :: term
+  @callback handle_timeout(SMPPEX.SMPPTimers.stop_reason(), state) :: exit_reason :: term
 
   @doc """
   Invoked when the SMPP session successfully sent PDU to transport or failed to do this.
