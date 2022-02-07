@@ -11,7 +11,6 @@ defmodule SMPPEX.Session.AutoPduHandler do
 
   alias SMPPEX.Pdu.Factory, as: PduFactory
   alias SMPPEX.Pdu
-  alias SMPPEX.Compat
 
   @type t :: %AutoPduHandler{}
 
@@ -36,7 +35,7 @@ defmodule SMPPEX.Session.AutoPduHandler do
   @spec handle_send_pdu_result(t, Pdu.t()) :: :proceed | :skip
 
   def handle_send_pdu_result(handler, pdu) do
-    case Compat.ets_take(handler.by_ref, Pdu.ref(pdu)) do
+    case ETS.take(handler.by_ref, Pdu.ref(pdu)) do
       [_] -> :skip
       [] -> :proceed
     end
@@ -66,7 +65,7 @@ defmodule SMPPEX.Session.AutoPduHandler do
   end
 
   defp handle_resp(handler, pdu, sequence_number) do
-    case Compat.ets_take(handler.by_sequence_number, Pdu.sequence_number(pdu)) do
+    case ETS.take(handler.by_sequence_number, Pdu.sequence_number(pdu)) do
       [_] -> {:skip, [], sequence_number}
       [] -> :proceed
     end
