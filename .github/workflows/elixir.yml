@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: Build and test
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/compatibility-and-deprecations.md
     strategy:
@@ -106,7 +106,7 @@ jobs:
     # Github Actions environment has unreproducible issues with openssl, libcrypto,
     # Erlang builds, etc. So we run in container to control everything.
     name: Run SSL tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     container: elixir
     env:
@@ -125,7 +125,7 @@ jobs:
 
   code_quality:
     name: Check or calculate code quality metrics
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
