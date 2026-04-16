@@ -11,7 +11,7 @@
 
 SMPP 3.4 protocol and framework implementation in [Elixir](http://elixir-lang.org).
 
-> Maintenance note: this repository is no longer actively maintained in the funbox organization. Active development and support continue at [savonarola/smppex](https://github.com/savonarola/smppex).
+> **Maintenance note: this repository is no longer actively maintained in the funbox organization. Active development and support continue at [savonarola/smppex](https://github.com/savonarola/smppex).**
 
 See **[Examples](https://hexdocs.pm/smppex/examples.html)** for details.
 
