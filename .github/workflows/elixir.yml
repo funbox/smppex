@@ -9,136 +9,135 @@ on:
 jobs:
   test:
     name: Build and test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    env:
+      MIX_ENV: test
 
-    # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/compatibility-and-deprecations.md
+    # https://github.com/elixir-lang/elixir/blob/main/lib/elixir/pages/references/compatibility-and-deprecations.md
     strategy:
       matrix:
         include:
 
-          # Elixir 1.9
-
-          - elixir: 1.9.0
-            otp_release: 21.3.8.24
-
-          - elixir: 1.9.0
-            otp_release: 22.3.4.23
-
-          # Elixir 1.10
-
-          - elixir: 1.10.0
-            otp_release: 21.3.8.24
-
-          - elixir: 1.10.0
-            otp_release: 22.3.4.23
-
-          - elixir: 1.10.3
-            otp_release: 23.3.4.9
-
-          # Elixir 1.11
-
-          - elixir: 1.11.4
-            otp_release: 21.3.8.24
-
-          - elixir: 1.11.4
-            otp_release: 22.3.4.23
-
-          - elixir: 1.11.4
-            otp_release: 23.3.4.9
-
-          - elixir: 1.11.4
-            otp_release: 24.1.6
-
           # Elixir 1.12
 
           - elixir: 1.12.3
-            otp_release: 22.3.4.23
-
-          - elixir: 1.12.3
-            otp_release: 23.3.4.9
-
-          - elixir: 1.12.3
-            otp_release: 24.1.6
+            otp_release: 24.3
 
           # Elixir 1.13
 
           - elixir: 1.13.4
-            otp_release: 22.3.4.23
+            otp_release: 24.3
 
           - elixir: 1.13.4
-            otp_release: 23.3.4.9
-
-          - elixir: 1.13.4
-            otp_release: 24.2.1
-
-          - elixir: 1.13.4
-            otp_release: 25.1.1
+            otp_release: 25.3
 
           # Elixir 1.14
 
-          - elixir: 1.14.0
-            otp_release: 23.3.4.9
+          - elixir: 1.14.5
+            otp_release: 24.3
 
-          - elixir: 1.14.0
-            otp_release: 24.2.1
+          - elixir: 1.14.5
+            otp_release: 25.3
 
-          - elixir: 1.14.0
-            otp_release: 25.1.1
+          - elixir: 1.14.5
+            otp_release: 26.2
+
+          # Elixir 1.15
+
+          - elixir: 1.15.8
+            otp_release: 24.3
+
+          - elixir: 1.15.8
+            otp_release: 25.3
+
+          - elixir: 1.15.8
+            otp_release: 26.2
+
+          # Elixir 1.16
+
+          - elixir: 1.16.3
+            otp_release: 24.3
+
+          - elixir: 1.16.3
+            otp_release: 25.3
+
+          - elixir: 1.16.3
+            otp_release: 26.2
+
+          # Elixir 1.17
+
+          - elixir: 1.17.3
+            otp_release: 25.3
+
+          - elixir: 1.17.3
+            otp_release: 26.2
+
+          - elixir: 1.17.3
+            otp_release: 27.1
+
+          # Elixir 1.18
+
+          - elixir: 1.18.4
+            otp_release: 27.3
+
+          # Elixir 1.19
+
+          - elixir: 1.19.5
+            otp_release: 27.3
+
+          - elixir: 1.19.5
+            otp_release: 28.1
+
+          - elixir: 1.19.5
+            otp_release: 29.0
+
+          # Elixir 1.20
+
+          - elixir: 1.20.0
+            otp_release: 27.1
+
+          - elixir: 1.20.0
+            otp_release: 28.0
+
+          - elixir: 1.20.0
+            otp_release: 29.0
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Set up Elixir
       uses: erlef/setup-beam@v1
       with:
         elixir-version: ${{ matrix.elixir }}
         otp-version: ${{ matrix.otp_release }}
     - name: Restore dependencies cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: deps
         key: ${{ matrix.elixir }}-${{ matrix.otp_release }}-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
     - name: Install dependencies
       run: mix deps.get
     - name: Run tests
-      run: mix test --exclude ssl
+      run: mix test
+    - name: Dialyzer
+      run: mix dialyzer
 
-  test-ssl:
-    # Github Actions environment has unreproducible issues with openssl, libcrypto,
-    # Erlang builds, etc. So we run in container to control everything.
-    name: Run SSL tests
-    runs-on: ubuntu-20.04
-
-    container: elixir
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      MIX_ENV: test
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install Hex
-      run: mix local.hex --force
-    - name: Install Rebar
-      run: mix local.rebar --force
-    - name: Install dependencies
-      run: mix deps.get
-    - name: Run tests
-      run: mix test --only ssl
 
   code_quality:
     name: Check or calculate code quality metrics
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       MIX_ENV: test
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Set up Elixir
       uses: erlef/setup-beam@v1
       with:
-        elixir-version: '1.10.4'
-        otp-version: '23.0'
+        elixir-version: '1.19.5'
+        otp-version: '28.1'
     - name: Restore dependencies cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: deps
         key: coveralls-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
